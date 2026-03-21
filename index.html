@@ -703,11 +703,32 @@ function submitNewWs(){
   errEl.style.display='none';
   var btn=document.getElementById('nws-submit-btn');
   btn.disabled=true;btn.textContent='Creating...';
-  sb.from('workspaces').insert({owner_id:currentUser.id,name:name,quarter:_nwsQuarter,data:blankState(_nwsQuarter)}).select().single()
+  var newData=blankState(_nwsQuarter);
+  sb.from('workspaces')
+    .insert({owner_id:currentUser.id,name:name,quarter:_nwsQuarter,data:newData})
+    .select()
+    .single()
     .then(function(r){
-      closeNewWsModal();
-      if(r.error){toast('Error: '+r.error.message,'error');btn.disabled=false;btn.textContent='Create Workspace';return;}
-      openWorkspace(r.data.id);
+      btn.disabled=false;btn.textContent='Create Workspace';
+      if(r.error){
+        errEl.textContent='Error: '+r.error.message;
+        errEl.style.display='block';
+        return;
+      }
+      // Success - close modal first, then load workspace
+      document.getElementById('new-ws-modal').classList.remove('open');
+      document.getElementById('ws-overlay').style.display='none';
+      currentWs=r.data;
+      Object.assign(state,newData);
+      document.getElementById('ws-title').textContent=r.data.name;
+      renderCurrentTab();
+      setupRealtime(r.data.id);
+      toast('Workspace created: '+r.data.name);
+    })
+    .catch(function(e){
+      btn.disabled=false;btn.textContent='Create Workspace';
+      errEl.textContent='Unexpected error. Please try again.';
+      errEl.style.display='block';
     });
 }
 function openWorkspace(wsId){
