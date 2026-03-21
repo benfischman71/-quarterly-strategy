@@ -882,7 +882,21 @@ function renderOverview(){
       '<input class="ov-headline" value="'+esc(ov.headline)+'" oninput="updateOvField(\'headline\',this.value)" />'+
       '<input class="ov-sub" value="'+esc(ov.subline)+'" oninput="updateOvField(\'subline\',this.value)" />'+
       '<div class="ov-stats">'+statsHtml+'</div>'+
-      '<div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="editHeroStats()" style="font-size:11px">&#9998; Edit Key Metrics</button></div>'+
+      '<div style="margin-top:14px;display:flex;align-items:center;gap:10px">'+
+        '<button class="btn btn-ghost btn-sm" onclick="editHeroStats()" style="font-size:11px">&#9998; Edit Key Metrics</button>'+
+        '<label for="metrics-file-drop" class="btn btn-ghost btn-sm" style="font-size:11px;cursor:pointer">&#128196; Upload File to Extract Metrics</label>'+
+        '<input type="file" id="metrics-file-drop" accept=".pdf,.png,.jpg,.jpeg,.csv,.xls,.xlsx,image/*" style="display:none" onchange="handleMetricsFile(this)" />'+
+      '</div>'+
+      '<div id="metrics-drop-zone" '+
+        'ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='#c9a84c08'" '+
+        'ondragleave="this.style.borderColor='var(--border)';this.style.background='transparent'" '+
+        'ondrop="handleMetricsDrop(event)" '+
+        'style="margin-top:10px;border:1px dashed var(--border);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--dim);transition:all .2s;cursor:pointer;display:flex;align-items:center;gap:10px" '+
+        'onclick="document.getElementById('metrics-file-drop').click()">'+
+        '<span style="font-size:18px">&#128202;</span>'+
+        '<span>Drag & drop a budget screenshot, PDF, or CSV here — Claude will extract your key metrics automatically</span>'+
+      '</div>'+
+      '<div id="metrics-extract-box" class="claude-box" style="display:none;margin-top:10px"></div>'+
     '</div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 32px 12px">'+
       '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)">Key Drivers &amp; Prescriptive Targets</div>'+
@@ -1383,6 +1397,109 @@ function loadDriverTemplate(){
   if(!confirm('Load the Q2 2026 template? This will replace any existing drivers.'))return;
   state.overview.drivers=JSON.parse(JSON.stringify(OV_DRIVERS_DEFAULT));
   scheduleSave();renderOverview();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// METRICS FILE EXTRACTION
+// ═══════════════════════════════════════════════════════════════
+function handleMetricsDrop(event){
+  event.preventDefault();
+  var dz=document.getElementById('metrics-drop-zone');
+  dz.style.borderColor='var(--border)';dz.style.background='transparent';
+  var file=event.dataTransfer.files[0];
+  if(file)processMetricsFile(file);
+}
+function handleMetricsFile(input){
+  var file=input.files[0];
+  if(file)processMetricsFile(file);
+  input.value='';
+}
+function processMetricsFile(file){
+  var box=document.getElementById('metrics-extract-box');
+  box.innerHTML='<div class="claude-label">&#9734; Reading file with Claude...</div><div class="spinner">&#8987;</div>';
+  box.style.display='block';
+
+  var reader=new FileReader();
+  var isImage=file.type.startsWith('image/');
+  var isPdf=file.type==='application/pdf';
+
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1];
+    var mediaType=file.type||'image/png';
+
+    var prompt='This is a budget or financial document. Extract the key metrics and return them as JSON only, no other text. Use this exact format:
+'+
+      '{"metrics":['+
+      '{"label":"Revenue Target","val":"$X.XM","delta":"+X.X% YoY"},'+
+      '{"label":"CAC Budget","val":"$XX","delta":"vs. $XX LY"},'+
+      '{"label":"Active Sub Target","val":"XXXK","delta":"+X.X% YoY"},'+
+      '{"label":"EBITDA Budget","val":"$XXK","delta":"vs. ($XXK) LY"},'+
+      '{"label":"Gross Margin","val":"XX.X%","delta":"-XXXbps vs. LY"}'+
+      ']}
+'+
+      'If a metric is not found, use empty string for val and delta. Only return the JSON.';
+
+    var msgContent=[];
+    if(isImage||isPdf){
+      msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});
+    } else {
+      // For CSV/Excel - send as text
+      var text=atob(base64);
+      msgContent.push({type:'text',text:'Here is the file content:
+'+text.slice(0,8000)});
+    }
+    msgContent.push({type:'text',text:prompt});
+
+    sb.auth.getSession().then(function(res){
+      var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+      return fetch(EDGE_FUNCTION_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({
+          messages:[{role:'user',content:msgContent}],
+          system:'You are a data extraction assistant. Extract financial metrics from documents and return only valid JSON.'
+        })
+      });
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      var block=d.content&&d.content.find(function(b){return b.type==='text';});
+      var text=block?block.text:'';
+      try{
+        var clean=text.replace(/```json|```/g,'').trim();
+        var parsed=JSON.parse(clean);
+        if(parsed.metrics&&parsed.metrics.length){
+          // Apply to state
+          if(!state.overview.stats)state.overview.stats=[];
+          parsed.metrics.forEach(function(m,i){
+            if(state.overview.stats[i]){
+              if(m.val)state.overview.stats[i].val=m.val;
+              if(m.delta)state.overview.stats[i].delta=m.delta;
+              if(m.label)state.overview.stats[i].label=m.label;
+            }
+          });
+          scheduleSave();
+          renderOverview();
+          box=document.getElementById('metrics-extract-box');
+          if(box){
+            box.innerHTML='<div class="claude-label">&#10003; Metrics extracted and applied!</div>'+
+              parsed.metrics.map(function(m){return '<div style="font-size:12px;margin-top:4px"><strong style="color:var(--text)">'+esc(m.label)+':</strong> '+esc(m.val)+(m.delta?' <span style="color:var(--muted)">('+esc(m.delta)+')</span>':'')+'</div>';}).join('');
+          }
+        } else {
+          box.innerHTML='<div class="claude-label">Could not extract metrics</div>Try a clearer image or enter manually using Edit Key Metrics.';
+        }
+      } catch(e){
+        box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div>'+esc(text)+'<br><br><em style="font-size:11px;color:var(--dim)">Could not auto-apply - try Edit Key Metrics to enter manually.</em>';
+      }
+    }).catch(function(){
+      box.innerHTML='<div class="claude-label">Error</div>Could not process file. Make sure Claude edge function is set up.';
+    });
+  };
+
+  if(file.type.startsWith('image/')||file.type==='application/pdf'){
+    reader.readAsDataURL(file);
+  } else {
+    reader.readAsDataURL(file);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
