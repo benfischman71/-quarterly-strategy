@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quarterly Strategy Prioritization</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ── reset ── */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-serif}
+
+/* ── tokens ── */
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#0d1220;--border:#1e2638;--border2:#1a2035;
+  --gold:#c9a84c;--text:#e8e4d9;--muted:#7a8499;--dim:#5a6480;
+  --green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--amber:#fbbf24;
+  --font-serif:'Georgia',serif;
+}
+
+/* ── layout ── */
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#header{background:linear-gradient(135deg,#0d1220,#111827);border-bottom:1px solid #c9a84c33;
+  padding:16px 32px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+#header .badge{width:38px;height:38px;background:var(--gold);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;
+  color:var(--bg);font-family:var(--font-serif)}
+#header .title{font-family:var(--font-serif);font-size:20px;color:var(--text)}
+#header .sub{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+#header .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+#user-pill{background:var(--border);border-radius:20px;padding:4px 12px;font-size:12px;
+  color:var(--muted);display:flex;align-items:center;gap:8px}
+#user-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+#sync-badge{font-size:10px;padding:3px 8px;border-radius:4px;background:var(--green)18;
+  color:var(--green);font-weight:600;letter-spacing:.06em}
+
+#tabs{display:flex;background:var(--surface2);border-bottom:1px solid var(--border);
+  padding:0 32px;flex-shrink:0;overflow-x:auto}
+.tab{padding:13px 22px;cursor:pointer;font-size:13px;font-weight:500;color:var(--dim);
+  border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.tab:hover{color:var(--gold)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-num{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+  border-radius:4px;font-size:10px;font-weight:700;background:var(--border);
+  color:var(--dim);margin-right:7px}
+.tab.active .tab-num{background:#c9a84c22;color:var(--gold)}
+
+#content{flex:1;overflow-y:auto}
+.module{padding:28px 32px;max-width:1400px}
+
+/* ── auth overlay ── */
+#auth-overlay{position:fixed;inset:0;background:rgba(10,14,26,.95);z-index:9999;
+  display:flex;align-items:center;justify-content:center}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:40px;width:420px;text-align:center}
+.auth-card h1{font-family:var(--font-serif);font-size:28px;color:var(--text);margin-bottom:6px}
+.auth-card p{font-size:13px;color:var(--muted);margin-bottom:28px}
+.auth-tabs{display:flex;background:var(--surface2);border-radius:8px;padding:3px;margin-bottom:24px}
+.auth-tab{flex:1;padding:7px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+  color:var(--dim);text-align:center;transition:all .15s}
+.auth-tab.active{background:var(--gold);color:var(--bg)}
+.auth-error{background:#f8717118;border:1px solid #f8717133;border-radius:8px;
+  padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:16px;display:none}
+
+/* ── workspace selector ── */
+#ws-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);z-index:9998;
+  display:none;align-items:center;justify-content:center}
+.ws-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:36px;width:520px}
+.ws-card h2{font-family:var(--font-serif);font-size:22px;color:var(--text);margin-bottom:6px}
+.ws-card p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.ws-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;max-height:300px;overflow-y:auto}
+.ws-item{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;cursor:pointer;transition:all .15s}
+.ws-item:hover{border-color:#c9a84c44}
+.ws-item .ws-name{font-size:14px;font-weight:600;color:var(--text)}
+.ws-item .ws-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.ws-item .ws-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700}
+.ws-owner{background:#4ade8018;color:var(--green)}
+.ws-shared{background:#60a5fa18;color:var(--blue)}
+
+/* ── components ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;border:none;
+  font-family:inherit;text-decoration:none}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-gold:hover{background:#e0be6a}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:#c9a84c33;color:var(--gold)}
+.btn-claude{background:var(--surface2);color:var(--purple);border:1px solid #a78bfa33}
+.btn-claude:hover{background:#2a3450;border-color:var(--purple)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid #f8717133}
+.btn-danger:hover{background:#f8717111}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .2s}
+.input:focus{border-color:#c9a84c55}
+.textarea{min-height:80px;resize:vertical}
+.select{cursor:pointer}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--dim);
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-head{padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.card-body{padding:20px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:.05em;text-transform:uppercase}
+
+.claude-box{background:#a78bfa11;border:1px solid #a78bfa33;border-radius:10px;
+  padding:14px;margin-top:12px;font-size:13px;color:#d4c5ff;line-height:1.6;white-space:pre-wrap}
+.claude-label{font-size:10px;color:var(--purple);font-weight:700;letter-spacing:.08em;margin-bottom:8px}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px}
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.gap-8{gap:8px}.gap-12{gap:12px}.gap-16{gap:16px}
+.mt-8{margin-top:8px}.mt-16{margin-top:16px}.mt-24{margin-top:24px}
+.mb-16{margin-bottom:16px}.mb-24{margin-bottom:24px}
+
+.section-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;
+  font-size:10px;font-weight:700}
+.tag-active{background:#4ade8022;color:var(--green)}
+.tag-hold{background:#37415122;color:#9ca3af}
+.tag-planning{background:#60a5fa22;color:var(--blue)}
+.tag-live{background:#4ade8022;color:var(--green)}
+.tag-launching{background:#c9a84c22;color:var(--gold)}
+
+.toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);
+  border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);z-index:9999;
+  transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── overview hero ── */
+.ov-hero{background:linear-gradient(160deg,#080d16,#0f1724 50%,#0c1510);
+  border-bottom:1px solid var(--border);padding:36px 32px 28px}
+.ov-quarter-pill{display:inline-flex;align-items:center;background:#c9a84c18;
+  border:1px solid #c9a84c44;border-radius:6px;padding:4px 14px;font-size:11px;
+  font-weight:700;color:var(--gold);letter-spacing:.12em;text-transform:uppercase}
+.ov-headline{font-family:var(--font-serif);font-size:36px;font-weight:700;
+  color:var(--text);line-height:1.15;max-width:680px;margin-top:16px;
+  outline:none;border:none;background:transparent;width:100%;border-bottom:2px solid #c9a84c18}
+.ov-headline:focus{border-bottom-color:#c9a84c55}
+.ov-sub{font-size:14px;color:#6b7a95;margin-top:10px;max-width:560px;
+  outline:none;border:none;background:transparent;width:100%;border-bottom:1px dashed #2a3450;
+  line-height:1.65}
+.ov-sub:focus{border-bottom-color:#c9a84c44}
+.ov-stats{display:flex;gap:28px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}
+.ov-stat-val{font-family:var(--font-serif);font-size:24px;color:var(--gold);line-height:1}
+.ov-stat-val.red{color:var(--red)}
+.ov-stat-label{font-size:11px;color:var(--dim);margin-top:3px}
+.ov-stat-delta{font-size:11px;font-weight:600;margin-top:2px}
+.delta-up{color:var(--green)}.delta-down{color:var(--red)}
+.stat-divider{width:1px;background:var(--border)}
+
+/* ── driver tiles ── */
+.driver-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px 32px}
+.driver-tile{background:linear-gradient(160deg,#111827,#0f1520);border-radius:14px;
+  border:1px solid var(--border);overflow:hidden;transition:transform .2s,border-color .2s}
+.driver-tile:hover{transform:translateY(-2px);border-color:#2a3550}
+.stripe-critical{height:3px;background:linear-gradient(90deg,#dc2626,#ef4444 50%,transparent)}
+.stripe-watch{height:3px;background:linear-gradient(90deg,var(--gold),#f59e0b 50%,transparent)}
+.stripe-risk{height:3px;background:linear-gradient(90deg,#7c3aed,var(--purple) 50%,transparent)}
+.driver-body{padding:18px 20px 14px}
+.driver-icon-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.urgency-pill{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 9px;border-radius:4px}
+.up-critical{background:#dc262222;color:#ef4444}
+.up-watch{background:#c9a84c22;color:var(--gold)}
+.up-risk{background:#7c3aed22;color:var(--purple)}
+.driver-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;line-height:1.4}
+.driver-bullet{display:flex;gap:8px;margin-bottom:7px}
+.bullet-dot{width:4px;height:4px;border-radius:50%;margin-top:8px;flex-shrink:0}
+.dot-critical{background:#ef4444}.dot-watch{background:var(--gold)}.dot-risk{background:var(--purple)}
+.bullet-text{font-size:12px;color:#8a9ab8;line-height:1.6}
+.driver-footer{display:flex;align-items:center;padding:10px 20px 14px;
+  border-top:1px solid var(--border2);margin-top:12px;gap:8px}
+.target-label{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.target-val{font-size:11px;font-weight:700;color:var(--gold)}
+
+/* ── must-dos ── */
+.must-do-section{margin:0 32px 28px;background:#0c1018;border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.must-do-head{display:flex;align-items:center;justify-content:space-between;
+  padding:16px 22px;border-bottom:1px solid var(--border2)}
+.must-do-title{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);display:flex;align-items:center;gap:10px}
+.must-do-body{padding:18px 22px 22px}
+.must-do-item{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--border2);border-radius:10px;margin-bottom:8px}
+.must-do-num{width:24px;height:24px;border-radius:6px;background:#ef444416;color:var(--red);
+  font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.must-do-text{flex:1;background:transparent;border:none;color:#9aabb8;font-size:13px;
+  font-family:inherit;outline:none;line-height:1.65;resize:none;min-height:20px;width:100%}
+.must-do-del{background:none;border:none;color:#2a3450;cursor:pointer;font-size:14px;
+  line-height:1;transition:color .15s}
+.must-do-del:hover{color:var(--red)}
+.add-btn-dashed{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;
+  cursor:pointer;color:var(--dim);font-size:12px;border:1px dashed var(--border);
+  background:transparent;font-family:inherit;transition:all .15s;width:100%}
+.add-btn-dashed:hover{color:var(--red);border-color:#ef444433;background:#ef444408}
+
+/* ── initiatives ── */
+.init-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:18px;cursor:pointer;position:relative;overflow:hidden;transition:all .2s}
+.init-card-bar{position:absolute;top:0;left:0;right:0;height:3px}
+.init-card:hover{border-color:#c9a84c33;transform:translateY(-1px)}
+.init-card.on-hold{opacity:.6}
+.priority-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;
+  font-size:10px;font-weight:700;margin-bottom:8px}
+.pb-high{background:#c9a84c22;color:var(--gold)}
+.pb-med{background:#60a5fa22;color:var(--blue)}
+.pb-low{background:#4b556322;color:#9ca3af}
+.pb-hold{background:#37415122;color:#9ca3af}
+.init-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
+.init-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+.score-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.sc{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.sc-impact{background:#fbbf2411;color:var(--amber)}
+.sc-effort{background:#60a5fa11;color:var(--blue)}
+.sc-mvp{background:#a78bfa11;color:var(--purple)}
+.init-meta{display:flex;gap:10px;font-size:11px;flex-wrap:wrap}
+
+/* ── slide panel ── */
+#panel-overlay{position:fixed;inset:0;background:#0a0e1acc;backdrop-filter:blur(4px);
+  z-index:1000;display:none}
+#panel-overlay.open{display:block}
+#side-panel{position:fixed;right:0;top:0;bottom:0;width:520px;background:var(--surface);
+  border-left:1px solid var(--border);overflow-y:auto;padding:28px;z-index:1001;
+  transform:translateX(100%);transition:transform .25s ease}
+#panel-overlay.open #side-panel{transform:translateX(0)}
+
+/* ── timeline ── */
+.tl-wrap{background:#0d1118;border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.tl-head{display:grid;grid-template-columns:180px repeat(3,1fr);background:#0a0d14;
+  border-bottom:1px solid var(--border)}
+.tl-head-cell{padding:10px 0;text-align:center;font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border-left:1px solid var(--border)}
+.tl-head-cell:first-child{text-align:left;padding-left:16px;border-left:none}
+.tl-row{border-bottom:1px solid #12192a}
+.tl-row:last-child{border-bottom:none}
+.tl-bar-row{display:grid;grid-template-columns:180px repeat(3,1fr);min-height:52px}
+.tl-label{display:flex;align-items:center;gap:8px;padding:12px 16px}
+.tl-cell{position:relative;border-left:1px solid #12192a}
+.tl-bar{position:absolute;height:24px;top:14px;border-radius:6px;overflow:hidden;min-width:4px}
+.tl-ramp{position:absolute;height:24px;top:14px;border-radius:6px 0 0 6px;
+  background:repeating-linear-gradient(45deg,rgba(0,0,0,.25),rgba(0,0,0,.25) 4px,transparent 4px,transparent 8px)}
+.tl-edit-row{display:grid;grid-template-columns:180px 1fr;background:#080c12;padding:7px 0;border-top:1px solid #1a2030}
+.tl-legend{display:flex;gap:20px;padding:10px 16px;border-top:1px solid var(--border);background:#0a0d14;flex-wrap:wrap}
+.tl-leg{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim)}
+.tl-date-in{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  padding:4px 8px;color:var(--text);font-size:11px;font-family:inherit;outline:none}
+.tl-num-in{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  padding:4px 8px;font-size:11px;font-family:inherit;outline:none;width:52px;text-align:center}
+.tl-status-sel{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+  padding:3px 6px;font-size:10px;font-family:inherit;outline:none;cursor:pointer}
+
+/* ── gap analysis ── */
+.gap-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.gap-stat-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.gap-stat-val{font-family:var(--font-serif);font-size:28px;line-height:1}
+.gap-stat-sub{font-size:11px;color:var(--dim);margin-top:6px}
+.gap-bar{height:4px;border-radius:2px;background:var(--border);margin-top:10px;overflow:hidden}
+.gap-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+
+.dgap-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.dgap-head{display:grid;grid-template-columns:200px 1fr 1fr 1fr 110px;align-items:center;padding:14px 20px;gap:12px}
+.dgap-name{font-size:13px;font-weight:600;color:var(--text)}
+.dgap-meta{font-size:10px;color:var(--dim);margin-top:2px}
+.dcol-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:3px;text-align:center}
+.dcol-val{font-size:14px;font-weight:700;text-align:center}
+.gap-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700}
+.gc-pos{background:#4ade8018;color:var(--green)}
+.gc-neg{background:#f8717118;color:var(--red)}
+.gc-warn{background:#c9a84c18;color:var(--gold)}
+.dgap-months{display:grid;grid-template-columns:200px repeat(3,1fr) 110px;padding:0 20px 14px;gap:12px;align-items:center}
+.m-bar-label{font-size:9px;color:var(--dim);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.m-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.m-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.m-bar-vals{display:flex;justify-content:space-between;margin-top:3px;font-size:9px;color:var(--dim)}
+.dgap-map-row{border-top:1px solid var(--border2);padding:10px 20px 14px}
+.map-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;margin:3px}
+.mp-on{background:#c9a84c22;color:var(--gold);border:1px solid #c9a84c33}
+.mp-off{background:var(--border);color:var(--dim);border:1px solid transparent}
+.mp-on:hover{background:#f8717122;color:var(--red);border-color:#f8717133}
+.mp-off:hover{border-color:#c9a84c33;color:var(--gold)}
+.expand-btn{font-size:10px;color:var(--dim);cursor:pointer;background:none;border:none;
+  font-family:inherit;transition:color .15s}
+.expand-btn:hover{color:var(--gold)}
+
+/* ── budget table ── */
+.metrics-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.metrics-table th{padding:8px 10px;text-align:right;font-weight:600;color:var(--dim);
+  font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:var(--surface2);
+  border-bottom:1px solid var(--border);white-space:nowrap}
+.metrics-table th:first-child{text-align:left;min-width:155px}
+.metrics-table td{padding:6px 10px;border-bottom:1px solid var(--border2);text-align:right;color:#bfc8d6}
+.metrics-table td:first-child{text-align:left;color:var(--text)}
+.cat-row td{background:var(--surface2);color:var(--gold);font-size:10px;letter-spacing:.1em;font-weight:700;padding:7px 10px}
+.metrics-table input{background:transparent;border:none;color:inherit;font-family:inherit;
+  font-size:11.5px;text-align:right;width:100%;outline:none;min-width:65px}
+.metrics-table td:first-child input{text-align:left;color:var(--text)}
+.neg{color:var(--red)!important}.pos{color:var(--green)!important}
+
+/* ── output table ── */
+.out-table{width:100%;border-collapse:collapse}
+.out-table th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border)}
+.out-table td{padding:12px 14px;border-bottom:1px solid var(--border2);font-size:13px}
+.out-table tr:hover td{background:#ffffff04}
+
+/* ── slider ── */
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;
+  background:var(--border);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--gold);cursor:pointer}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── loading ── */
+.spinner{display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay{position:fixed;inset:0;background:rgba(10,14,26,.6);z-index:9997;
+  display:none;align-items:center;justify-content:center}
+.loading-overlay.show{display:flex}
+.loading-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:28px 36px;text-align:center;font-size:14px;color:var(--text)}
+
+/* ── realtime badge ── */
+.rt-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;
+  animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-card"><span class="spinner">⟳</span> &nbsp;Saving...</div>
+</div>
+
+<!-- Auth overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div style="width:48px;height:48px;background:var(--gold);border-radius:10px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:22px;color:var(--bg);font-weight:700">Q</div>
+    <h1>Strategy Platform</h1>
+    <p>Quarterly planning, initiatives &amp; gap analysis</p>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')" id="tab-login">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('signup')" id="tab-signup">Create Account</div>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="field"><label>Email</label><input class="input" id="auth-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <div class="field"><label>Password</label><input class="input" id="auth-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()"></div>
+    <div class="field" id="auth-name-field" style="display:none"><label>Your Name</label><input class="input" id="auth-name" placeholder="First Last"></div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center;padding:11px" onclick="doAuth()" id="auth-btn">Sign In</button>
+    <p style="margin-top:16px;font-size:11px;color:var(--dim)">By signing in you agree to use this for legitimate business purposes.</p>
+  </div>
+</div>
+
+<!-- Workspace selector overlay -->
+<div id="ws-overlay">
+  <div class="ws-card">
+    <h2>Your Workspaces</h2>
+    <p>Select a workspace to open, or create a new one to start fresh.</p>
+    <div class="ws-list" id="ws-list"></div>
+    <div class="flex gap-12">
+      <button class="btn btn-gold" onclick="createWorkspace()" style="flex:1;justify-content:center">+ New Workspace</button>
+      <button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+  <div id="header">
+    <div class="badge">Q</div>
+    <div>
+      <div class="title" id="ws-title">Quarterly Strategy</div>
+      <div class="sub">Q2 2026 Planning Workspace</div>
+    </div>
+    <div class="right">
+      <div id="sync-badge" class="sync-badge" style="display:none"><span class="rt-dot"></span> &nbsp;Live sync</div>
+      <div class="flex gap-12">
+        <button class="btn btn-ghost btn-sm" onclick="shareWorkspace()" title="Share workspace">&#128279; Share</button>
+        <button class="btn btn-ghost btn-sm" onclick="openWsSelector()">&#9776; Workspaces</button>
+      </div>
+      <div id="user-pill" class="user-pill">
+        <div class="dot"></div>
+        <span id="user-name-label">Loading...</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabs">
+    <div class="tab active" data-tab="0" onclick="switchTab(0)"><span class="tab-num">0</span>Quarterly Overview</div>
+    <div class="tab" data-tab="1" onclick="switchTab(1)"><span class="tab-num">1</span>Budget Input</div>
+    <div class="tab" data-tab="2" onclick="switchTab(2)"><span class="tab-num">2</span>Initiatives</div>
+    <div class="tab" data-tab="3" onclick="switchTab(3)"><span class="tab-num">3</span>Mapping & Timeline</div>
+    <div class="tab" data-tab="4" onclick="switchTab(4)"><span class="tab-num">4</span>Output</div>
+  </div>
+
+  <div id="content">
+    <div id="tab-0"></div>
+    <div id="tab-1" style="display:none"></div>
+    <div id="tab-2" style="display:none"></div>
+    <div id="tab-3" style="display:none"></div>
+    <div id="tab-4" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Side panel -->
+<div id="panel-overlay" onclick="if(event.target===this)closePanel()">
+  <div id="side-panel"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG — replace with your own values
+// ═══════════════════════════════════════════════════════════════
+var SUPABASE_URL = 'https://epwicrjyjaugpjsxzzho.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwd2ljcmp5amF1Z3Bqc3h6emhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMDM5MDYsImV4cCI6MjA4OTY3OTkwNn0.pOG5NtQH8RtLPcZgoHSMj4cc93435o6TojsL8qkzq20';
+var EDGE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/swift-function';
+
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+var APR_MS = 1743465600000, MAY_MS = 1746057600000, JUN_MS = 1748736000000, JUL_MS = 1751328000000;
+var Q2_MONTHS = [
+  {key:'apr',label:'April', startMs:APR_MS, days:30},
+  {key:'may',label:'May',   startMs:MAY_MS, days:31},
+  {key:'jun',label:'June',  startMs:JUN_MS, days:30}
+];
+var BUDGET_TARGETS = {
+  'Net Revenue':            {apr:3800000,  may:3940000,  jun:4000000,  total:11740000},
+  'New Subscribers':        {apr:4220,     may:4123,     jun:4973,     total:13316},
+  'Active Subs (BOP)':      {apr:107648,   may:107200,   jun:107100,   total:107648},
+  'Paid Acquisition (CAC)': {apr:77,       may:77,       jun:77,       total:77},
+  'New Customers':          {apr:5322,     may:5230,     jun:6180,     total:16732},
+  'Existing Sub Revenue':   {apr:3003763,  may:3084500,  jun:3648500,  total:10736763},
+  'Product COGS':           {apr:-1670531, may:-1672752, jun:-1673079, total:-5016362},
+  'Retention':              {apr:97,       may:97,       jun:97,       total:97},
+  'Gross Margin':           {apr:1100000,  may:1150000,  jun:1200000,  total:3450000}
+};
+var BUDGET_DRIVERS = Object.keys(BUDGET_TARGETS);
+var DRIVER_UNITS = {'Net Revenue':'$','New Subscribers':'#','Active Subs (BOP)':'#',
+  'Paid Acquisition (CAC)':'$','New Customers':'#','Existing Sub Revenue':'$',
+  'Product COGS':'$','Retention':'%','Gross Margin':'$'};
+var METRIC_CATS = [
+  {name:'VOLUME',metrics:['New Customers','New Subscribers','Active Subs (BOP)']},
+  {name:'MARKETING & CAC',metrics:['Paid Mktg (incl. promos)','CAC (incl. promos)','CAC (excl. promos)']},
+  {name:'REVENUE',metrics:['Net Revenue','Existing Sub Revenue','New Subscriber Revenue','A&C Revenue']},
+  {name:'GROSS MARGIN BUILD',metrics:['Product COGS','Shipping Cost']}
+];
+var BUDGET_COLS = ['Apr Budget','May Budget','Jun Budget',"Q3 '25 Budget",'Apr LY','May LY','Jun LY',"Q3 '25 LY",'Q3 Var ($)','Q3 Var (%)'];
+var INIT_COLORS = ['#c9a84c','#60a5fa','#4ade80','#f472b6','#a78bfa','#fb923c'];
+var OV_DRIVERS_DEFAULT = [
+  {id:'cac',   urgency:'critical', label:'CAC: Must Fall Sharply vs. LY',
+    bullets:['Q2 Budget CAC (incl. promo): $77','Q1 2026 Actual: $60; Q2 2025: $102','Grow acquisition ~4% YoY while cutting spend ~20% YoY'],target:'$77 CAC budget'},
+  {id:'rev',   urgency:'critical', label:'Revenue: +$11.7M Budget - Up +4.5% vs. Q1',
+    bullets:['Q2 Budget NR: $11.74M vs. Q1 Actuals: $11.23M (+$510K, +4.5%)','vs. Q2 2025 LY: $10.71M - needs +9.7% YoY growth'],target:'$11.74M net revenue'},
+  {id:'subs',  urgency:'watch',    label:'Active Subscribers: Hold ~107.6K',
+    bullets:['Q2 Budget end: 107,648 vs. Q1 end: 109,428 (-1.6%)','vs. Q2 2025 LY: 102,062 (+5.5% YoY)','Need: Maintain >=107K active subs through Q2'],target:'>=107K active subs'},
+  {id:'gm',    urgency:'watch',    label:'Gross Margin: Must Expand vs. Q1 Run Rate',
+    bullets:['Q2 Budget GM%: 29.3% vs. Q1 Jan/Feb Actual: 31.6%','vs. Q2 2025 LY: 32.6% - Budget is -330bps below LY','Budget GM $: $3.45M vs. Q2 LY: $3.49M'],target:'29.3% gross margin'},
+  {id:'cogs',  urgency:'risk',     label:'Unit Economics: COGS & Shipping Are Rising',
+    bullets:['Product COGS/unit: $9.32 Budget vs. $8.68 LY (+7.4% YoY)','Shipping cost/unit: $5.17 Budget vs. $4.94 LY','Net rev/unit must reach $21.82 vs. $21.32 LY (+2.3%)'],target:'$21.82 net rev/unit'},
+  {id:'ebitda',urgency:'risk',     label:'EBITDA: Swing to Breakeven',
+    bullets:['Q2 Budget EBITDA: $38K (0.3% margin) - barely breakeven','vs. Q2 2025 LY: ($94K) - meaningful improvement YoY','Risk: June turns EBITDA-negative (-$19K). Watch closely.'],target:'$38K EBITDA'}
+];
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE INIT
+// ═══════════════════════════════════════════════════════════════
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var currentUser = null, currentWs = null, realtimeChannel = null;
+var currentTab = 0;
+
+// ═══════════════════════════════════════════════════════════════
+// APP STATE (loaded from DB)
+// ═══════════════════════════════════════════════════════════════
+var state = {
+  overview: {headline:'What Needs to Move the Needle', subline:'Six critical imperatives defining Q2 success.', quarter:'Q2 2026', must_dos:['Drive CAC to sub-$80 by tightening paid media - grow acquisition ~4% while cutting spend ~20% YoY.','Protect the subscriber base at >=107K active subs through Q2.','Hit $11.74M net revenue - June is the critical month for the EBITDA swing.','Offset rising COGS (+7.4%) by pushing net revenue per unit to $21.82+.','Monitor gross margin weekly - budget is 330bps below LY.','Watch June EBITDA (projected -$19K). Identify levers by mid-May.']},
+  initiatives: [
+    {id:'i1',title:'Subscriber Win-Back Campaign',status:'active',description:'Re-engage lapsed subscribers with personalized offers and content highlights.',whatWhyWhen:'What: Targeted email + paid retargeting\nWhy: Recovery drives high-margin revenue\nWhen: Q2 targeting 90-day lapsed subs',impactScore:8,effortScore:4,mvpScore:9,expectedImpact:'$1.2M',monthlyRunRate:'$400K',launchDate:'2026-04-07',rampWeeks:2,launchStatus:'planning'},
+    {id:'i2',title:'Paid Acquisition Optimization',status:'active',description:'Restructure paid media mix to reduce CAC by improving creative and targeting.',whatWhyWhen:'What: Creative refresh + audience segmentation\nWhy: CAC 20% above target\nWhen: Testing Week 1, full rollout Week 3',impactScore:7,effortScore:6,mvpScore:8,expectedImpact:'$800K',monthlyRunRate:'$267K',launchDate:'2026-04-01',rampWeeks:3,launchStatus:'launching'},
+    {id:'i3',title:'Annual Plan Conversion Push',status:'hold',description:'Convert monthly subscribers to annual plans with limited-time incentives.',whatWhyWhen:'What: In-app offer + email for monthly subs\nWhy: Annual plans lock in LTV\nWhen: Pending brand refresh',impactScore:6,effortScore:3,mvpScore:7,expectedImpact:'$600K',monthlyRunRate:'$200K',launchDate:'',rampWeeks:1,launchStatus:'hold'},
+    {id:'i4',title:'Retention Drip Reactivation',status:'active',description:'Automated lifecycle campaign to reduce churn at key drop-off windows.',whatWhyWhen:'What: 5-email drip at Day 14, 30, 60\nWhy: Reduce churn 0.5pp\nWhen: Live by May 1',impactScore:8,effortScore:3,mvpScore:9,expectedImpact:'$500K',monthlyRunRate:'$167K',launchDate:'2026-05-01',rampWeeks:2,launchStatus:'planning'}
+  ],
+  mappings: {'Net Revenue':['i1','i2'],'New Subscribers':['i1','i2'],'Active Subs (BOP)':['i1','i4'],'Paid Acquisition (CAC)':['i2'],'Existing Sub Revenue':['i1'],'Retention':['i4']},
+  budget_data: {},
+  driver_impacts: {}
+};
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function fmt$(n){var a=Math.abs(n);if(a>=1000000)return'$'+(n/1000000).toFixed(2)+'M';if(a>=1000)return'$'+Math.round(n/1000)+'K';return'$'+Math.round(n);}
+function fmtN(n,u){if(u==='$')return fmt$(n);if(u==='%')return n+'%';if(Math.abs(n)>=1000)return(n/1000).toFixed(1)+'K';return String(Math.round(n));}
+function getPriority(i,e,m){var s=i*2-e+m;if(s>=15)return'HIGH';if(s>=8)return'MED';return'LOW';}
+function uid(){return'i'+Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='error'?'#f8717133':'var(--border)';t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
+function impactFraction(dateStr,rampWeeks,mStartMs,mDays){
+  if(!dateStr)return 0;
+  var lMs=new Date(dateStr).getTime(), mEndMs=mStartMs+mDays*86400000;
+  if(lMs>=mEndMs)return 0;
+  var rampMs=rampWeeks*7*86400000, total=0;
+  for(var d=0;d<mDays;d++){var dMs=mStartMs+d*86400000;if(dMs<lMs)continue;var frac=rampMs===0?1:Math.min((dMs-lMs)/rampMs,1);total+=frac/mDays;}
+  return total;
+}
+function parseMoney(s){if(!s)return 0;var n=parseFloat(String(s).replace(/[$,]/g,''))||0;if(/[Mm]/.test(s))n*=1000000;else if(/[Kk]/.test(s))n*=1000;return n;}
+
+// ═══════════════════════════════════════════════════════════════
+// CLAUDE INTEGRATION
+// ═══════════════════════════════════════════════════════════════
+function askClaude(prompt,btnId,targetId,onDone){
+  var btn=document.getElementById(btnId);
+  var box=document.getElementById(targetId);
+  if(btn)btn.disabled=true;
+  if(box){box.innerHTML='<div class="claude-label">&#9734; CLAUDE IS THINKING...</div><div class="spinner">&#8987;</div>';box.style.display='block';}
+  var session=sb.auth.getSession();
+  session.then(function(res){
+    var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+    return fetch(EDGE_FUNCTION_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({messages:[{role:'user',content:prompt}],system:'You are a strategic business advisor. Be concise, specific, and practical. Under 300 words.'})
+    });
+  }).then(function(r){return r.json();}).then(function(d){
+    var text=(d.content&&d.content.find(function(b){return b.type==='text';}))||{};
+    var reply=text.text||d.error||'No response';
+    if(box){box.innerHTML='<div class="claude-label">&#9734; CLAUDE</div>'+esc(reply).replace(/\n/g,'<br>');}
+    if(onDone)onDone(reply);
+    if(btn)btn.disabled=false;
+  }).catch(function(e){
+    if(box){box.innerHTML='<div class="claude-label">Error</div>Could not reach Claude. Check your edge function.';}
+    if(btn)btn.disabled=false;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
+var authMode='login';
+function switchAuthTab(mode){
+  authMode=mode;
+  document.getElementById('tab-login').classList.toggle('active',mode==='login');
+  document.getElementById('tab-signup').classList.toggle('active',mode==='signup');
+  document.getElementById('auth-btn').textContent=mode==='login'?'Sign In':'Create Account';
+  document.getElementById('auth-name-field').style.display=mode==='signup'?'block':'none';
+  document.getElementById('auth-error').style.display='none';
+}
+function doAuth(){
+  var email=document.getElementById('auth-email').value.trim();
+  var pass=document.getElementById('auth-pass').value;
+  var errEl=document.getElementById('auth-error');
+  errEl.style.display='none';
+  if(!email||!pass){errEl.textContent='Email and password required.';errEl.style.display='block';return;}
+  document.getElementById('auth-btn').disabled=true;
+  document.getElementById('auth-btn').textContent='...';
+  var p = authMode==='signup'
+    ? sb.auth.signUp({email:email,password:pass,options:{data:{name:document.getElementById('auth-name').value.trim()}}})
+    : sb.auth.signInWithPassword({email:email,password:pass});
+  p.then(function(r){
+    if(r.error){errEl.textContent=r.error.message;errEl.style.display='block';document.getElementById('auth-btn').disabled=false;document.getElementById('auth-btn').textContent=authMode==='login'?'Sign In':'Create Account';}
+    else{if(authMode==='signup')toast('Account created! Check your email to confirm.');}
+  });
+}
+function signOut(){sb.auth.signOut().then(function(){location.reload();});}
+
+// ═══════════════════════════════════════════════════════════════
+// WORKSPACE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function loadWorkspaces(){
+  return Promise.all([
+    sb.from('workspaces').select('*').eq('owner_id',currentUser.id),
+    sb.from('workspace_members').select('workspace_id,workspaces(*)').eq('user_id',currentUser.id)
+  ]).then(function(results){
+    var owned=(results[0].data||[]);
+    var shared=(results[1].data||[]).map(function(m){return m.workspaces;}).filter(Boolean);
+    return {owned:owned,shared:shared};
+  });
+}
+function openWsSelector(){
+  document.getElementById('ws-overlay').style.display='flex';
+  renderWsList();
+}
+function renderWsList(){
+  loadWorkspaces().then(function(wss){
+    var html='';
+    wss.owned.forEach(function(ws){
+      html+='<div class="ws-item" onclick="openWorkspace(\''+ws.id+'\')"><div><div class="ws-name">'+esc(ws.name)+'</div><div class="ws-meta">Created by you &middot; '+ws.quarter+'</div></div><span class="ws-badge ws-owner">Owner</span></div>';
+    });
+    wss.shared.forEach(function(ws){
+      html+='<div class="ws-item" onclick="openWorkspace(\''+ws.id+'\')"><div><div class="ws-name">'+esc(ws.name)+'</div><div class="ws-meta">Shared workspace &middot; '+ws.quarter+'</div></div><span class="ws-badge ws-shared">Shared</span></div>';
+    });
+    if(!html)html='<div style="color:var(--dim);font-size:13px;text-align:center;padding:20px">No workspaces yet. Create one to get started.</div>';
+    document.getElementById('ws-list').innerHTML=html;
+  });
+}
+function createWorkspace(){
+  var name=prompt('Workspace name (e.g. "Q2 2026 Strategy"):');
+  if(!name)return;
+  var quarter=prompt('Quarter (e.g. "Q2 2026"):','Q2 2026')||'Q2 2026';
+  sb.from('workspaces').insert({owner_id:currentUser.id,name:name,quarter:quarter,data:state}).select().single()
+    .then(function(r){
+      if(r.error){toast('Error: '+r.error.message,'error');return;}
+      openWorkspace(r.data.id);
+    });
+}
+function openWorkspace(wsId){
+  sb.from('workspaces').select('*').eq('id',wsId).single().then(function(r){
+    if(r.error){toast('Error loading workspace','error');return;}
+    currentWs=r.data;
+    if(r.data.data)Object.assign(state,r.data.data);
+    document.getElementById('ws-overlay').style.display='none';
+    document.getElementById('ws-title').textContent=r.data.name;
+    renderCurrentTab();
+    setupRealtime(wsId);
+    toast('Workspace opened: '+r.data.name);
+  });
+}
+function shareWorkspace(){
+  if(!currentWs){toast('No workspace open','error');return;}
+  var email=prompt('Enter the email of the person to share with:');
+  if(!email)return;
+  sb.from('profiles').select('id').eq('email',email).single().then(function(r){
+    if(r.error||!r.data){toast('User not found: '+email,'error');return;}
+    sb.from('workspace_members').insert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(r2){
+      if(r2.error)toast('Error: '+r2.error.message,'error');
+      else toast('Shared with '+email);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+var saveTimer=null;
+function scheduleSave(){
+  if(!currentWs)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(function(){saveNow();},1200);
+}
+function saveNow(){
+  if(!currentWs)return;
+  sb.from('workspaces').update({data:state,updated_at:new Date().toISOString()}).eq('id',currentWs.id)
+    .then(function(r){if(!r.error)showSyncBadge();});
+}
+function showSyncBadge(){
+  var b=document.getElementById('sync-badge');b.style.display='flex';
+  clearTimeout(window._syncTimer);
+  window._syncTimer=setTimeout(function(){b.style.display='none';},2000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REALTIME SYNC
+// ═══════════════════════════════════════════════════════════════
+function setupRealtime(wsId){
+  if(realtimeChannel)sb.removeChannel(realtimeChannel);
+  realtimeChannel=sb.channel('ws-'+wsId)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'workspaces',filter:'id=eq.'+wsId},function(payload){
+      if(payload.new&&payload.new.data){
+        Object.assign(state,payload.new.data);
+        renderCurrentTab();
+        toast('Workspace updated by collaborator');
+        showSyncBadge();
+      }
+    }).subscribe();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(n){
+  currentTab=n;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',+t.dataset.tab===n);});
+  for(var i=0;i<=4;i++){document.getElementById('tab-'+i).style.display=i===n?'block':'none';}
+  renderCurrentTab();
+}
+function renderCurrentTab(){
+  var fns=[renderOverview,renderBudget,renderInitiatives,renderMapping,renderOutput];
+  fns[currentTab]();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 0: QUARTERLY OVERVIEW
+// ═══════════════════════════════════════════════════════════════
+function renderOverview(){
+  var ov=state.overview;
+  var heroStats=[
+    {val:'$11.74M',label:'Revenue Target',delta:'+9.7% YoY',up:true},
+    {val:'$77',label:'CAC Budget',delta:'-24.5% vs. LY',up:true},
+    {val:'107.6K',label:'Active Sub Target',delta:'+5.5% YoY',up:true},
+    {val:'$38K',label:'EBITDA Budget',delta:'vs. ($94K) LY',up:true,red:true},
+    {val:'29.3%',label:'Gross Margin',delta:'-330bps vs. LY',up:false}
+  ];
+  var statsHtml=heroStats.map(function(s,i){
+    return (i>0?'<div class="stat-divider"></div>':'')+
+      '<div><div class="ov-stat-val'+(s.red?' red':'')+'">'+s.val+'</div>'+
+      '<div class="ov-stat-label">'+s.label+'</div>'+
+      '<div class="ov-stat-delta '+(s.up?'delta-up':'delta-down')+'">'+s.delta+'</div></div>';
+  }).join('');
+
+  var driversHtml=OV_DRIVERS_DEFAULT.map(function(d){
+    var dotCls='dot-'+d.urgency;
+    var stripeCls='stripe-'+d.urgency;
+    var pillCls='up-'+d.urgency;
+    var urgLabel=d.urgency.toUpperCase();
+    return '<div class="driver-tile">'+
+      '<div class="'+stripeCls+'"></div>'+
+      '<div class="driver-body">'+
+        '<div class="driver-icon-row">'+
+          '<span style="font-size:12px;color:var(--dim)">'+urgLabel+'</span>'+
+          '<span class="urgency-pill '+pillCls+'">'+urgLabel+'</span>'+
+        '</div>'+
+        '<div class="driver-title">'+esc(d.label)+'</div>'+
+        d.bullets.map(function(b){return '<div class="driver-bullet"><div class="bullet-dot '+dotCls+'"></div><div class="bullet-text">'+esc(b)+'</div></div>';}).join('')+
+      '</div>'+
+      '<div class="driver-footer"><span class="target-label">TARGET</span><span class="target-val">'+esc(d.target)+'</span></div>'+
+    '</div>';
+  }).join('');
+
+  var mustDosHtml=ov.must_dos.map(function(item,idx){
+    return '<div class="must-do-item">'+
+      '<div class="must-do-num">'+(idx+1)+'</div>'+
+      '<textarea class="must-do-text" rows="2" oninput="updateMustDo('+idx+',this.value)">'+esc(item)+'</textarea>'+
+      '<button class="must-do-del" onclick="deleteMustDo('+idx+')">x</button>'+
+    '</div>';
+  }).join('');
+
+  document.getElementById('tab-0').innerHTML=
+    '<div class="ov-hero">'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
+        '<div class="ov-quarter-pill">'+esc(ov.quarter)+'</div>'+
+        '<div style="display:flex;align-items:center;gap:6px"><div class="rt-dot"></div><span style="font-size:11px;color:var(--green);font-weight:600;letter-spacing:.06em">BUDGET ACTIVE</span></div>'+
+      '</div>'+
+      '<input class="ov-headline" value="'+esc(ov.headline)+'" oninput="updateOvField(\'headline\',this.value)" />'+
+      '<input class="ov-sub" value="'+esc(ov.subline)+'" oninput="updateOvField(\'subline\',this.value)" />'+
+      '<div class="ov-stats">'+statsHtml+'</div>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 32px 12px">'+
+      '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)">Key Drivers &amp; Prescriptive Targets</div>'+
+      '<button class="btn btn-claude btn-sm" id="btn-ov-claude" onclick="ovClaudeAnalysis()">&#9734; Claude Risk Analysis</button>'+
+    '</div>'+
+    '<div id="ov-claude-box" class="claude-box" style="display:none;margin:0 32px 16px"></div>'+
+    '<div class="driver-grid">'+driversHtml+'</div>'+
+    '<div class="must-do-section">'+
+      '<div class="must-do-head">'+
+        '<div class="must-do-title"><div style="width:3px;height:14px;background:var(--red);border-radius:2px"></div>What We Must Do This Quarter</div>'+
+        '<button class="btn btn-claude btn-sm" id="btn-md-claude" onclick="mustDosClaude()">&#9734; Generate with Claude</button>'+
+      '</div>'+
+      '<div id="md-claude-box" class="claude-box" style="display:none;padding:14px 22px"></div>'+
+      '<div class="must-do-body">'+
+        '<div id="must-dos-list">'+mustDosHtml+'</div>'+
+        '<button class="add-btn-dashed" onclick="addMustDo()">+ Add Imperative</button>'+
+      '</div>'+
+    '</div>';
+}
+function updateOvField(k,v){state.overview[k]=v;scheduleSave();}
+function updateMustDo(idx,v){state.overview.must_dos[idx]=v;scheduleSave();}
+function deleteMustDo(idx){state.overview.must_dos.splice(idx,1);scheduleSave();renderOverview();}
+function addMustDo(){state.overview.must_dos.push('');scheduleSave();renderOverview();setTimeout(function(){var items=document.querySelectorAll('.must-do-text');if(items.length)items[items.length-1].focus();},50);}
+function ovClaudeAnalysis(){askClaude('Q2 2026: Revenue $11.74M (+9.7% YoY), CAC $77 (vs $102 LY), Active subs 107.6K, EBITDA $38K (barely breakeven, June -$19K risk), GM 29.3% (-330bps), COGS +7.4% YoY. What are the 3 biggest risks and 2 biggest opportunities? Be very specific.','btn-ov-claude','ov-claude-box');}
+function mustDosClaude(){askClaude('For Q2 2026: CAC budget $77 (cut from $102 LY, grow acquisition 4% YoY), Revenue $11.74M (+9.7% YoY), Active subs hold at 107.6K, EBITDA swing to $38K breakeven (June -$19K risk), GM 29.3% (330bps below LY, COGS +7.4%). Write 5-6 specific action-oriented imperatives starting with strong verbs. One sentence each.','btn-md-claude','md-claude-box',function(text){var lines=text.split('\n').filter(function(l){return l.trim().length>5;});if(lines.length>0&&confirm('Replace all must-dos with Claude\'s suggestions?')){state.overview.must_dos=lines.map(function(t){return t.replace(/^\d+\.\s*/,'').replace(/^[-]\s*/,'');});scheduleSave();renderOverview();}});}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 1: BUDGET INPUT
+// ═══════════════════════════════════════════════════════════════
+function renderBudget(){
+  if(!state.budget_data)state.budget_data={};
+  var bd=state.budget_data;
+  var theadCols=BUDGET_COLS.map(function(c){return'<th>'+esc(c)+'</th>';}).join('');
+  var tbodyRows=METRIC_CATS.map(function(cat){
+    var catRow='<tr class="cat-row"><td colspan="'+(BUDGET_COLS.length+1)+'">'+esc(cat.name)+'</td></tr>';
+    var metricRows=cat.metrics.map(function(m){
+      if(!bd[m])bd[m]={};
+      var cells=BUDGET_COLS.map(function(c){
+        var v=(bd[m]&&bd[m][c])||'';
+        var cls=(v.startsWith('-')||v.startsWith('('))?'neg':v.startsWith('+')?'pos':'';
+        return '<td class="'+cls+'"><input value="'+esc(v)+'" placeholder="--" onchange="updateBudgetCell(\''+m+'\',\''+c+'\',this.value)" /></td>';
+      }).join('');
+      return'<tr><td>'+esc(m)+'</td>'+cells+'</tr>';
+    }).join('');
+    return catRow+metricRows;
+  }).join('');
+
+  document.getElementById('tab-1').innerHTML=
+    '<div class="module">'+
+      '<div class="mb-24"><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Budget Input</div><div style="font-size:13px;color:var(--muted)">Enter budget data directly or paste from Excel. Data auto-saves and syncs to all collaborators.</div></div>'+
+      '<div class="grid-2 mb-24">'+
+        '<div style="border:2px dashed var(--border);border-radius:12px;padding:40px 24px;text-align:center;background:var(--surface2)">'+
+          '<div style="font-size:32px;margin-bottom:12px">&#128196;</div>'+
+          '<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">Drop your budget file here</div>'+
+          '<div style="font-size:12px;color:var(--muted)">PDF, Excel, CSV supported (coming soon)</div>'+
+        '</div>'+
+        '<div class="card"><div class="card-body">'+
+          '<div class="field"><label>Period</label><select class="input select" onchange="updateOvField(\'quarter\',this.value)"><option>Q2 2026 (Apr - Jun)</option><option>Q3 2026 (Jul - Sep)</option><option>Q4 2026 (Oct - Dec)</option></select></div>'+
+          '<div class="grid-2"><div class="field"><label>Total Budget ($)</label><input class="input" placeholder="$0.00" /></div><div class="field"><label>vs. LY (%)</label><input class="input" placeholder="+0.0%" /></div></div>'+
+          '<button class="btn btn-claude btn-sm" id="btn-bi-claude" onclick="budgetInsightsClaude()">&#9734; Claude Budget Insights</button>'+
+          '<div id="bi-claude-box" class="claude-box" style="display:none"></div>'+
+        '</div></div>'+
+      '</div>'+
+      '<div class="card">'+
+        '<div class="card-head"><span class="card-title">Metrics Dashboard</span><span style="font-size:11px;color:var(--muted)">Click any cell to edit - auto-saves</span></div>'+
+        '<div style="overflow-x:auto">'+
+          '<table class="metrics-table"><thead><tr><th>Metric</th>'+theadCols+'</tr></thead><tbody>'+tbodyRows+'</tbody></table>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+function updateBudgetCell(metric,col,val){
+  if(!state.budget_data)state.budget_data={};
+  if(!state.budget_data[metric])state.budget_data[metric]={};
+  state.budget_data[metric][col]=val;
+  var td=event.target.parentElement;
+  td.className=(val.startsWith('-')||val.startsWith('('))?'neg':val.startsWith('+')?'pos':'';
+  scheduleSave();
+}
+function budgetInsightsClaude(){askClaude('For a quarterly budget review with metrics like Net Revenue, CAC, Active Subs, Gross Margin, and COGS: what are the 3 most important metrics to watch closely and why? Be specific.','btn-bi-claude','bi-claude-box');}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 2: INITIATIVES
+// ═══════════════════════════════════════════════════════════════
+function renderInitiatives(){
+  var active=state.initiatives.filter(function(i){return i.status==='active';});
+  var hold=state.initiatives.filter(function(i){return i.status==='hold';});
+  function initCardHtml(init,idx){
+    var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+    var color=INIT_COLORS[idx%INIT_COLORS.length];
+    var pbCls={HIGH:'pb-high',MED:'pb-med',LOW:'pb-low'}[p];
+    var statusLabel=init.status==='hold'?'ON HOLD':p+' PRIORITY';
+    var pbActual=init.status==='hold'?'pb-hold':pbCls;
+    return '<div class="init-card'+(init.status==='hold'?' on-hold':'')+'" onclick="openInitPanel(\''+init.id+'\')">'+
+      '<div class="init-card-bar" style="background:'+(init.status==='hold'?'#374151':'linear-gradient(90deg,'+color+',#f59e0b)')+'"></div>'+
+      '<div class="priority-badge '+pbActual+'">'+statusLabel+'</div>'+
+      '<div class="init-title">'+esc(init.title)+'</div>'+
+      '<div class="init-desc">'+esc(init.description||'No description yet.')+'</div>'+
+      '<div class="score-chips">'+
+        '<span class="sc sc-impact">Impact '+init.impactScore+'</span>'+
+        '<span class="sc sc-effort">Effort '+init.effortScore+'</span>'+
+        '<span class="sc sc-mvp">MVP '+init.mvpScore+'</span>'+
+      '</div>'+
+      '<div class="init-meta">'+
+        (init.expectedImpact?'<span style="color:var(--green)">&#128176; '+esc(init.expectedImpact)+'</span>':'')+
+        (init.launchDate?'<span style="color:var(--muted)">&#128197; '+esc(init.launchDate)+'</span>':'')+
+        (init.rampWeeks>0?'<span style="color:var(--gold)">'+init.rampWeeks+'w ramp</span>':'')+
+      '</div>'+
+    '</div>';
+  }
+  var activeHtml=active.map(function(i,idx){return initCardHtml(i,idx);}).join('');
+  var holdHtml=hold.map(function(i,idx){return initCardHtml(i,active.length+idx);}).join('');
+  document.getElementById('tab-2').innerHTML=
+    '<div class="module">'+
+      '<div class="flex justify-between items-center mb-24">'+
+        '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Initiatives</div><div style="font-size:13px;color:var(--muted)">Create and rank initiatives. All changes sync in real time.</div></div>'+
+        '<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+
+      '</div>'+
+      '<div class="section-label">Active Initiatives</div>'+
+      '<div class="grid-3">'+activeHtml+'</div>'+
+      (hold.length?'<div class="section-label mt-24">On Hold</div><div class="grid-3">'+holdHtml+'</div>':'')+
+    '</div>';
+}
+function createInitiative(){
+  var n={id:uid(),title:'New Initiative',status:'active',description:'',whatWhyWhen:'',impactScore:5,effortScore:5,mvpScore:5,expectedImpact:'',monthlyRunRate:'',launchDate:'',rampWeeks:0,launchStatus:'planning'};
+  state.initiatives.push(n);
+  scheduleSave();
+  renderInitiatives();
+  setTimeout(function(){openInitPanel(n.id);},50);
+}
+function openInitPanel(id){
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  if(!init)return;
+  var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+  var pColor=p==='HIGH'?'var(--gold)':p==='MED'?'var(--blue)':'var(--dim)';
+  document.getElementById('side-panel').innerHTML=
+    '<div class="flex justify-between items-center" style="margin-bottom:24px">'+
+      '<div style="font-family:var(--font-serif);font-size:18px;color:var(--text)">Initiative Details</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="closePanel()">x Close</button>'+
+    '</div>'+
+    '<div class="field"><label>Title</label><input class="input" value="'+esc(init.title)+'" oninput="updateInit(\''+id+'\',\'title\',this.value)" /></div>'+
+    '<div class="field"><label>Status</label>'+
+      '<div style="display:flex;background:var(--surface2);border-radius:8px;padding:3px">'+
+        '<span onclick="updateInit(\''+id+'\',\'status\',\'active\');renderInitiatives()" style="flex:1;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;background:'+(init.status==='active'?'var(--gold)':'transparent')+';color:'+(init.status==='active'?'var(--bg)':'var(--muted)')+'">Active</span>'+
+        '<span onclick="updateInit(\''+id+'\',\'status\',\'hold\');renderInitiatives()" style="flex:1;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;background:'+(init.status==='hold'?'var(--gold)':'transparent')+';color:'+(init.status==='hold'?'var(--bg)':'var(--muted)')+'">On Hold</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="field">'+
+      '<div class="flex justify-between items-center" style="margin-bottom:6px"><label style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">Description</label>'+
+      '<button class="btn btn-claude btn-sm" id="btn-desc-'+id+'" onclick="draftDesc(\''+id+'\')">&#9734; Draft</button></div>'+
+      '<textarea class="input textarea" oninput="updateInit(\''+id+'\',\'description\',this.value)">'+esc(init.description)+'</textarea>'+
+      '<div id="desc-box-'+id+'" class="claude-box" style="display:none;cursor:pointer" onclick="applyClaudeToField(\''+id+'\',\'description\',\'desc-box-'+id+'\')"></div>'+
+    '</div>'+
+    '<div class="field">'+
+      '<div class="flex justify-between items-center" style="margin-bottom:6px"><label style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">What / Why / When</label>'+
+      '<button class="btn btn-claude btn-sm" id="btn-www-'+id+'" onclick="draftWWW(\''+id+'\')">&#9734; Draft</button></div>'+
+      '<textarea class="input textarea" oninput="updateInit(\''+id+'\',\'whatWhyWhen\',this.value)">'+esc(init.whatWhyWhen)+'</textarea>'+
+      '<div id="www-box-'+id+'" class="claude-box" style="display:none;cursor:pointer" onclick="applyClaudeToField(\''+id+'\',\'whatWhyWhen\',\'www-box-'+id+'\')"></div>'+
+    '</div>'+
+    '<div class="grid-2" style="gap:12px;margin-bottom:16px">'+
+      '<div class="field"><label>Launch Date</label><input type="date" class="input" value="'+(init.launchDate||'')+'" onchange="updateInit(\''+id+'\',\'launchDate\',this.value)" /></div>'+
+      '<div class="field"><label>Ramp Weeks</label><input type="number" class="input" min="0" max="12" value="'+(init.rampWeeks||0)+'" onchange="updateInit(\''+id+'\',\'rampWeeks\',+this.value)" /></div>'+
+    '</div>'+
+    '<div class="grid-2" style="gap:12px;margin-bottom:16px">'+
+      '<div class="field"><label>Expected Total Impact</label><input class="input" value="'+esc(init.expectedImpact||'')+'" placeholder="e.g. $1.2M" oninput="updateInit(\''+id+'\',\'expectedImpact\',this.value)" /></div>'+
+      '<div class="field"><label>Monthly Run Rate</label><input class="input" value="'+esc(init.monthlyRunRate||'')+'" placeholder="e.g. $400K/mo" oninput="updateInit(\''+id+'\',\'monthlyRunRate\',this.value)" /></div>'+
+    '</div>'+
+    '<div class="field">'+
+      '<div class="flex justify-between items-center" style="margin-bottom:14px"><label style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">Ranking Scores</label>'+
+      '<button class="btn btn-claude btn-sm" id="btn-rank-'+id+'" onclick="draftRank(\''+id+'\')">&#9734; Suggest Scores</button></div>'+
+      buildSlider(id,'impactScore','Impact','var(--amber)',init.impactScore)+
+      buildSlider(id,'effortScore','Effort','var(--blue)',init.effortScore)+
+      buildSlider(id,'mvpScore','MVP Speed','var(--purple)',init.mvpScore)+
+      '<div id="rank-box-'+id+'" class="claude-box" style="display:none"></div>'+
+      '<div style="margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">'+
+        '<span style="font-size:11px;color:var(--muted)">Priority: </span>'+
+        '<span style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-left:6px;background:'+pColor+'22;color:'+pColor+'">'+p+'</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="flex gap-8" style="margin-top:8px">'+
+      '<button class="btn btn-gold" style="flex:1;justify-content:center" onclick="closePanel();renderInitiatives()">Done</button>'+
+      '<button class="btn btn-danger" onclick="deleteInit(\''+id+'\')">Delete</button>'+
+    '</div>';
+  document.getElementById('panel-overlay').classList.add('open');
+}
+function buildSlider(id,key,label,color,val){
+  return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'+
+    '<span style="font-size:12px;color:'+color+';width:80px;flex-shrink:0">'+label+'</span>'+
+    '<input type="range" min="1" max="10" value="'+(val||5)+'" oninput="updateInit(\''+id+'\',\''+key+'\',+this.value);this.nextElementSibling.textContent=this.value" style="flex:1" />'+
+    '<span style="font-size:13px;font-weight:700;color:'+color+';width:24px;text-align:center">'+(val||5)+'</span>'+
+  '</div>';
+}
+function updateInit(id,key,val){
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  if(!init)return;
+  init[key]=val;
+  scheduleSave();
+}
+function deleteInit(id){
+  if(!confirm('Delete this initiative?'))return;
+  state.initiatives=state.initiatives.filter(function(i){return i.id!==id;});
+  Object.keys(state.mappings).forEach(function(d){state.mappings[d]=(state.mappings[d]||[]).filter(function(x){return x!==id;});});
+  scheduleSave();
+  closePanel();
+  renderInitiatives();
+}
+function closePanel(){document.getElementById('panel-overlay').classList.remove('open');}
+function applyClaudeToField(id,key,boxId){
+  var box=document.getElementById(boxId);
+  if(!box)return;
+  var text=box.innerText.replace(/CLAUDE/g,'').replace(/Click to apply/g,'').trim();
+  updateInit(id,key,text);
+  var field=box.previousElementSibling;
+  if(field&&field.tagName==='TEXTAREA')field.value=text;
+  toast('Applied!');
+}
+function draftDesc(id){var init=state.initiatives.find(function(i){return i.id===id;});askClaude('Write a 2-sentence executive description for an initiative called "'+init.title+'". Be concise and outcome-focused.','btn-desc-'+id,'desc-box-'+id,function(t){var b=document.getElementById('desc-box-'+id);if(b){b.innerHTML='<div class="claude-label">&#9734; Click to apply</div>'+esc(t).replace(/\n/g,'<br>');b.style.display='block';}});}
+function draftWWW(id){var init=state.initiatives.find(function(i){return i.id===id;});askClaude('For "'+init.title+'": Write a brief What/Why/When breakdown. Three short bullets starting with What:, Why:, When:.','btn-www-'+id,'www-box-'+id,function(t){var b=document.getElementById('www-box-'+id);if(b){b.innerHTML='<div class="claude-label">&#9734; Click to apply</div>'+esc(t).replace(/\n/g,'<br>');b.style.display='block';}});}
+function draftRank(id){var init=state.initiatives.find(function(i){return i.id===id;});askClaude('Rate "'+init.title+'" ('+init.description+'): Impact (1-10 potential), Effort (1-10, 10=very complex), MVP Speed (1-10, 10=fast signal). Format exactly:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason','btn-rank-'+id,'rank-box-'+id);}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 3: MAPPING & TIMELINE
+// ═══════════════════════════════════════════════════════════════
+var mapSubTab='timeline';
+function renderMapping(){
+  var active=state.initiatives.filter(function(i){return i.status==='active';});
+  document.getElementById('tab-3').innerHTML=
+    '<div class="module">'+
+      '<div class="flex justify-between items-center mb-24">'+
+        '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Mapping & Timeline</div><div style="font-size:13px;color:var(--muted)">Timeline view, financial gap analysis, and driver coverage - all in one.</div></div>'+
+        '<button class="btn btn-claude btn-sm" id="btn-mi-claude" onclick="mappingClaude()">&#9734; Claude Gap Analysis</button>'+
+      '</div>'+
+      '<div id="mi-claude-box" class="claude-box" style="display:none;margin-bottom:20px"></div>'+
+      '<div style="display:flex;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:24px;width:fit-content">'+
+        '<div class="'+(mapSubTab==='timeline'?'tab active':'tab')+'" style="border-bottom:none;padding:8px 20px;border-radius:7px;background:'+(mapSubTab==='timeline'?'var(--border)':'transparent')+';color:'+(mapSubTab==='timeline'?'var(--gold)':'var(--dim)')+'" onclick="setMapTab(\'timeline\')">Timeline</div>'+
+        '<div class="'+(mapSubTab==='gap'?'tab active':'tab')+'" style="border-bottom:none;padding:8px 20px;border-radius:7px;background:'+(mapSubTab==='gap'?'var(--border)':'transparent')+';color:'+(mapSubTab==='gap'?'var(--gold)':'var(--dim)')+'" onclick="setMapTab(\'gap\')">Financial Gap</div>'+
+      '</div>'+
+      '<div id="map-sub-content"></div>'+
+    '</div>';
+  renderMapSubTab();
+}
+function setMapTab(t){mapSubTab=t;renderMapping();}
+function mappingClaude(){
+  var active=state.initiatives.filter(function(i){return i.status==='active';});
+  var prompt='Initiatives: '+active.map(function(i){return i.title+' (launch: '+(i.launchDate||'TBD')+', ramp: '+(i.rampWeeks||0)+'w, MRR: '+(i.monthlyRunRate||i.expectedImpact||'TBD')+')';}).join('; ')+'. Budget drivers: '+BUDGET_DRIVERS.join(', ')+'. What mapping or timing gaps should we address to hit Q2 budget?';
+  askClaude(prompt,'btn-mi-claude','mi-claude-box');
+}
+function renderMapSubTab(){
+  var el=document.getElementById('map-sub-content');
+  if(!el)return;
+  if(mapSubTab==='timeline')el.innerHTML=buildTimeline();
+  else el.innerHTML=buildGapAnalysis();
+}
+function buildTimeline(){
+  var active=state.initiatives.filter(function(i){return i.status==='active';});
+  if(!active.length)return '<div style="color:var(--dim);padding:40px;text-align:center">No active initiatives. Add some in the Initiatives tab.</div>';
+  var rows=active.map(function(init,idx){
+    var color=INIT_COLORS[idx%INIT_COLORS.length];
+    var sc={planning:'var(--blue)',launching:'var(--gold)',live:'var(--green)',hold:'var(--dim)'}[init.launchStatus||'planning'];
+    var lMs=init.launchDate?new Date(init.launchDate).getTime():null;
+    var rampDays=(init.rampWeeks||0)*7;
+    var barCells=Q2_MONTHS.map(function(m){
+      var mStartOff=(m.startMs-APR_MS)/86400000;
+      if(!lMs){return'<div class="tl-cell"></div>';}
+      var launchOff=(lMs-APR_MS)/86400000;
+      if(launchOff>=mStartOff+m.days){return'<div class="tl-cell"></div>';}
+      var barStart=Math.max(launchOff-mStartOff,0);
+      var leftPct=(barStart/m.days)*100;
+      var widthPct=((m.days-barStart)/m.days)*100;
+      var rampEnd=launchOff+rampDays, rampInCell=Math.max(0,Math.min(rampEnd,mStartOff+m.days)-Math.max(lMs/86400000/1000+APR_MS/86400000/1000,mStartOff+(APR_MS/86400000)));
+      var rampEndOff=launchOff+rampDays, rampCellEnd=Math.min(rampEndOff,mStartOff+m.days), rampCellStart=Math.max(launchOff,mStartOff);
+      var rampW=rampCellEnd>rampCellStart?(rampCellEnd-rampCellStart)/m.days*100:0;
+      var rampLeft=(rampCellStart-mStartOff)/m.days*100;
+      return'<div class="tl-cell">'+
+        '<div class="tl-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'cc">'+
+          (widthPct>20&&barStart===0?'<span style="font-size:9px;font-weight:700;color:#000;padding:0 7px;white-space:nowrap;overflow:hidden">'+esc(init.title)+'</span>':'')+
+        '</div>'+
+        (rampW>0?'<div class="tl-ramp" style="left:'+rampLeft+'%;width:'+rampW+'%"></div>':'')+
+      '</div>';
+    }).join('');
+    var editCells=
+      '<div style="padding-left:16px;display:flex;align-items:center"><span style="font-size:9px;color:var(--border);font-weight:700;letter-spacing:.08em;text-transform:uppercase">EDIT</span></div>'+
+      '<div style="grid-column:span 3;display:flex;align-items:center;gap:16px;padding-left:12px;flex-wrap:wrap">'+
+        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Launch</span><input type="date" class="tl-date-in" value="'+(init.launchDate||'')+'" onchange="updateInit(\''+init.id+'\',\'launchDate\',this.value);renderMapSubTab()" /></div>'+
+        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Ramp wks</span><input type="number" class="tl-num-in" style="color:var(--gold)" min="0" max="12" value="'+(init.rampWeeks||0)+'" onchange="updateInit(\''+init.id+'\',\'rampWeeks\',+this.value);renderMapSubTab()" /></div>'+
+        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Monthly $</span><input class="tl-date-in" style="color:var(--green);width:80px" value="'+esc(init.monthlyRunRate||'')+'" placeholder="$0" onchange="updateInit(\''+init.id+'\',\'monthlyRunRate\',this.value)" /></div>'+
+        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Status</span><select class="tl-status-sel" style="color:'+sc+'" onchange="updateInit(\''+init.id+'\',\'launchStatus\',this.value);renderMapSubTab()"><option'+(init.launchStatus==='planning'?' selected':'')+'>planning</option><option'+(init.launchStatus==='launching'?' selected':'')+'>launching</option><option'+(init.launchStatus==='live'?' selected':'')+'>live</option><option'+(init.launchStatus==='hold'?' selected':'')+'>hold</option></select></div>'+
+      '</div>';
+    return'<div class="tl-row">'+
+      '<div class="tl-bar-row">'+
+        '<div class="tl-label"><div style="width:7px;height:7px;border-radius:50%;background:'+sc+';flex-shrink:0"></div><div><div style="font-size:12px;font-weight:600;color:var(--text)">'+esc(init.title)+'</div><div style="font-size:10px;color:var(--dim)">'+(init.launchDate?'Launch: '+init.launchDate:'No date set')+'</div></div></div>'+
+        barCells+
+      '</div>'+
+      '<div class="tl-edit-row" style="grid-template-columns:180px 1fr">'+editCells+'</div>'+
+    '</div>';
+  }).join('');
+  var legend='<div class="tl-legend">'+
+    '<div class="tl-leg"><div style="width:20px;height:8px;border-radius:3px;background:var(--gold)"></div><span>Active (full impact)</span></div>'+
+    '<div class="tl-leg"><div style="width:20px;height:8px;border-radius:3px;background:repeating-linear-gradient(45deg,#555,#555 3px,transparent 3px,transparent 6px)"></div><span>Ramp period</span></div>'+
+    ['planning:var(--blue)','launching:var(--gold)','live:var(--green)'].map(function(s){var p=s.split(':');return'<div class="tl-leg"><div style="width:8px;height:8px;border-radius:50%;background:'+p[1]+'"></div><span>'+p[0]+'</span></div>';}).join('')+
+  '</div>';
+  return'<div class="tl-wrap">'+
+    '<div class="tl-head">'+
+      '<div class="tl-head-cell" style="text-align:left;padding-left:16px;border-left:none">INITIATIVE</div>'+
+      Q2_MONTHS.map(function(m){return'<div class="tl-head-cell">'+m.label+'</div>';}).join('')+
+    '</div>'+rows+legend+'</div>';
+}
+function buildGapAnalysis(){
+  var maps=state.mappings||{};
+  var inits=state.initiatives;
+  // compute projections
+  var proj={};
+  BUDGET_DRIVERS.forEach(function(driver){
+    var mapped=(maps[driver]||[]).map(function(id){return inits.find(function(i){return i.id===id;});}).filter(Boolean);
+    var mp={apr:0,may:0,jun:0};
+    mapped.forEach(function(init){
+      var mrr=parseMoney(init.monthlyRunRate)||parseMoney(init.expectedImpact)/3||0;
+      Q2_MONTHS.forEach(function(m){mp[m.key]+=mrr*impactFraction(init.launchDate,init.rampWeeks||0,m.startMs,m.days);});
+    });
+    var bgt=BUDGET_TARGETS[driver]||{apr:0,may:0,jun:0,total:0};
+    var total=mp.apr+mp.may+mp.jun;
+    proj[driver]={apr:mp.apr,may:mp.may,jun:mp.jun,total:total,budgetTotal:bgt.total,gap:total-bgt.total,pct:bgt.total?(total/bgt.total)*100:0};
+  });
+  var revProj=proj['Net Revenue']||{};
+  var revBgt=BUDGET_TARGETS['Net Revenue'].total;
+  var overallPct=revBgt?(revProj.total/revBgt)*100:0;
+  var driversCov=BUDGET_DRIVERS.filter(function(d){return proj[d]&&proj[d].total>0;}).length;
+  var biggestGap=BUDGET_DRIVERS.reduce(function(w,d){return(proj[d]&&proj[d].gap||0)<(proj[w]&&proj[w].gap||0)?d:w;},BUDGET_DRIVERS[0]);
+  var summaries=[
+    {label:'Total Initiative Impact',val:fmt$(revProj.total||0),sub:'vs. '+fmt$(revBgt)+' revenue budget',pct:Math.min(overallPct,100),color:overallPct>=100?'var(--green)':overallPct>=60?'var(--gold)':'var(--red)'},
+    {label:'Revenue Gap',val:((revProj.gap>=0?'+':'')+fmt$(revProj.gap||0)),sub:overallPct.toFixed(0)+'% of budget covered',pct:Math.min(overallPct,100),color:'var(--blue)'},
+    {label:'Drivers Covered',val:driversCov+'/'+BUDGET_DRIVERS.length,sub:'budget drivers with initiatives',pct:(driversCov/BUDGET_DRIVERS.length)*100,color:'var(--purple)'},
+    {label:'Biggest Gap',val:(biggestGap.split(' ').slice(0,2).join(' ')),sub:fmt$(proj[biggestGap]&&proj[biggestGap].gap||0)+' vs. budget',pct:Math.min((proj[biggestGap]&&proj[biggestGap].pct)||0,100),color:'var(--red)'}
+  ];
+  var summHtml='<div class="grid-4" style="margin-bottom:24px">'+summaries.map(function(s){
+    return'<div class="gap-stat">'+
+      '<div class="gap-stat-label">'+esc(s.label)+'</div>'+
+      '<div class="gap-stat-val" style="color:'+s.color+'">'+esc(s.val)+'</div>'+
+      '<div class="gap-stat-sub">'+esc(s.sub)+'</div>'+
+      '<div class="gap-bar"><div class="gap-bar-fill" style="width:'+s.pct+'%;background:'+s.color+'"></div></div>'+
+    '</div>';
+  }).join('')+'</div>';
+  var driverCards=BUDGET_DRIVERS.map(function(driver){
+    var p=proj[driver]||{apr:0,may:0,jun:0,total:0,budgetTotal:0,gap:0,pct:0};
+    var bgt=BUDGET_TARGETS[driver]||{apr:0,may:0,jun:0,total:0};
+    var u=DRIVER_UNITS[driver]||'$';
+    var mapped=(maps[driver]||[]).map(function(id){return inits.find(function(i){return i.id===id;});}).filter(Boolean);
+    var gapColor=p.gap>=0?'var(--green)':Math.abs(p.gap)<bgt.total*.1?'var(--gold)':'var(--red)';
+    var gc=p.gap>=0?'gc-pos':Math.abs(p.gap)<bgt.total*.1?'gc-warn':'gc-neg';
+    var covPct=Math.min(p.pct,100);
+    var mBars=Q2_MONTHS.map(function(m){
+      var pv=p[m.key]||0, bv=bgt[m.key]||0;
+      var fill=bv>0?Math.min((pv/bv)*100,100):0;
+      var bc=fill>=100?'var(--green)':fill>=60?'var(--gold)':pv>0?'var(--red)':'var(--border)';
+      return'<div>'+
+        '<div class="m-bar-label">'+m.label+'</div>'+
+        '<div class="m-bar-track"><div class="m-bar-fill" style="width:'+fill+'%;background:'+bc+'"></div></div>'+
+        '<div class="m-bar-vals"><span style="color:'+(pv>0?'var(--text)':'var(--border)')+'">'+fmtN(pv,u)+'</span><span>'+fmtN(bv,u)+'</span></div>'+
+      '</div>';
+    }).join('');
+    var isExp=(window._expandedDriver===driver);
+    var activePillInits=inits.filter(function(i){return i.status==='active';}).map(function(init){
+      var on=(maps[driver]||[]).indexOf(init.id)>=0;
+      return'<span class="map-pill '+(on?'mp-on':'mp-off')+'" onclick="toggleMapping(\''+driver+'\',\''+init.id+'\')">'+
+        (on?'&#10003; ':'')+esc(init.title)+(on&&init.launchDate?' ('+init.launchDate+')':'')+
+      '</span>';
+    }).join('');
+    return'<div class="dgap-card">'+
+      '<div class="dgap-head">'+
+        '<div><div class="dgap-name">'+esc(driver)+'</div><div class="dgap-meta">'+mapped.length+' initiative'+(mapped.length!==1?'s':'')+' mapped</div></div>'+
+        '<div><div class="dcol-label">Budget</div><div class="dcol-val" style="color:var(--text)">'+fmtN(bgt.total,u)+'</div></div>'+
+        '<div><div class="dcol-label">Projected</div><div class="dcol-val" style="color:'+(p.total>0?'var(--green)':'var(--text)')+'">'+fmtN(p.total,u)+'</div></div>'+
+        '<div><div class="dcol-label">Gap</div><div><span class="gap-chip '+gc+'">'+(p.gap>=0?'+':'')+fmtN(p.gap,u)+'</span></div></div>'+
+        '<div style="text-align:right"><button class="expand-btn" onclick="toggleExpand(\''+driver+'\')">'+( isExp?'Collapse':'Expand')+'</button></div>'+
+      '</div>'+
+      '<div class="dgap-months" style="grid-template-columns:200px repeat(3,1fr) 110px">'+
+        '<div style="display:flex;align-items:center;gap:8px"><div class="m-bar-track" style="flex:1"><div class="m-bar-fill" style="width:'+covPct+'%;background:'+(covPct>=100?'var(--green)':covPct>=50?'var(--gold)':'var(--red)')+'"></div></div><span style="font-size:10px;color:var(--dim);min-width:36px">'+covPct.toFixed(0)+'%</span></div>'+
+        mBars+
+        '<div></div>'+
+      '</div>'+
+      (isExp?'<div class="dgap-map-row"><div style="font-size:10px;color:var(--dim);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Map Initiatives</div>'+activePillInits+'</div>':'')+
+    '</div>';
+  }).join('');
+  return summHtml+'<div>'+driverCards+'</div>';
+}
+window._expandedDriver=null;
+function toggleExpand(driver){window._expandedDriver=(window._expandedDriver===driver)?null:driver;renderMapSubTab();}
+function toggleMapping(driver,initId){
+  if(!state.mappings)state.mappings={};
+  var cur=state.mappings[driver]||[];
+  state.mappings[driver]=cur.indexOf(initId)>=0?cur.filter(function(x){return x!==initId;}):cur.concat([initId]);
+  scheduleSave();
+  renderMapSubTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 4: OUTPUT
+// ═══════════════════════════════════════════════════════════════
+function renderOutput(){
+  var inits=state.initiatives;
+  var active=inits.filter(function(i){return i.status==='active';});
+  var sorted=inits.slice().sort(function(a,b){return(b.impactScore*2-b.effortScore+b.mvpScore)-(a.impactScore*2-a.effortScore+a.mvpScore);});
+  var totalImpact=active.reduce(function(s,i){return s+parseMoney(i.expectedImpact);},0);
+  var driversCov=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
+  var sumStats=[
+    ['Active',active.length,'var(--gold)'],
+    ['On Hold',inits.length-active.length,'var(--muted)'],
+    ['Total Impact','$'+(totalImpact/1000000).toFixed(1)+'M','var(--green)'],
+    ['Drivers Covered',driversCov+'/'+BUDGET_DRIVERS.length,'var(--purple)']
+  ];
+  var rows=sorted.map(function(init,idx){
+    var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+    var pColor=p==='HIGH'?'var(--gold)':p==='MED'?'var(--blue)':'var(--dim)';
+    var drivers=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
+    return'<tr>'+
+      '<td style="color:var(--dim);font-weight:700">'+(idx+1)+'</td>'+
+      '<td style="font-weight:600;color:var(--text)">'+esc(init.title)+'</td>'+
+      '<td><span style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:'+pColor+'22;color:'+pColor+'">'+p+'</span></td>'+
+      '<td style="color:var(--amber);font-weight:600">'+init.impactScore+'/10</td>'+
+      '<td style="color:var(--blue);font-weight:600">'+init.effortScore+'/10</td>'+
+      '<td style="color:var(--purple);font-weight:600">'+init.mvpScore+'/10</td>'+
+      '<td style="color:var(--green);font-weight:600">'+(init.expectedImpact||'--')+'</td>'+
+      '<td style="color:var(--gold);font-size:11px">'+(init.launchDate||'--')+'</td>'+
+      '<td style="color:var(--muted);font-size:11px">'+(init.rampWeeks?init.rampWeeks+'w':'--')+'</td>'+
+      '<td><span class="tag tag-'+(init.status==='active'?'active':'hold')+'">'+init.status+'</span></td>'+
+      '<td style="color:var(--dim);font-size:11px">'+(drivers.join(', ')||'--')+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('tab-4').innerHTML=
+    '<div class="module">'+
+      '<div class="flex justify-between items-center mb-24">'+
+        '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Output</div><div style="font-size:13px;color:var(--muted)">Prioritized roadmap, impact summary, and driver coverage.</div></div>'+
+        '<button class="btn btn-claude btn-sm" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
+      '</div>'+
+      '<div id="ex-claude-box" class="claude-box" style="display:none;margin-bottom:24px"></div>'+
+      '<div class="grid-4 mb-24">'+
+        sumStats.map(function(s){return'<div class="gap-stat"><div style="font-family:var(--font-serif);font-size:30px;color:'+s[2]+'">'+s[1]+'</div><div class="gap-stat-sub">'+s[0]+'</div></div>';}).join('')+
+      '</div>'+
+      '<div class="card">'+
+        '<div class="card-head"><span class="card-title">Prioritized Roadmap</span></div>'+
+        '<div style="overflow-x:auto"><table class="out-table"><thead><tr>'+
+          ['#','Initiative','Priority','Impact','Effort','MVP','Expected $','Launch','Ramp','Status','Budget Drivers'].map(function(h){return'<th>'+h+'</th>';}).join('')+
+        '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '</div>'+
+    '</div>';
+}
+function execSummaryClaude(){
+  var summ=state.initiatives.map(function(i){return i.title+' ('+i.status+'): Impact='+i.impactScore+', Launch='+(i.launchDate||'TBD')+', Expected='+(i.expectedImpact||'TBD');}).join('\n');
+  askClaude('Write a 3-4 sentence Q2 2026 executive strategy summary:\n'+summ+'\nHighlight focus, top priorities, timing, and expected business impact.','btn-ex-claude','ex-claude-box');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════
+sb.auth.onAuthStateChange(function(event,session){
+  if(session&&session.user){
+    currentUser=session.user;
+    document.getElementById('auth-overlay').style.display='none';
+    document.getElementById('app').style.display='flex';
+    var name=(session.user.user_metadata&&session.user.user_metadata.name)||session.user.email.split('@')[0];
+    document.getElementById('user-name-label').textContent=name;
+    // Auto-open workspace selector
+    loadWorkspaces().then(function(wss){
+      var all=wss.owned.concat(wss.shared);
+      if(all.length===1){openWorkspace(all[0].id);}
+      else if(all.length===0){createWorkspace();}
+      else{openWsSelector();}
+    });
+    renderCurrentTab();
+  } else {
+    document.getElementById('auth-overlay').style.display='flex';
+    document.getElementById('app').style.display='none';
+  }
+});
+</script>
+</body>
+</html>
