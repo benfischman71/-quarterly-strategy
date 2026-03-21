@@ -379,6 +379,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="field"><label>Email</label><input class="input" id="auth-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')doAuth()"></div>
     <div class="field"><label>Password</label><input class="input" id="auth-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()"></div>
     <div class="field" id="auth-name-field" style="display:none"><label>Your Name</label><input class="input" id="auth-name" placeholder="First Last"></div>
+    <div id="remember-row" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer" onclick="document.getElementById('remember-me').click()">
+      <input type="checkbox" id="remember-me" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0">
+      <span style="font-size:12px;color:var(--muted);user-select:none">Remember me for 60 days</span>
+    </div>
     <button class="btn btn-gold" style="width:100%;justify-content:center;padding:11px" onclick="doAuth()" id="auth-btn">Sign In</button>
     <p style="margin-top:16px;font-size:11px;color:var(--dim)">By signing in you agree to use this for legitimate business purposes.</p>
   </div>
@@ -575,6 +579,7 @@ function switchAuthTab(mode){
   document.getElementById('tab-signup').classList.toggle('active',mode==='signup');
   document.getElementById('auth-btn').textContent=mode==='login'?'Sign In':'Create Account';
   document.getElementById('auth-name-field').style.display=mode==='signup'?'block':'none';
+  document.getElementById('remember-row').style.display=mode==='login'?'flex':'none';
   document.getElementById('auth-error').style.display='none';
 }
 function doAuth(){
@@ -585,9 +590,13 @@ function doAuth(){
   if(!email||!pass){errEl.textContent='Email and password required.';errEl.style.display='block';return;}
   document.getElementById('auth-btn').disabled=true;
   document.getElementById('auth-btn').textContent='...';
+  var remember=document.getElementById('remember-me')&&document.getElementById('remember-me').checked;
   var p = authMode==='signup'
     ? sb.auth.signUp({email:email,password:pass,options:{data:{name:document.getElementById('auth-name').value.trim()}}})
-    : sb.auth.signInWithPassword({email:email,password:pass});
+    : sb.auth.signInWithPassword({email:email,password:pass,options:{persistSession:true}});
+  // If remember me, extend session to 60 days via localStorage flag
+  if(remember&&authMode==='login'){localStorage.setItem('qs_remember','1');localStorage.setItem('qs_remember_until',Date.now()+60*24*3600*1000);}
+  else{localStorage.removeItem('qs_remember');localStorage.removeItem('qs_remember_until');}
   p.then(function(r){
     if(r.error){errEl.textContent=r.error.message;errEl.style.display='block';document.getElementById('auth-btn').disabled=false;document.getElementById('auth-btn').textContent=authMode==='login'?'Sign In':'Create Account';}
     else{if(authMode==='signup')toast('Account created! Check your email to confirm.');}
@@ -1219,6 +1228,15 @@ function execSummaryClaude(){
 // ═══════════════════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════════════════
+// Check if remember-me has expired
+(function(){
+  var until=localStorage.getItem('qs_remember_until');
+  if(until&&Date.now()>parseInt(until)){
+    localStorage.removeItem('qs_remember');
+    localStorage.removeItem('qs_remember_until');
+    sb.auth.signOut();
+  }
+})();
 sb.auth.onAuthStateChange(function(event,session){
   if(session&&session.user){
     currentUser=session.user;
