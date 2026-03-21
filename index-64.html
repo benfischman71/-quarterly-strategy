@@ -368,6 +368,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   font-weight:500;text-align:center;transition:all .15s}
 .nws-quarter-opt:hover{border-color:#c9a84c44;color:var(--text)}
 .nws-quarter-opt.selected{border-color:var(--gold);background:#c9a84c18;color:var(--gold);font-weight:600}
+
+/* ── metrics edit modal ── */
+#metrics-modal{position:fixed;inset:0;background:rgba(10,14,26,.85);backdrop-filter:blur(6px);
+  z-index:9999;display:none;align-items:center;justify-content:center}
+#metrics-modal.open{display:flex}
+.mm-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:32px;width:540px;max-height:90vh;overflow-y:auto}
+.mm-card h2{font-family:var(--font-serif);font-size:20px;color:var(--text);margin-bottom:4px}
+.mm-card p{font-size:13px;color:var(--muted);margin-bottom:24px}
 </style>
 </head>
 <body>
@@ -524,18 +533,28 @@ var currentTab = 0;
 // ═══════════════════════════════════════════════════════════════
 // APP STATE (loaded from DB)
 // ═══════════════════════════════════════════════════════════════
-var state = {
-  overview: {headline:'What Needs to Move the Needle', subline:'Six critical imperatives defining Q2 success.', quarter:'Q2 2026', must_dos:['Drive CAC to sub-$80 by tightening paid media - grow acquisition ~4% while cutting spend ~20% YoY.','Protect the subscriber base at >=107K active subs through Q2.','Hit $11.74M net revenue - June is the critical month for the EBITDA swing.','Offset rising COGS (+7.4%) by pushing net revenue per unit to $21.82+.','Monitor gross margin weekly - budget is 330bps below LY.','Watch June EBITDA (projected -$19K). Identify levers by mid-May.']},
-  initiatives: [
-    {id:'i1',title:'Subscriber Win-Back Campaign',status:'active',description:'Re-engage lapsed subscribers with personalized offers and content highlights.',whatWhyWhen:'What: Targeted email + paid retargeting\nWhy: Recovery drives high-margin revenue\nWhen: Q2 targeting 90-day lapsed subs',impactScore:8,effortScore:4,mvpScore:9,expectedImpact:'$1.2M',monthlyRunRate:'$400K',launchDate:'2026-04-07',rampWeeks:2,launchStatus:'planning'},
-    {id:'i2',title:'Paid Acquisition Optimization',status:'active',description:'Restructure paid media mix to reduce CAC by improving creative and targeting.',whatWhyWhen:'What: Creative refresh + audience segmentation\nWhy: CAC 20% above target\nWhen: Testing Week 1, full rollout Week 3',impactScore:7,effortScore:6,mvpScore:8,expectedImpact:'$800K',monthlyRunRate:'$267K',launchDate:'2026-04-01',rampWeeks:3,launchStatus:'launching'},
-    {id:'i3',title:'Annual Plan Conversion Push',status:'hold',description:'Convert monthly subscribers to annual plans with limited-time incentives.',whatWhyWhen:'What: In-app offer + email for monthly subs\nWhy: Annual plans lock in LTV\nWhen: Pending brand refresh',impactScore:6,effortScore:3,mvpScore:7,expectedImpact:'$600K',monthlyRunRate:'$200K',launchDate:'',rampWeeks:1,launchStatus:'hold'},
-    {id:'i4',title:'Retention Drip Reactivation',status:'active',description:'Automated lifecycle campaign to reduce churn at key drop-off windows.',whatWhyWhen:'What: 5-email drip at Day 14, 30, 60\nWhy: Reduce churn 0.5pp\nWhen: Live by May 1',impactScore:8,effortScore:3,mvpScore:9,expectedImpact:'$500K',monthlyRunRate:'$167K',launchDate:'2026-05-01',rampWeeks:2,launchStatus:'planning'}
-  ],
-  mappings: {'Net Revenue':['i1','i2'],'New Subscribers':['i1','i2'],'Active Subs (BOP)':['i1','i4'],'Paid Acquisition (CAC)':['i2'],'Existing Sub Revenue':['i1'],'Retention':['i4']},
-  budget_data: {},
-  driver_impacts: {}
-};
+function blankState(quarter) {
+  return {
+    overview: {
+      headline: (quarter||'Q2 2026') + ' Strategy: What Needs to Move the Needle',
+      subline: 'Define the critical imperatives for this quarter.',
+      quarter: quarter||'Q2 2026',
+      must_dos: [],
+      stats: [
+        {val:'',label:'Revenue Target',delta:'',up:true},
+        {val:'',label:'CAC Budget',delta:'',up:true},
+        {val:'',label:'Active Sub Target',delta:'',up:true},
+        {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
+        {val:'',label:'Gross Margin',delta:'',up:false}
+      ]
+    },
+    initiatives: [],
+    mappings: {},
+    budget_data: {},
+    driver_impacts: {}
+  };
+}
+var state = blankState('Q2 2026');
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -684,7 +703,7 @@ function submitNewWs(){
   errEl.style.display='none';
   var btn=document.getElementById('nws-submit-btn');
   btn.disabled=true;btn.textContent='Creating...';
-  sb.from('workspaces').insert({owner_id:currentUser.id,name:name,quarter:_nwsQuarter,data:state}).select().single()
+  sb.from('workspaces').insert({owner_id:currentUser.id,name:name,quarter:_nwsQuarter,data:blankState(_nwsQuarter)}).select().single()
     .then(function(r){
       closeNewWsModal();
       if(r.error){toast('Error: '+r.error.message,'error');btn.disabled=false;btn.textContent='Create Workspace';return;}
@@ -771,18 +790,23 @@ function renderCurrentTab(){
 // ═══════════════════════════════════════════════════════════════
 function renderOverview(){
   var ov=state.overview;
-  var heroStats=[
-    {val:'$11.74M',label:'Revenue Target',delta:'+9.7% YoY',up:true},
-    {val:'$77',label:'CAC Budget',delta:'-24.5% vs. LY',up:true},
-    {val:'107.6K',label:'Active Sub Target',delta:'+5.5% YoY',up:true},
-    {val:'$38K',label:'EBITDA Budget',delta:'vs. ($94K) LY',up:true,red:true},
-    {val:'29.3%',label:'Gross Margin',delta:'-330bps vs. LY',up:false}
+  // Load stats from state or use empty defaults
+  if(!ov.stats)ov.stats=[
+    {val:'',label:'Revenue Target',delta:'',up:true},
+    {val:'',label:'CAC Budget',delta:'',up:true},
+    {val:'',label:'Active Sub Target',delta:'',up:true},
+    {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
+    {val:'',label:'Gross Margin',delta:'',up:false}
   ];
+  var heroStats=ov.stats;
   var statsHtml=heroStats.map(function(s,i){
+    var displayVal=s.val||'<span style="color:var(--border);font-size:18px">Set value</span>';
+    var displayDelta=s.delta||'';
     return (i>0?'<div class="stat-divider"></div>':'')+
-      '<div><div class="ov-stat-val'+(s.red?' red':'')+'">'+s.val+'</div>'+
-      '<div class="ov-stat-label">'+s.label+'</div>'+
-      '<div class="ov-stat-delta '+(s.up?'delta-up':'delta-down')+'">'+s.delta+'</div></div>';
+      '<div><div class="ov-stat-val'+(s.red?' red':'')+'">'+displayVal+'</div>'+
+      '<div class="ov-stat-label">'+esc(s.label)+'</div>'+
+      (displayDelta?'<div class="ov-stat-delta '+(s.up?'delta-up':'delta-down')+'">'+esc(displayDelta)+'</div>':'')+
+    '</div>';
   }).join('');
 
   var driversHtml=OV_DRIVERS_DEFAULT.map(function(d){
@@ -821,6 +845,7 @@ function renderOverview(){
       '<input class="ov-headline" value="'+esc(ov.headline)+'" oninput="updateOvField(\'headline\',this.value)" />'+
       '<input class="ov-sub" value="'+esc(ov.subline)+'" oninput="updateOvField(\'subline\',this.value)" />'+
       '<div class="ov-stats">'+statsHtml+'</div>'+
+      '<div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="editHeroStats()" style="font-size:11px">&#9998; Edit Key Metrics</button></div>'+
     '</div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 32px 12px">'+
       '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)">Key Drivers &amp; Prescriptive Targets</div>'+
@@ -1273,6 +1298,41 @@ function execSummaryClaude(){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// METRICS EDIT
+// ═══════════════════════════════════════════════════════════════
+function editHeroStats(){
+  var ov=state.overview;
+  if(!ov.stats)ov.stats=[
+    {val:'',label:'Revenue Target',delta:'',up:true},
+    {val:'',label:'CAC Budget',delta:'',up:true},
+    {val:'',label:'Active Sub Target',delta:'',up:true},
+    {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
+    {val:'',label:'Gross Margin',delta:'',up:false}
+  ];
+  var rowsHtml=ov.stats.map(function(s,i){
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">'+
+      '<input class="input" style="font-size:12px" placeholder="e.g. Revenue Target" value="'+esc(s.label||'')+'" id="mm-label-'+i+'" />'+
+      '<input class="input" style="font-size:12px" placeholder="e.g. $11.7M" value="'+esc(s.val||'')+'" id="mm-val-'+i+'" />'+
+      '<input class="input" style="font-size:12px" placeholder="e.g. +9.7% YoY" value="'+esc(s.delta||'')+'" id="mm-delta-'+i+'" />'+
+    '</div>';
+  }).join('');
+  document.getElementById('mm-rows').innerHTML=rowsHtml;
+  document.getElementById('metrics-modal').classList.add('open');
+}
+function saveMetrics(){
+  if(!state.overview.stats)state.overview.stats=[];
+  for(var i=0;i<state.overview.stats.length;i++){
+    state.overview.stats[i].label=document.getElementById('mm-label-'+i).value.trim();
+    state.overview.stats[i].val=document.getElementById('mm-val-'+i).value.trim();
+    state.overview.stats[i].delta=document.getElementById('mm-delta-'+i).value.trim();
+  }
+  scheduleSave();
+  closeMetricsModal();
+  renderOverview();
+}
+function closeMetricsModal(){document.getElementById('metrics-modal').classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════════════════════
 // Check if remember-me has expired
@@ -1329,6 +1389,22 @@ sb.auth.onAuthStateChange(function(event,session){
     <div class="flex gap-12">
       <button class="btn btn-gold" style="flex:1;justify-content:center" onclick="submitNewWs()" id="nws-submit-btn">Create Workspace</button>
       <button class="btn btn-ghost" onclick="closeNewWsModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Metrics Edit Modal -->
+<div id="metrics-modal">
+  <div class="mm-card">
+    <h2>Edit Key Metrics</h2>
+    <p>Set your headline numbers for the quarter. These appear in the hero bar at the top of the overview.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px;font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">
+      <span>Metric Label</span><span>Value (e.g. $11.7M)</span><span>vs. Prior (e.g. +9.7% YoY)</span>
+    </div>
+    <div id="mm-rows"></div>
+    <div class="flex gap-12" style="margin-top:20px">
+      <button class="btn btn-gold" style="flex:1;justify-content:center" onclick="saveMetrics()">Save Metrics</button>
+      <button class="btn btn-ghost" onclick="closeMetricsModal()">Cancel</button>
     </div>
   </div>
 </div>
