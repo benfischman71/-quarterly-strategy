@@ -353,6 +353,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .ql-claude .ql-icon{background:#d97706;color:#fff}
 .ql-supabase .ql-icon{background:#3ecf8e;color:#fff}
 .ql-github .ql-icon{background:#333;color:#fff}
+
+/* ── new workspace modal ── */
+#new-ws-modal{position:fixed;inset:0;background:rgba(10,14,26,.85);backdrop-filter:blur(6px);
+  z-index:9999;display:none;align-items:center;justify-content:center}
+#new-ws-modal.open{display:flex}
+.nws-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:36px;width:460px}
+.nws-card h2{font-family:var(--font-serif);font-size:22px;color:var(--text);margin-bottom:6px}
+.nws-card p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.nws-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.nws-quarter-opt{padding:10px 14px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--muted);cursor:pointer;font-size:13px;
+  font-weight:500;text-align:center;transition:all .15s}
+.nws-quarter-opt:hover{border-color:#c9a84c44;color:var(--text)}
+.nws-quarter-opt.selected{border-color:var(--gold);background:#c9a84c18;color:var(--gold);font-weight:600}
 </style>
 </head>
 <body>
@@ -634,13 +649,45 @@ function renderWsList(){
     document.getElementById('ws-list').innerHTML=html;
   });
 }
+var _nwsQuarter='Q2 2026';
 function createWorkspace(){
-  var name=prompt('Workspace name (e.g. "Q2 2026 Strategy"):');
-  if(!name)return;
-  var quarter=prompt('Quarter (e.g. "Q2 2026"):','Q2 2026')||'Q2 2026';
-  sb.from('workspaces').insert({owner_id:currentUser.id,name:name,quarter:quarter,data:state}).select().single()
+  _nwsQuarter='Q2 2026';
+  document.getElementById('nws-name').value='';
+  document.getElementById('nws-error').style.display='none';
+  document.getElementById('nws-submit-btn').disabled=false;
+  document.getElementById('nws-submit-btn').textContent='Create Workspace';
+  // reset quarter selection
+  document.querySelectorAll('.nws-quarter-opt').forEach(function(el){
+    var isQ2=el.textContent.trim()==='Q2 2026';
+    el.classList.toggle('selected',isQ2);
+    el.style.borderColor=isQ2?'var(--gold)':'';
+    el.style.background=isQ2?'#c9a84c18':'';
+    el.style.color=isQ2?'var(--gold)':'';
+  });
+  document.getElementById('new-ws-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('nws-name').focus();},100);
+}
+function selectNwsQuarter(el,q){
+  _nwsQuarter=q;
+  document.querySelectorAll('.nws-quarter-opt').forEach(function(opt){
+    opt.classList.remove('selected');
+    opt.style.borderColor='';opt.style.background='';opt.style.color='';
+  });
+  el.classList.add('selected');
+  el.style.borderColor='var(--gold)';el.style.background='#c9a84c18';el.style.color='var(--gold)';
+}
+function closeNewWsModal(){document.getElementById('new-ws-modal').classList.remove('open');}
+function submitNewWs(){
+  var name=document.getElementById('nws-name').value.trim();
+  var errEl=document.getElementById('nws-error');
+  if(!name){errEl.textContent='Please enter a workspace name.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+  var btn=document.getElementById('nws-submit-btn');
+  btn.disabled=true;btn.textContent='Creating...';
+  sb.from('workspaces').insert({owner_id:currentUser.id,name:name,quarter:_nwsQuarter,data:state}).select().single()
     .then(function(r){
-      if(r.error){toast('Error: '+r.error.message,'error');return;}
+      closeNewWsModal();
+      if(r.error){toast('Error: '+r.error.message,'error');btn.disabled=false;btn.textContent='Create Workspace';return;}
       openWorkspace(r.data.id);
     });
 }
@@ -1258,6 +1305,33 @@ sb.auth.onAuthStateChange(function(event,session){
   }
 });
 </script>
+
+<!-- New Workspace Modal -->
+<div id="new-ws-modal">
+  <div class="nws-card">
+    <h2>New Workspace</h2>
+    <p>Give your workspace a name and select the quarter you are planning for.</p>
+    <div class="field">
+      <label>Workspace Name</label>
+      <input class="input" id="nws-name" placeholder="e.g. Q2 2026 Strategy" 
+        onkeydown="if(event.key==='Enter')submitNewWs()" />
+    </div>
+    <div class="field">
+      <label>Quarter</label>
+      <div class="nws-options" id="nws-quarter-opts">
+        <div class="nws-quarter-opt selected" onclick="selectNwsQuarter(this,'Q1 2026')">Q1 2026</div>
+        <div class="nws-quarter-opt selected" onclick="selectNwsQuarter(this,'Q2 2026')" id="nws-q2" style="border-color:var(--gold);background:#c9a84c18;color:var(--gold)">Q2 2026</div>
+        <div class="nws-quarter-opt" onclick="selectNwsQuarter(this,'Q3 2026')">Q3 2026</div>
+        <div class="nws-quarter-opt" onclick="selectNwsQuarter(this,'Q4 2026')">Q4 2026</div>
+      </div>
+    </div>
+    <div id="nws-error" style="font-size:12px;color:var(--red);margin-bottom:12px;display:none"></div>
+    <div class="flex gap-12">
+      <button class="btn btn-gold" style="flex:1;justify-content:center" onclick="submitNewWs()" id="nws-submit-btn">Create Workspace</button>
+      <button class="btn btn-ghost" onclick="closeNewWsModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- Quick Links -->
 <div id="quick-links">
