@@ -546,7 +546,8 @@ function blankState(quarter) {
         {val:'',label:'Active Sub Target',delta:'',up:true},
         {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
         {val:'',label:'Gross Margin',delta:'',up:false}
-      ]
+      ],
+      drivers: []
     },
     initiatives: [],
     mappings: {},
@@ -830,22 +831,37 @@ function renderOverview(){
     '</div>';
   }).join('');
 
-  var driversHtml=OV_DRIVERS_DEFAULT.map(function(d){
+  // Use workspace drivers if set, otherwise empty for new workspaces
+  var ovDrivers=(ov.drivers&&ov.drivers.length>0)?ov.drivers:[];
+  var driversHtml=ovDrivers.map(function(d){
     var dotCls='dot-'+d.urgency;
     var stripeCls='stripe-'+d.urgency;
     var pillCls='up-'+d.urgency;
     var urgLabel=d.urgency.toUpperCase();
-    return '<div class="driver-tile">'+
+    return '<div class="driver-tile" style="position:relative">'+
       '<div class="'+stripeCls+'"></div>'+
+      '<button onclick="deleteOvDriver(''+d.id+'')" style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--border);cursor:pointer;font-size:13px;line-height:1;padding:2px 5px;border-radius:4px" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--border)'">x</button>'+
       '<div class="driver-body">'+
-        '<div class="driver-icon-row">'+
-          '<span style="font-size:12px;color:var(--dim)">'+urgLabel+'</span>'+
+        '<div class="driver-icon-row" style="margin-bottom:8px">'+
+          '<select onchange="updateOvDriverField(''+d.id+'','urgency',this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--dim);font-size:10px;font-family:inherit;padding:3px 6px;outline:none;cursor:pointer">'+
+            '<option value="critical"'+(d.urgency==='critical'?' selected':'')+'>CRITICAL</option>'+
+            '<option value="watch"'+(d.urgency==='watch'?' selected':'')+'>WATCH</option>'+
+            '<option value="risk"'+(d.urgency==='risk'?' selected':'')+'>RISK</option>'+
+          '</select>'+
           '<span class="urgency-pill '+pillCls+'">'+urgLabel+'</span>'+
         '</div>'+
-        '<div class="driver-title">'+esc(d.label)+'</div>'+
-        d.bullets.map(function(b){return '<div class="driver-bullet"><div class="bullet-dot '+dotCls+'"></div><div class="bullet-text">'+esc(b)+'</div></div>';}).join('')+
+        '<input value="'+esc(d.label)+'" oninput="updateOvDriverField(''+d.id+'','label',this.value)" style="background:transparent;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-size:14px;font-weight:700;width:100%;outline:none;font-family:inherit;margin-bottom:12px;padding-bottom:4px" placeholder="Driver title..." />'+
+        d.bullets.map(function(b,bi){return '<div class="driver-bullet">'+
+          '<div class="bullet-dot '+dotCls+'"></div>'+
+          '<input value="'+esc(b)+'" oninput="updateOvDriverBullet(''+d.id+'','+bi+',this.value)" style="background:transparent;border:none;border-bottom:1px dashed var(--border2);color:#8a9ab8;font-size:12px;width:100%;outline:none;font-family:inherit;line-height:1.6;padding-bottom:2px" placeholder="Add detail..." />'+
+          '<button onclick="deleteOvDriverBullet(''+d.id+'','+bi+')" style="background:none;border:none;color:var(--border);cursor:pointer;font-size:11px;padding:0 3px;flex-shrink:0">x</button>'+
+        '</div>';}).join('')+
+        '<button onclick="addOvDriverBullet(''+d.id+'')" style="margin-top:6px;font-size:11px;color:var(--dim);background:none;border:none;cursor:pointer;padding:0;font-family:inherit">+ bullet</button>'+
       '</div>'+
-      '<div class="driver-footer"><span class="target-label">TARGET</span><span class="target-val">'+esc(d.target)+'</span></div>'+
+      '<div class="driver-footer">'+
+        '<span class="target-label">TARGET</span>'+
+        '<input value="'+esc(d.target)+'" oninput="updateOvDriverField(''+d.id+'','target',this.value)" style="background:transparent;border:none;color:var(--gold);font-size:11px;font-weight:700;outline:none;font-family:inherit;flex:1" placeholder="Set target..." />'+
+      '</div>'+
     '</div>';
   }).join('');
 
@@ -873,7 +889,19 @@ function renderOverview(){
       '<button class="btn btn-claude btn-sm" id="btn-ov-claude" onclick="ovClaudeAnalysis()">&#9734; Claude Risk Analysis</button>'+
     '</div>'+
     '<div id="ov-claude-box" class="claude-box" style="display:none;margin:0 32px 16px"></div>'+
-    '<div class="driver-grid">'+driversHtml+'</div>'+
+    (ovDrivers.length===0?
+      '<div style="margin:0 32px 20px;padding:32px;border:1px dashed var(--border);border-radius:14px;text-align:center;background:var(--surface2)">'+
+        '<div style="font-size:14px;color:var(--muted);margin-bottom:16px">No key drivers yet. Add your first driver or use the template.</div>'+
+        '<div style="display:flex;gap:12px;justify-content:center">'+
+          '<button class="btn btn-gold btn-sm" onclick="addOvDriver()">+ Add Driver</button>'+
+          '<button class="btn btn-ghost btn-sm" onclick="loadDriverTemplate()">Load Q2 2026 Template</button>'+
+        '</div>'+
+      '</div>'
+      :
+      '<div class="driver-grid">'+driversHtml+
+        '<button onclick="addOvDriver()" style="border:1px dashed var(--border);background:transparent;border-radius:14px;padding:20px;cursor:pointer;color:var(--dim);font-size:13px;font-family:inherit;transition:all .2s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">+ Add Driver</button>'+
+      '</div>'
+    )+
     '<div class="must-do-section">'+
       '<div class="must-do-head">'+
         '<div class="must-do-title"><div style="width:3px;height:14px;background:var(--red);border-radius:2px"></div>What We Must Do This Quarter</div>'+
@@ -1316,6 +1344,45 @@ function renderOutput(){
 function execSummaryClaude(){
   var summ=state.initiatives.map(function(i){return i.title+' ('+i.status+'): Impact='+i.impactScore+', Launch='+(i.launchDate||'TBD')+', Expected='+(i.expectedImpact||'TBD');}).join('\n');
   askClaude('Write a 3-4 sentence Q2 2026 executive strategy summary:\n'+summ+'\nHighlight focus, top priorities, timing, and expected business impact.','btn-ex-claude','ex-claude-box');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRIVER MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function addOvDriver(){
+  if(!state.overview.drivers)state.overview.drivers=[];
+  state.overview.drivers.push({
+    id:'d'+Date.now(),urgency:'watch',
+    label:'New Driver',
+    bullets:['Add detail here'],
+    target:'Set target'
+  });
+  scheduleSave();renderOverview();
+}
+function deleteOvDriver(id){
+  state.overview.drivers=state.overview.drivers.filter(function(d){return d.id!==id;});
+  scheduleSave();renderOverview();
+}
+function updateOvDriverField(id,field,val){
+  var d=state.overview.drivers.find(function(d){return d.id===id;});
+  if(d){d[field]=val;scheduleSave();}
+}
+function updateOvDriverBullet(id,idx,val){
+  var d=state.overview.drivers.find(function(d){return d.id===id;});
+  if(d){d.bullets[idx]=val;scheduleSave();}
+}
+function addOvDriverBullet(id){
+  var d=state.overview.drivers.find(function(d){return d.id===id;});
+  if(d){d.bullets.push('');scheduleSave();renderOverview();}
+}
+function deleteOvDriverBullet(id,idx){
+  var d=state.overview.drivers.find(function(d){return d.id===id;});
+  if(d){d.bullets.splice(idx,1);scheduleSave();renderOverview();}
+}
+function loadDriverTemplate(){
+  if(!confirm('Load the Q2 2026 template? This will replace any existing drivers.'))return;
+  state.overview.drivers=JSON.parse(JSON.stringify(OV_DRIVERS_DEFAULT));
+  scheduleSave();renderOverview();
 }
 
 // ═══════════════════════════════════════════════════════════════
