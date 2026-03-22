@@ -1395,11 +1395,147 @@ function openInitPanel(id){
         '<span id="priority-badge-'+id+'" style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-left:6px;background:'+pColor+'22;color:'+pColor+'">'+p+'</span>'+
       '</div>'+
     '</div>'+
+    // Drivers addressed from grid
+    '<div class="field" style="margin-top:16px">'+
+      '<label class="field-label">Drivers Addressed</label>'+
+      (function(){
+        var g=state.grid;
+        if(!g||!g.drivers||!g.rows)return '<div style="font-size:12px;color:#5a6480">Open Grid View to score this initiative against drivers.</div>';
+        var row=g.rows.find(function(r){return r.id===id;});
+        if(!row)return '<div style="font-size:12px;color:#5a6480">Not yet scored in Grid View.</div>';
+        var scoreColors=['transparent','#1e3a5f44','#3d2e0044','#0d332044'];
+        var scoreTextColors=['#374151','#60a5fa','#c9a84c','#4ade80'];
+        var scoreLabels=['-','Low','Med','High'];
+        var chips=g.drivers.map(function(d,di){
+          var s=row.scores[di]||0;
+          if(s===0)return '';
+          return '<span style="display:inline-flex;align-items:center;gap:4px;background:'+scoreColors[s]+';border:1px solid '+scoreTextColors[s]+'44;border-radius:20px;padding:3px 10px;font-size:11px;color:'+scoreTextColors[s]+';margin:3px 3px 0 0">'+
+            '<span style="font-weight:700">'+d+'</span>'+
+            '<span style="opacity:.7">'+scoreLabels[s]+'</span>'+
+          '</span>';
+        }).join('');
+        return chips||'<div style="font-size:12px;color:#5a6480">All scores are — in Grid View.</div>';
+      })()+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:16px">'+
+      '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" data-iid="'+id+'" onclick="openInitOverview(this.getAttribute('data-iid'))">&#128196; Full Overview</button>'+
+    '</div>'+
     '<div style="display:flex;gap:8px;margin-top:8px">'+
       '<button class="btn btn-gold" style="flex:1;justify-content:center" onclick="closePanel();renderInitiatives()">Done</button>'+
       '<button class="btn btn-danger" data-iid="'+id+'" onclick="panelDeleteInit(this)">Delete</button>'+
     '</div>';
   document.getElementById('panel-overlay').classList.add('open');
+}
+
+function openInitOverview(id){
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  if(!init)return;
+  var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+  var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
+  var g=state.grid;
+  var row=g&&g.rows?g.rows.find(function(r){return r.id===id;}):null;
+  var scoreLabels=['-','Low','Med','High'];
+  var scoreColors=['transparent','#1e3a5f44','#3d2e0044','#0d332044'];
+  var scoreTextColors=['#374151','#60a5fa','#c9a84c','#4ade80'];
+
+  // Build driver chips
+  var driversHtml='<em style="color:#5a6480">Not yet scored in Grid View</em>';
+  if(row&&g&&g.drivers){
+    var chips=g.drivers.map(function(d,di){
+      var s=row.scores[di]||0;
+      if(s===0)return '';
+      return '<span style="display:inline-flex;align-items:center;gap:5px;background:'+scoreColors[s]+';border:1px solid '+scoreTextColors[s]+'66;border-radius:20px;padding:4px 12px;font-size:12px;color:'+scoreTextColors[s]+';margin:4px 4px 0 0;font-weight:600">'+d+' · '+scoreLabels[s]+'</span>';
+    }).join('');
+    driversHtml=chips||'<em style="color:#5a6480">All drivers scored as —</em>';
+  }
+
+  // Launch info
+  var launchInfo='Not set';
+  if(init.launchDate){
+    var d=new Date(init.launchDate);
+    launchInfo=d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    if(init.rampWeeks)launchInfo+=' · '+init.rampWeeks+'-week ramp';
+  }
+
+  var old=document.getElementById('init-overview-modal');
+  if(old)old.remove();
+
+  var overlay=document.createElement('div');
+  overlay.id='init-overview-modal';
+  overlay.style.cssText='position:fixed;inset:0;background:#080d16;z-index:9999;overflow:auto;font-family:system-ui,sans-serif';
+
+  var inner=document.createElement('div');
+  inner.style.cssText='max-width:780px;margin:0 auto;padding:40px 32px 80px';
+
+  inner.innerHTML=
+    // Top bar
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:40px">'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
+        '<div style="width:32px;height:32px;background:#c9a84c;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-weight:700;color:#0a0e1a;font-size:14px">Q</div>'+
+        '<div style="font-size:13px;color:#5a6480">'+esc(state.overview&&state.overview.quarter||'Q2 2026')+' · '+esc(currentWs&&currentWs.name||'Workspace')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px">'+
+        '<button onclick="window.print()" style="background:#1e2638;border:1px solid #2a3450;color:#e8e4d9;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">&#128438; Print / Save PDF</button>'+
+        '<button onclick="document.getElementById('init-overview-modal').remove()" style="background:transparent;border:1px solid #2a3450;color:#5a6480;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">✕ Close</button>'+
+      '</div>'+
+    '</div>'+
+    // Priority badge
+    '<div style="margin-bottom:12px">'+
+      '<span style="background:'+pColor+'22;border:1px solid '+pColor+'66;color:'+pColor+';font-size:10px;font-weight:800;letter-spacing:.12em;padding:4px 12px;border-radius:20px;text-transform:uppercase">'+p+' PRIORITY</span>'+
+    '</div>'+
+    // Title
+    '<h1 style="font-family:Georgia,serif;font-size:36px;color:#e8e4d9;margin:0 0 8px;line-height:1.2">'+esc(init.title)+'</h1>'+
+    '<div style="height:2px;background:linear-gradient(90deg,#c9a84c,transparent);margin-bottom:32px"></div>'+
+    // Description
+    '<div style="margin-bottom:32px">'+
+      '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px">Description</div>'+
+      '<div style="font-size:15px;line-height:1.8;color:#c8d4e8;white-space:pre-wrap">'+esc(init.description||'No description yet.')+'</div>'+
+    '</div>'+
+    // Key metrics row
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px">'+
+      '<div style="background:#111827;border:1px solid #1e2638;border-radius:12px;padding:18px">'+
+        '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Launch</div>'+
+        '<div style="font-size:15px;font-weight:600;color:#e8e4d9">'+esc(launchInfo)+'</div>'+
+      '</div>'+
+      '<div style="background:#111827;border:1px solid #1e2638;border-radius:12px;padding:18px">'+
+        '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Expected Impact</div>'+
+        '<div style="font-size:15px;font-weight:600;color:#c9a84c">'+esc(init.expectedImpact||'—')+'</div>'+
+      '</div>'+
+      '<div style="background:#111827;border:1px solid #1e2638;border-radius:12px;padding:18px">'+
+        '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Monthly Run Rate</div>'+
+        '<div style="font-size:15px;font-weight:600;color:#4ade80">'+esc(init.monthlyRunRate||'—')+'</div>'+
+      '</div>'+
+    '</div>'+
+    // Scores
+    '<div style="background:#111827;border:1px solid #1e2638;border-radius:12px;padding:20px;margin-bottom:32px">'+
+      '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px">Ranking Scores</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">'+
+        '<div style="text-align:center">'+
+          '<div style="font-size:28px;font-weight:700;color:#fbbf24;font-family:Georgia,serif">'+init.impactScore+'</div>'+
+          '<div style="font-size:11px;color:#5a6480;margin-top:4px">Impact</div>'+
+        '</div>'+
+        '<div style="text-align:center">'+
+          '<div style="font-size:28px;font-weight:700;color:#60a5fa;font-family:Georgia,serif">'+init.effortScore+'</div>'+
+          '<div style="font-size:11px;color:#5a6480;margin-top:4px">Effort</div>'+
+        '</div>'+
+        '<div style="text-align:center">'+
+          '<div style="font-size:28px;font-weight:700;color:#a78bfa;font-family:Georgia,serif">'+init.mvpScore+'</div>'+
+          '<div style="font-size:11px;color:#5a6480;margin-top:4px">MVP Speed</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    // Drivers
+    '<div style="margin-bottom:32px">'+
+      '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px">Strategic Drivers Addressed</div>'+
+      '<div>'+driversHtml+'</div>'+
+    '</div>'+
+    // Footer
+    '<div style="border-top:1px solid #1e2638;padding-top:20px;font-size:11px;color:#374151">'+
+      'Generated from Quarterly Strategy Platform · '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+
+    '</div>';
+
+  overlay.appendChild(inner);
+  document.body.appendChild(overlay);
 }
 function panelUpdateInit(el){
   var id=el.getAttribute('data-iid');
