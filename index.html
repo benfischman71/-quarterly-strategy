@@ -804,7 +804,8 @@ function openWorkspace(wsId){
   sb.from('workspaces').select('*').eq('id',wsId).single().then(function(r){
     if(r.error){toast('Error loading workspace','error');return;}
     currentWs=r.data;
-    if(r.data.data)Object.assign(state,r.data.data);
+    if(r.data.data){Object.assign(state,r.data.data);}
+    if(!state.grid||!state.grid.drivers){state.grid=null;}
     document.getElementById('ws-overlay').style.display='none';
     document.getElementById('ws-title').textContent=r.data.name;
     renderCurrentTab();
@@ -1965,8 +1966,9 @@ function getGrid() {
 function renderGrid() {
   var g = getGrid();
   if (!g || !g.drivers) {
-    document.getElementById('tab-5').innerHTML = '<div style="padding:40px;text-align:center;color:#5a6480">Loading grid...</div>';
-    return;
+    // Force reinitialize
+    state.grid = null;
+    g = getGrid();
   }
   var numDrivers = g.drivers.length;
 
