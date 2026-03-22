@@ -1808,10 +1808,24 @@ function panelFileUpload(input){
 function panelApplyClaude(el){
   var id=el.getAttribute('data-iid');
   var field=el.getAttribute('data-field');
-  var text=el.innerText.replace('✦ Click to apply','').replace('Click to apply','').trim();
+  // Get text content excluding the header label
+  var clone=el.cloneNode(true);
+  var hdr=clone.querySelector('div');
+  if(hdr)hdr.remove();
+  var text=(clone.innerText||clone.textContent||'').trim();
+  if(!text)text=el.innerText.replace('✦ Click to apply','').replace('Click to apply','').replace('✦ Click to apply to Short','').trim();
   updateInit(id,field,text);
+  // Update textarea if in edit mode
   var ta=document.querySelector('[data-iid="'+id+'"][data-field="'+field+'"]');
   if(ta&&ta.tagName==='TEXTAREA')ta.value=text;
+  // Update view div if in view mode
+  var viewType=field==='shortDescription'?'short':'full';
+  var viewEl=document.getElementById(viewType+'-view-'+id);
+  if(viewEl){viewEl.innerHTML=esc(text)+'<span style="float:right;font-size:10px;color:#5a6480;margin-top:2px">&#9998; Edit</span>';viewEl.style.display='block';}
+  var editEl=document.getElementById(viewType+'-edit-'+id);
+  if(editEl)editEl.style.display='none';
+  // Hide the claude response box
+  el.style.display='none';
   toast('Applied!');
 }
 
