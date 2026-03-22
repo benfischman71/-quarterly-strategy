@@ -1917,6 +1917,51 @@ function handleBudgetFile(input){
   if(file)processBudgetFile(file);
   input.value='';
 }
+function applyBudgetJson(btn){
+  var raw=btn.getAttribute('data-raw')||'';
+  // Strip backtick code fences
+  var cl=raw.replace(/```json/g,'').replace(/```/g,'').trim();
+  // Extract JSON object
+  var start=cl.indexOf('{');
+  var end=cl.lastIndexOf('}');
+  if(start<0||end<0){toast('Could not find JSON in response','error');return;}
+  cl=cl.slice(start,end+1);
+  try{
+    var prs=JSON.parse(cl);
+    var rws=prs.rows||prs;
+    if(!state.budget_data)state.budget_data={};
+    var colMap={
+      "Q2 '26 Budget":"Q2 '25 Budget",
+      "Q2 '25 Actual":"Q3 '25 Budget",
+      "Q2 Var ($)":"Q3 Var ($)",
+      "Q2 Var (%)":"Q3 Var (%)"
+    };
+    var filled=0;
+    Object.keys(rws).forEach(function(metric){
+      if(!state.budget_data[metric])state.budget_data[metric]={};
+      var metricData=rws[metric];
+      if(typeof metricData==='object'&&!Array.isArray(metricData)){
+        Object.keys(metricData).forEach(function(col){
+          var mappedCol=colMap[col]||col;
+          var val=metricData[col];
+          if(val!==null&&val!==undefined&&val!==''){
+            state.budget_data[metric][mappedCol]=String(val);
+            filled++;
+          }
+        });
+      }
+    });
+    scheduleSave();
+    renderBudget();
+    toast(filled+' cells filled in the table!');
+    var bx=document.getElementById('budget-extract-box');
+    if(bx)bx.innerHTML='<div class="claude-label">&#10003; Applied '+filled+' cells to the table!</div>';
+  }catch(e){
+    toast('Parse error: '+e.message,'error');
+    console.log('Parse error:',e,cl.slice(0,200));
+  }
+}
+
 function processBudgetFile(file){
   var box=document.getElementById('budget-extract-box');
   if(!box)return;
@@ -2031,6 +2076,16 @@ function processBudgetFile(file){
       .then(function(d){
         var blk=d.content&&d.content.find(function(b){return b.type==='text';});
         var txt=blk?blk.text:'';
+        // Always show the response with an Apply button
+        var bxShow=document.getElementById('budget-extract-box');
+        if(bxShow){
+          bxShow.style.display='block';
+          bxShow.innerHTML='<div class="claude-label" style="display:flex;align-items:center;justify-content:space-between">'+
+            '<span>&#9734; CLAUDE RESPONSE</span>'+
+            '<button onclick="applyBudgetJson(this)" data-raw="'+esc(txt)+'" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer">Apply to Table</button>'+
+            '</div>'+
+            '<div style="font-size:11px;color:#5a6480;margin-top:6px;max-height:200px;overflow:auto;white-space:pre-wrap">'+esc(txt.slice(0,1000))+'</div>';
+        }
         try{
           var cl=txt.replace(/```json|```/g,'').trim();
           var jmatch=cl.match(/\{[\s\S]*\}/);if(jmatch)cl=jmatch[0];
