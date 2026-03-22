@@ -986,7 +986,7 @@ function renderOverview(){
       '</div>'+
     '</div>';
   }).join('');
-/ Build must-dos HTML
+  // Build must-dos HTML
   var mustDosHtml=(ov.must_dos||[]).map(function(item,idx){
     return '<div class="must-do-item">'+
       '<div class="must-do-num">'+(idx+1)+'</div>'+
@@ -1381,14 +1381,14 @@ function openInitPanel(id){
       '</div></div>'+
     '<div class="field">'+
       '<label class="field-label" style="font-size:11px">SHORT DESCRIPTION <span style="color:#374151;font-weight:400">(2 sentences)</span></label>'+
-      '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_long" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Generate from Long</button>'+'</div>'+
+      '<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px">'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_draft" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Draft</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_clean" onclick="panelDraftClaude(this)" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_long" onclick="panelDraftClaude(this)" style="font-size:10px;background:#0d2010">&#8651; From Long</button>'+'</div>'+
       '<div id="short-view-'+id+'" onclick="panelEditField(\'short\',\''+id+'\')" style="min-height:44px;max-height:150px;overflow-y:auto;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;cursor:pointer;font-size:13px;color:#c8d4e8;line-height:1.6;'+(init.shortDescription?'':'display:none')+'">'+
         (init.shortDescription?esc(init.shortDescription)+'<span style="float:right;font-size:10px;color:#5a6480">&#9998;</span>':'')+'</div>'+
       '<div id="short-edit-'+id+'" style="'+(init.shortDescription?'display:none':'')+'">'+
         '<textarea class="input textarea" data-iid="'+id+'" data-field="shortDescription" oninput="panelUpdateInit(this)" style="min-height:80px;max-height:150px;overflow-y:auto;font-size:13px;resize:none" placeholder="2-sentence executive summary...">'+esc(init.shortDescription||'')+'</textarea>'+
         '<div style="display:flex;gap:6px;margin-top:6px">'+'<button onclick="panelSaveField(\'short\',\''+id+'\')" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit">Save</button>'+'<button onclick="panelCancelField(\'short\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Cancel</button>'+'</div>'+
       '</div>'+
-      '<div id="claude-short_from_long-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
+      '<div id="claude-short_draft-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+      '<div id="claude-short_clean-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+      '<div id="claude-short_from_long-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
     '</div>'+
     '<div class="field">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;position:sticky;top:0;background:var(--surface);z-index:2;padding:8px 0;border-bottom:1px solid var(--border2)">'+'<label class="field-label" style="font-size:11px">FULL DESCRIPTION <span style="color:#374151;font-weight:400">(What / Why / When)</span></label>'+'<div style="display:flex;gap:5px">'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="desc" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Draft</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="clean" onclick="panelDraftClaude(this)" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_full" onclick="panelDraftClaude(this)" style="font-size:10px;background:#0d2010">&#8651; Short</button>'+'</div>'+'</div>'+
@@ -1652,6 +1652,12 @@ function panelDraftClaude(el){
       '**When:** 1 sentence on launch timing or key milestones.\n'+
       '**Expected Impact:** 1 sentence on measurable outcome.\n\n'+
       'Keep it under 150 words. Be specific and outcome-focused.';
+  } else if(type==='short_draft'){
+    prompt='Write a short description for "'+init.title+'". STRICT FORMAT:\n1 sentence only (max 20 words).\n• Bullet 1 (what it does — 10 words max)\n• Bullet 2 (why it matters — 10 words max)\n• Bullet 3 (key outcome — 10 words max)\nNo headers, no bold, exactly 3 bullets.';
+  } else if(type==='short_clean'){
+    var existingShort=init.shortDescription||'';
+    if(!existingShort){toast('Add a short description first');return;}
+    prompt='Clean up this short description. Keep the 1-sentence + 3-bullet format. Make it punchier and more concise. No bold, no headers.\n\nCurrent:\n'+existingShort;
   } else if(type==='clean'){
     var existing=init.description||'';
     if(!existing){toast('Add a full description first');return;}
