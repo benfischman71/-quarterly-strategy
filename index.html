@@ -596,7 +596,11 @@ function askClaude(prompt,btnId,targetId,onDone){
     var token=(res.data&&res.data.session)?res.data.session.access_token:'';
     return fetch(EDGE_FUNCTION_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+token,
+        'apikey':SUPABASE_ANON_KEY
+      },
       body:JSON.stringify({messages:[{role:'user',content:prompt}],system:'You are a strategic business advisor. Be concise, specific, and practical. Under 300 words.'})
     });
   }).then(function(r){return r.json();}).then(function(d){
@@ -1482,7 +1486,11 @@ function processMetricsFile(file){
       var token=(res.data&&res.data.session)?res.data.session.access_token:'';
       return fetch(EDGE_FUNCTION_URL,{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+token,
+          'apikey':SUPABASE_ANON_KEY
+        },
         body:JSON.stringify({
           messages:[{role:'user',content:msgContent}],
           system:'You are a data extraction assistant. Extract financial metrics and return only valid JSON.'
@@ -1519,8 +1527,13 @@ function processMetricsFile(file){
       } catch(e){
         box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div>'+esc(text)+'<br><br><em style="font-size:11px;color:#5a6480">Could not auto-apply. Use Edit Key Metrics to enter manually.</em>';
       }
-    }).catch(function(){
-      box.innerHTML='<div class="claude-label">Error</div>Could not process file. Check edge function setup.';
+    }).catch(function(err){
+      box.innerHTML='<div class="claude-label">Error</div>'+
+        '<div style="font-size:12px;margin-top:6px">Claude edge function not reachable. Please:<br><br>'+
+        '1. Go to <strong>Supabase → Edge Functions → swift-function → Code</strong><br>'+
+        '2. Replace the code with the updated edge-function.ts<br>'+
+        '3. Click Deploy<br><br>'+
+        'Then try again. Or use <strong>Edit Key Metrics</strong> to enter values manually.</div>';
     });
   };
   reader.readAsDataURL(file);
