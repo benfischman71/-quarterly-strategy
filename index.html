@@ -2619,6 +2619,44 @@ function gridClaudeScore() {
 // ═══════════════════════════════════════════════════════════════
 // MODULE 5: INITIATIVE GRID
 // ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function handleSession(session){
+  if(session&&session.user){
+    currentUser=session.user;
+    document.getElementById('auth-overlay').style.display='none';
+    document.getElementById('app').style.display='flex';
+    var name=(session.user.user_metadata&&session.user.user_metadata.name)||session.user.email.split('@')[0];
+    document.getElementById('user-name-label').textContent=name;
+    loadWorkspaces().then(function(wss){
+      var all=wss.owned.concat(wss.shared);
+      if(all.length===1){openWorkspace(all[0].id);}
+      else if(all.length===0){createWorkspace();}
+      else{openWsSelector();}
+    });
+  } else {
+    document.getElementById('auth-overlay').style.display='flex';
+    document.getElementById('app').style.display='none';
+  }
+}
+
+// Check session on load
+sb.auth.getSession().then(function(res){
+  handleSession(res.data&&res.data.session);
+});
+
+// Listen for auth changes
+sb.auth.onAuthStateChange(function(event,session){
+  if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'){
+    handleSession(session);
+  } else if(event==='SIGNED_OUT'){
+    currentUser=null;currentWs=null;
+    document.getElementById('auth-overlay').style.display='flex';
+    document.getElementById('app').style.display='none';
+  }
+});
 </script>
 
 <!-- New Workspace Modal -->
