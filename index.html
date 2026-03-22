@@ -804,8 +804,8 @@ function openWorkspace(wsId){
   sb.from('workspaces').select('*').eq('id',wsId).single().then(function(r){
     if(r.error){toast('Error loading workspace','error');return;}
     currentWs=r.data;
-    if(r.data.data){Object.assign(state,r.data.data);}
-    if(!state.grid||!state.grid.drivers){state.grid=null;}
+    if(r.data.data){var d2=r.data.data; if(!d2.grid||!d2.grid.drivers){delete d2.grid;} Object.assign(state,d2);}
+    state.grid=getGrid(); // ensure grid always initialized
     document.getElementById('ws-overlay').style.display='none';
     document.getElementById('ws-title').textContent=r.data.name;
     renderCurrentTab();
@@ -1964,12 +1964,18 @@ function getGrid() {
 }
 
 function renderGrid() {
-  var g = getGrid();
-  if (!g || !g.drivers) {
-    // Force reinitialize
-    state.grid = null;
-    g = getGrid();
+  var DEFAULT_DRIVERS = ['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'];
+  var DEFAULT_ROWS = [
+    {id:'gr1',name:'About Us',scores:[1,2,1,2,3]},
+    {id:'gr2',name:'Playlist',scores:[1,2,3,1,2]},
+    {id:'gr3',name:'Multi Subscription',scores:[2,3,2,3,2]},
+    {id:'gr4',name:'Gifting',scores:[3,3,1,2,1]},
+    {id:'gr5',name:'Referral Program',scores:[2,3,2,1,2]}
+  ];
+  if (!state.grid || !state.grid.drivers || !state.grid.drivers.length) {
+    state.grid = {drivers: DEFAULT_DRIVERS.slice(), rows: DEFAULT_ROWS.map(function(r){return {id:r.id,name:r.name,scores:r.scores.slice()};})};
   }
+  var g = state.grid;
   var numDrivers = g.drivers.length;
 
   // Build header row
