@@ -371,8 +371,58 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   border:1px solid #1e2638;background:#111827;color:#7a8499;font-size:11px;font-weight:600;
   text-decoration:none;transition:all .15s;white-space:nowrap}
 .hdr-link:hover{border-color:#c9a84c44;color:#c9a84c}
+.ig-wrap{overflow-x:auto;padding-bottom:20px}
+.ig-table{border-collapse:collapse;min-width:100%;font-size:12px;table-layout:fixed}
+.ig-table th{background:#0a0d14;color:#5a6480;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 12px;border:1px solid #1e2638;white-space:nowrap;position:sticky;top:0;z-index:2}
+.ig-table th:first-child{position:sticky;left:0;z-index:3;background:#0a0d14;min-width:180px;max-width:180px}
+.ig-table td{border:1px solid #1e2638;padding:0;vertical-align:middle}
+.ig-table td:first-child{position:sticky;left:0;background:#111827;z-index:1;min-width:180px;max-width:180px}
+.ig-table tr:hover td{background:#ffffff05}
+.ig-table tr:hover td:first-child{background:#141e2d}
+.ig-init-name{font-size:12px;font-weight:600;color:#e8e4d9;padding:8px 12px;display:block;outline:none;background:transparent;border:none;width:100%;font-family:inherit}
+.ig-init-name:focus{color:#c9a84c}
+.ig-score-cell{text-align:center;cursor:pointer;transition:background .15s}
+.ig-score-cell:hover{background:#c9a84c11}
+.ig-score-btn{width:100%;height:100%;min-height:36px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:none;background:transparent;cursor:pointer;font-family:inherit;color:#5a6480}
+.score-0{color:#374151}
+.score-1{color:#4ade80;background:#4ade8011}
+.score-2{color:#c9a84c;background:#c9a84c11}
+.score-3{color:#f87171;background:#f8717111}
+.ig-total-cell{text-align:center;font-weight:800;font-size:14px;padding:8px;background:#0d1220;color:#c9a84c}
+.ig-driver-head{min-width:110px;max-width:110px}
+.ig-header-input{background:transparent;border:none;color:#5a6480;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-align:center;width:100%;outline:none;font-family:inherit;padding:10px 8px}
+.ig-header-input:focus{color:#c9a84c}
+.ig-legend{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.ig-leg{display:flex;align-items:center;gap:6px;font-size:11px;color:#5a6480}
+.ig-leg-dot{width:10px;height:10px;border-radius:2px}
+.ig-add-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:transparent;border:1px dashed #1e2638;border-radius:8px;color:#5a6480;font-size:12px;cursor:pointer;font-family:inherit;margin-top:12px;transition:all .15s}
+.ig-add-row:hover{border-color:#c9a84c44;color:#c9a84c}
+.ig-col-actions{display:flex;gap:6px;margin-bottom:12px;align-items:center}
 .hdr-link-icon{width:15px;height:15px;border-radius:3px;display:flex;align-items:center;
   justify-content:center;font-size:8px;color:#fff;flex-shrink:0}
+
+/* Initiative Grid */
+.ig-wrap{overflow-x:auto;border:1px solid #1e2638;border-radius:12px;background:#111827}
+.ig-table{border-collapse:collapse;min-width:100%;font-size:12px}
+.ig-table th{background:#0d1220;color:#5a6480;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 8px;border:1px solid #1e2638;white-space:nowrap}
+.ig-table th:first-child{min-width:180px;text-align:left;background:#0a0d14}
+.ig-table td{border:1px solid #1e2638;padding:0;vertical-align:middle}
+.ig-table td:first-child{min-width:180px;background:#111827}
+.ig-table tr:hover td{background:#ffffff05}
+.ig-init-name{padding:6px 10px;display:flex;align-items:center;gap:6px}
+.ig-init-name input{background:transparent;border:none;color:#e8e4d9;font-size:12px;font-weight:600;font-family:inherit;outline:none;flex:1;min-width:100px}
+.ig-score-cell{text-align:center;cursor:pointer;height:36px;width:56px;transition:background .1s;user-select:none;position:relative}
+.ig-score-cell:hover{background:#c9a84c11}
+.ig-score-0{color:#2a3450;font-size:12px}
+.ig-score-1{color:#60a5fa;font-weight:700;font-size:14px}
+.ig-score-2{color:#c9a84c;font-weight:700;font-size:14px}
+.ig-score-3{color:#4ade80;font-weight:700;font-size:14px}
+.ig-total-cell{background:#0d1220;font-weight:700;font-size:13px;text-align:center;padding:6px 10px;color:#c9a84c;min-width:60px}
+.ig-col-total{background:#0d1220;color:#4ade80;font-weight:700;font-size:12px;text-align:center;padding:6px 4px;border:1px solid #1e2638}
+.ig-col-input{background:transparent;border:none;color:#5a6480;font-size:10px;font-weight:700;font-family:inherit;outline:none;text-align:center;width:80px;text-transform:uppercase;letter-spacing:.05em}
+.ig-col-input:focus{color:#c9a84c}
+.ig-del-btn{background:none;border:none;color:#2a3450;cursor:pointer;font-size:11px;padding:0 3px;line-height:1;transition:color .15s;flex-shrink:0}
+.ig-del-btn:hover{color:#f87171}
 </style>
 </head>
 <body>
@@ -459,6 +509,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="tab" data-tab="2" onclick="switchTab(2)"><span class="tab-num">2</span>Initiatives</div>
     <div class="tab" data-tab="3" onclick="switchTab(3)"><span class="tab-num">3</span>Mapping & Timeline</div>
     <div class="tab" data-tab="4" onclick="switchTab(4)"><span class="tab-num">4</span>Output</div>
+    <div class="tab" data-tab="5" onclick="switchTab(5)"><span class="tab-num">5</span>Initiative Grid</div>
+    <div class="tab" data-tab="5" onclick="switchTab(5)"><span class="tab-num">5</span>Initiative Grid</div>
   </div>
 
   <div id="content">
@@ -467,6 +519,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div id="tab-2" style="display:none"></div>
     <div id="tab-3" style="display:none"></div>
     <div id="tab-4" style="display:none"></div>
+    <div id="tab-5" style="display:none"></div>
+    <div id="tab-5" style="display:none"></div>
   </div>
 </div>
 
@@ -559,7 +613,11 @@ function blankState(quarter) {
     initiatives: [],
     mappings: {},
     budget_data: {},
-    driver_impacts: {}
+    driver_impacts: {},
+    grid: {
+      columns: ['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'],
+      rows: []
+    }
   };
 }
 var state = blankState('Q2 2026');
@@ -810,11 +868,11 @@ function setupRealtime(wsId){
 function switchTab(n){
   currentTab=n;
   document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',+t.dataset.tab===n);});
-  for(var i=0;i<=4;i++){document.getElementById('tab-'+i).style.display=i===n?'block':'none';}
+  for(var i=0;i<=5;i++){document.getElementById('tab-'+i).style.display=i===n?'block':'none';}
   renderCurrentTab();
 }
 function renderCurrentTab(){
-  var fns=[renderOverview,renderBudget,renderInitiatives,renderMapping,renderOutput];
+  var fns=[renderOverview,renderBudget,renderInitiatives,renderMapping,renderOutput,renderGrid];
   fns[currentTab]();
 }
 
@@ -1878,6 +1936,367 @@ function processBudgetFile(file){
   } else {
     reader.readAsDataURL(file);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 5: INITIATIVE GRID
+// ═══════════════════════════════════════════════════════════════
+
+// Grid state stored in workspace data
+function getGrid() {
+  if (!state.grid) {
+    state.grid = {
+      drivers: ['Brand', 'New Customer Prospecting', 'New Customer Conversion', 'Retention', 'LTV'],
+      rows: [
+        { id: 'gr1', name: 'About Us',            scores: [1,2,1,2,3] },
+        { id: 'gr2', name: 'Playlist',             scores: [1,2,3,1,2] },
+        { id: 'gr3', name: 'Multi Subscription',   scores: [0,0,0,0,0] },
+        { id: 'gr4', name: 'Dashboard',            scores: [0,0,0,0,0] },
+        { id: 'gr5', name: 'Rarities',             scores: [0,0,0,0,0] },
+        { id: 'gr6', name: 'Roaster Storefronts',  scores: [0,0,0,0,0] },
+        { id: 'gr7', name: 'Specialty Destinations', scores: [0,0,0,0,0] },
+        { id: 'gr8', name: 'Equipment Storefront', scores: [0,0,0,0,0] }
+      ]
+    };
+    scheduleSave();
+  }
+  return state.grid;
+}
+
+function renderGrid() {
+  var g = getGrid();
+  var numDrivers = g.drivers.length;
+
+  // Build header row
+  var headCols = '<th>Initiative</th>';
+  g.drivers.forEach(function(d, di) {
+    headCols += '<th class="ig-driver-head"><input class="ig-header-input" value="'+esc(d)+'" data-di="'+di+'" oninput="gridUpdateDriver(this)" title="Click to rename"/></th>';
+  });
+  headCols += '<th style="min-width:70px;background:#0a0d14;color:#c9a84c;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 8px;border:1px solid #1e2638">TOTAL</th>';
+  headCols += '<th style="min-width:50px;background:#0a0d14;border:1px solid #1e2638"></th>';
+
+  // Build body rows
+  var bodyRows = g.rows.map(function(row, ri) {
+    // Ensure scores array matches drivers
+    while (row.scores.length < numDrivers) row.scores.push(0);
+
+    var rowTotal = row.scores.reduce(function(s,v){return s+v;}, 0);
+    var totalColor = rowTotal >= numDrivers*2 ? '#4ade80' : rowTotal >= numDrivers ? '#c9a84c' : rowTotal > 0 ? '#60a5fa' : '#374151';
+
+    var scoreCells = row.scores.slice(0, numDrivers).map(function(score, di) {
+      var scoreLabel = score === 0 ? '-' : String(score);
+      var scoreCls = 'score-'+score;
+      return '<td class="ig-score-cell"><button class="ig-score-btn '+scoreCls+'" data-ri="'+ri+'" data-di="'+di+'" onclick="gridCycleScore(this)" title="Click to cycle 0→1→2→3">'+scoreLabel+'</button></td>';
+    }).join('');
+
+    return '<tr>'+
+      '<td><input class="ig-init-name" value="'+esc(row.name)+'" data-ri="'+ri+'" oninput="gridUpdateName(this)" placeholder="Initiative name..." /></td>'+
+      scoreCells+
+      '<td style="text-align:center;font-weight:800;font-size:14px;padding:8px;background:#0d1220;color:'+totalColor+'">'+rowTotal+'</td>'+
+      '<td style="text-align:center;padding:4px"><button data-ri="'+ri+'" onclick="gridDeleteRow(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:12px;padding:2px 6px;border-radius:4px" title="Delete row">x</button></td>'+
+    '</tr>';
+  }).join('');
+
+  // Driver totals row
+  var driverTotals = g.drivers.map(function(d, di) {
+    var total = g.rows.reduce(function(s, r) { return s + (r.scores[di]||0); }, 0);
+    var maxPossible = g.rows.length * 3;
+    var pct = maxPossible ? Math.round((total/maxPossible)*100) : 0;
+    var color = pct >= 60 ? '#4ade80' : pct >= 30 ? '#c9a84c' : '#f87171';
+    return '<td style="text-align:center;padding:8px;background:#0a0d14;border:1px solid #1e2638"><div style="font-size:14px;font-weight:800;color:'+color+'">'+total+'</div><div style="font-size:9px;color:#374151;margin-top:2px">'+pct+'%</div></td>';
+  }).join('');
+
+  // Grand total
+  var grandTotal = g.rows.reduce(function(s,r){return s+r.scores.reduce(function(a,b){return a+b;},0);},0);
+
+  document.getElementById('tab-5').innerHTML =
+    '<div class="module">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'+
+        '<div>'+
+          '<div style="font-family:Georgia,serif;font-size:26px;color:#e8e4d9;margin-bottom:6px">Initiative Grid</div>'+
+          '<div style="font-size:13px;color:#7a8499">Score each initiative against your key drivers. 1=Low, 2=Medium, 3=High impact. Click any score to cycle.</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:10px">'+
+          '<button class="btn btn-claude btn-sm" onclick="gridClaudeScore()">&#9734; Claude Auto-Score</button>'+
+          '<button class="btn btn-gold btn-sm" onclick="gridAddRow()">+ Add Initiative</button>'+
+          '<button class="btn btn-ghost btn-sm" onclick="gridAddDriver()">+ Add Driver</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ig-legend">'+
+        '<div class="ig-leg"><div class="ig-leg-dot" style="background:#374151"></div>0 - No impact</div>'+
+        '<div class="ig-leg"><div class="ig-leg-dot" style="background:#4ade80"></div>1 - Low</div>'+
+        '<div class="ig-leg"><div class="ig-leg-dot" style="background:#c9a84c"></div>2 - Medium</div>'+
+        '<div class="ig-leg"><div class="ig-leg-dot" style="background:#f87171"></div>3 - High</div>'+
+        '<div style="margin-left:16px;font-size:11px;color:#5a6480">TOTAL = sum of all driver scores for each initiative</div>'+
+      '</div>'+
+      '<div id="grid-claude-box" class="claude-box" style="display:none;margin-bottom:16px"></div>'+
+      '<div class="ig-wrap">'+
+        '<table class="ig-table">'+
+          '<thead><tr>'+headCols+'</tr></thead>'+
+          '<tbody>'+bodyRows+'</tbody>'+
+          '<tfoot><tr>'+
+            '<td style="padding:8px 12px;background:#0a0d14;border:1px solid #1e2638;font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.08em;text-transform:uppercase">DRIVER TOTAL</td>'+
+            driverTotals+
+            '<td style="text-align:center;padding:8px;background:#0a0d14;border:1px solid #1e2638;font-size:14px;font-weight:800;color:#c9a84c">'+grandTotal+'</td>'+
+            '<td style="background:#0a0d14;border:1px solid #1e2638"></td>'+
+          '</tr></tfoot>'+
+        '</table>'+
+      '</div>'+
+    '</div>';
+}
+
+function gridCycleScore(btn) {
+  var ri = +btn.getAttribute('data-ri');
+  var di = +btn.getAttribute('data-di');
+  var g = getGrid();
+  g.rows[ri].scores[di] = (g.rows[ri].scores[di] + 1) % 4;
+  scheduleSave();
+  renderGrid();
+}
+function gridUpdateName(input) {
+  var ri = +input.getAttribute('data-ri');
+  getGrid().rows[ri].name = input.value;
+  scheduleSave();
+}
+function gridUpdateDriver(input) {
+  var di = +input.getAttribute('data-di');
+  getGrid().drivers[di] = input.value;
+  scheduleSave();
+}
+function gridDeleteRow(btn) {
+  var ri = +btn.getAttribute('data-ri');
+  if (!confirm('Delete this initiative row?')) return;
+  getGrid().rows.splice(ri, 1);
+  scheduleSave();
+  renderGrid();
+}
+function gridAddRow() {
+  var g = getGrid();
+  var scores = g.drivers.map(function(){ return 0; });
+  g.rows.push({ id: 'gr'+Date.now(), name: 'New Initiative', scores: scores });
+  scheduleSave();
+  renderGrid();
+  // Focus the new name input
+  setTimeout(function(){
+    var inputs = document.querySelectorAll('.ig-init-name');
+    if (inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+function gridAddDriver() {
+  var g = getGrid();
+  g.drivers.push('New Driver');
+  g.rows.forEach(function(r){ r.scores.push(0); });
+  scheduleSave();
+  renderGrid();
+}
+function gridClaudeScore() {
+  var g = getGrid();
+  var names = g.rows.map(function(r){ return r.name; }).join(', ');
+  var drivers = g.drivers.join(', ');
+  var prompt = 'Score each initiative against each driver on a scale of 0-3 (0=no impact, 1=low, 2=medium, 3=high). Initiatives: '+names+'. Drivers: '+drivers+'. Return ONLY a JSON array like: [{"name":"Initiative Name","scores":[0,1,2,3,1]}]. One object per initiative, scores array must match driver order exactly.';
+  var box = document.getElementById('grid-claude-box');
+  box.innerHTML = '<div class="claude-label">&#9734; Claude is scoring your initiatives...</div>';
+  box.style.display = 'block';
+  sb.auth.getSession().then(function(res){
+    var token = (res.data&&res.data.session) ? res.data.session.access_token : '';
+    return fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
+      body: JSON.stringify({messages:[{role:'user',content:prompt}], system:'You are a strategic analyst. Return only valid JSON arrays, no other text.'})
+    });
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    var blk = d.content && d.content.find(function(b){return b.type==='text';});
+    var text = blk ? blk.text : '';
+    try {
+      var clean = text.replace(/```json|```/g,'').trim();
+      var arr = JSON.parse(clean);
+      if (Array.isArray(arr)) {
+        arr.forEach(function(item){
+          var row = g.rows.find(function(r){ return r.name.toLowerCase().trim() === (item.name||'').toLowerCase().trim(); });
+          if (row && Array.isArray(item.scores)) {
+            row.scores = item.scores.slice(0, g.drivers.length);
+            while (row.scores.length < g.drivers.length) row.scores.push(0);
+          }
+        });
+        scheduleSave();
+        renderGrid();
+        box = document.getElementById('grid-claude-box');
+        if(box){box.innerHTML='<div class="claude-label">&#10003; Scores applied! Review and adjust as needed.</div>';box.style.display='block';}
+      }
+    } catch(e) {
+      box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div>'+esc(text)+'<br><em style="font-size:11px;color:#5a6480">Could not auto-apply. Score manually by clicking cells.</em>';
+    }
+  }).catch(function(){
+    box.innerHTML='<div class="claude-label">Error</div>Could not reach Claude.';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 5: INITIATIVE GRID
+// ═══════════════════════════════════════════════════════════════
+function getGrid(){
+  if(!state.grid)state.grid={columns:['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'],rows:[]};
+  if(!state.grid.columns)state.grid.columns=['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'];
+  if(!state.grid.rows)state.grid.rows=[];
+  return state.grid;
+}
+
+function renderInitGrid(){
+  var g=getGrid();
+  var cols=g.columns;
+  var rows=g.rows;
+
+  // Column headers row
+  var thCols=cols.map(function(c,ci){
+    return '<th style="min-width:80px;max-width:100px">'+
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'+
+        '<input class="ig-col-input" value="'+esc(c)+'" data-ci="'+ci+'" oninput="igUpdateCol(this)" title="Click to edit column name" />'+
+        '<button data-ci="'+ci+'" onclick="igDelCol(this)" class="ig-del-btn" title="Remove column">x</button>'+
+      '</div>'+
+    '</th>';
+  }).join('');
+
+  // Data rows
+  var trs=rows.map(function(row,ri){
+    var rowTotal=cols.reduce(function(s,_,ci){return s+(row.scores[ci]||0);},0);
+    var maxScore=cols.length*3;
+    var pct=maxScore>0?Math.round(rowTotal/maxScore*100):0;
+    var tds=cols.map(function(_,ci){
+      var score=row.scores[ci]||0;
+      return '<td class="ig-score-cell ig-score-'+score+'" data-ri="'+ri+'" data-ci="'+ci+'" onclick="igCycleScore(this)" title="Click to score (0-3)">'+
+        (score===0?'&mdash;':score)+
+      '</td>';
+    }).join('');
+    return '<tr>'+
+      '<td class="ig-table td:first-child">'+
+        '<div class="ig-init-name">'+
+          '<button data-ri="'+ri+'" onclick="igDelRow(this)" class="ig-del-btn">x</button>'+
+          '<input value="'+esc(row.name)+'" data-ri="'+ri+'" oninput="igUpdateName(this)" style="background:transparent;border:none;color:#e8e4d9;font-size:12px;font-weight:600;font-family:inherit;outline:none;flex:1" />'+
+        '</div>'+
+      '</td>'+
+      tds+
+      '<td class="ig-total-cell" title="Total score / '+maxScore+'">'+
+        '<div style="font-size:14px">'+rowTotal+'</div>'+
+        '<div style="font-size:9px;color:#5a6480;font-weight:400">'+pct+'%</div>'+
+      '</td>'+
+    '</tr>';
+  }).join('');
+
+  // Column totals row
+  var colTotals=cols.map(function(_,ci){
+    var t=rows.reduce(function(s,row){return s+(row.scores[ci]||0);},0);
+    return '<td class="ig-col-total">'+t+'</td>';
+  }).join('');
+  var grandTotal=rows.reduce(function(s,row){return s+cols.reduce(function(s2,_,ci){return s2+(row.scores[ci]||0);},0);},0);
+
+  document.getElementById('tab-5').innerHTML=
+    '<div style="padding:20px 28px">'+
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">'+
+        '<div>'+
+          '<div style="font-family:Georgia,serif;font-size:26px;color:#e8e4d9;margin-bottom:6px">Initiative Grid</div>'+
+          '<div style="font-size:13px;color:#7a8499">Score each initiative against strategic drivers. Click any cell to cycle 0 → 1 → 2 → 3.</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">'+
+          '<button class="btn btn-ghost btn-sm" onclick="igAddCol()">+ Add Driver Column</button>'+
+          '<button class="btn btn-gold btn-sm" onclick="igAddRow()">+ Add Initiative</button>'+
+          '<button class="btn btn-ghost btn-sm" onclick="igImportInits()">Import from Initiatives tab</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap">'+
+        '<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5a6480">SCORE KEY:</div>'+
+        '<div style="display:flex;gap:12px;font-size:11px">'+
+          '<span style="color:#2a3450">&#8212; = No impact</span>'+
+          '<span style="color:#60a5fa;font-weight:700">1 = Low impact</span>'+
+          '<span style="color:#c9a84c;font-weight:700">2 = Medium impact</span>'+
+          '<span style="color:#4ade80;font-weight:700">3 = High impact</span>'+
+        '</div>'+
+      '</div>'+
+      (rows.length===0&&cols.length===0?
+        '<div style="padding:48px;text-align:center;border:1px dashed #1e2638;border-radius:12px;background:#0d1220">'+
+          '<div style="font-size:14px;color:#5a6480;margin-bottom:16px">No initiatives or drivers yet.</div>'+
+          '<button class="btn btn-gold" onclick="igImportInits()">Import from Initiatives Tab</button>'+
+        '</div>'
+      :
+        '<div class="ig-wrap">'+
+          '<table class="ig-table">'+
+            '<thead><tr>'+
+              '<th style="text-align:left;background:#0a0d14;min-width:180px">Initiative</th>'+
+              thCols+
+              '<th style="background:#0a0d14;min-width:70px;text-align:center">Total</th>'+
+            '</tr></thead>'+
+            '<tbody>'+trs+'</tbody>'+
+            '<tfoot><tr>'+
+              '<td style="background:#0d1220;padding:6px 12px;font-size:10px;font-weight:700;color:#5a6480;text-transform:uppercase;letter-spacing:.08em">Column Total</td>'+
+              colTotals+
+              '<td class="ig-col-total" style="color:#c9a84c">'+grandTotal+'</td>'+
+            '</tr></tfoot>'+
+          '</table>'+
+        '</div>'
+      )+
+    '</div>';
+}
+
+function igCycleScore(td){
+  var ri=+td.getAttribute('data-ri');
+  var ci=+td.getAttribute('data-ci');
+  var g=getGrid();
+  var cur=g.rows[ri].scores[ci]||0;
+  g.rows[ri].scores[ci]=(cur>=3)?0:cur+1;
+  scheduleSave();
+  renderInitGrid();
+}
+function igUpdateName(input){
+  var ri=+input.getAttribute('data-ri');
+  getGrid().rows[ri].name=input.value;
+  scheduleSave();
+}
+function igUpdateCol(input){
+  var ci=+input.getAttribute('data-ci');
+  getGrid().columns[ci]=input.value;
+  scheduleSave();
+}
+function igDelRow(btn){
+  var ri=+btn.getAttribute('data-ri');
+  getGrid().rows.splice(ri,1);
+  scheduleSave();renderInitGrid();
+}
+function igDelCol(btn){
+  var ci=+btn.getAttribute('data-ci');
+  var g=getGrid();
+  g.columns.splice(ci,1);
+  g.rows.forEach(function(r){r.scores.splice(ci,1);});
+  scheduleSave();renderInitGrid();
+}
+function igAddRow(){
+  var g=getGrid();
+  var name=prompt('Initiative name:');
+  if(!name)return;
+  g.rows.push({name:name,scores:new Array(g.columns.length).fill(0)});
+  scheduleSave();renderInitGrid();
+}
+function igAddCol(){
+  var g=getGrid();
+  var name=prompt('Driver/column name:');
+  if(!name)return;
+  g.columns.push(name);
+  g.rows.forEach(function(r){r.scores.push(0);});
+  scheduleSave();renderInitGrid();
+}
+function igImportInits(){
+  var g=getGrid();
+  var active=state.initiatives.filter(function(i){return i.status==='active';});
+  if(!active.length){toast('No active initiatives to import','error');return;}
+  var added=0;
+  active.forEach(function(init){
+    var exists=g.rows.find(function(r){return r.name===init.title;});
+    if(!exists){
+      g.rows.push({name:init.title,scores:new Array(g.columns.length).fill(0)});
+      added++;
+    }
+  });
+  scheduleSave();renderInitGrid();
+  toast(added+' initiatives imported');
 }
 
 // ═══════════════════════════════════════════════════════════════
