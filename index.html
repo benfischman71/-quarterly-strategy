@@ -935,41 +935,60 @@ function renderOverview(){
   var driversHtml=ovDrivers.map(function(d,di){
     var dotColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency]||'#c9a84c';
     var stripeColor={critical:'#dc2626',watch:'#c9a84c',risk:'#7c3aed'}[d.urgency]||'#c9a84c';
-    var urgLabel=d.urgency.toUpperCase();
     var pillBg={critical:'#dc262222',watch:'#c9a84c22',risk:'#7c3aed22'}[d.urgency];
     var pillColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency];
-    var bulletHtml=(d.bullets||[]).map(function(b,bi){
-      return '<div style="display:flex;gap:8px;margin-bottom:7px">'+'<div style="width:4px;height:4px;border-radius:50%;background:'+dotColor+';margin-top:6px;flex-shrink:0"></div>'+'<textarea data-did="'+di+'" data-bi="'+bi+'" oninput="ovBulletInput(this)" style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#8a9ab8;font-size:12px;width:100%;outline:none;font-family:inherit;padding-bottom:2px;resize:none;overflow:hidden;line-height:1.5;min-height:18px" placeholder="Add detail...">'+esc(b)+'</textarea>'+'<button data-did="'+di+'" data-bi="'+bi+'" onclick="ovDelBullet(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:0 3px;flex-shrink:0">x</button>'+'</div>';
+    var urgLabel=d.urgency.toUpperCase();
+    var bulletsView=(d.bullets||[]).map(function(b){
+      return b?'<div style="display:flex;gap:8px;margin-bottom:6px"><div style="width:4px;height:4px;border-radius:50%;background:'+dotColor+';margin-top:7px;flex-shrink:0"></div><div style="font-size:12px;color:#8a9ab8;line-height:1.6">'+esc(b)+'</div></div>':'';
     }).join('');
+    var bulletsEdit=(d.bullets||[]).map(function(b,bi){
+      return '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start">'+
+        '<div style="width:4px;height:4px;border-radius:50%;background:'+dotColor+';margin-top:8px;flex-shrink:0"></div>'+
+        '<input value="'+esc(b)+'" data-did="'+di+'" data-bi="'+bi+'" oninput="ovBulletInput(this)" style="flex:1;background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#8a9ab8;font-size:12px;outline:none;font-family:inherit;padding-bottom:2px" placeholder="Add detail..." />'+
+        '<button data-did="'+di+'" data-bi="'+bi+'" onclick="ovDelBullet(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:0 3px;flex-shrink:0">x</button>'+
+      '</div>';
+    }).join('');
+
     return '<div style="background:linear-gradient(160deg,#111827,#0f1520);border-radius:14px;border:1px solid #1e2638;overflow:hidden;position:relative">'+
       '<div style="height:3px;background:'+stripeColor+'"></div>'+
-      '<button data-did="'+di+'" onclick="ovDelDriver(this)" '+
-        'style="position:absolute;top:10px;right:10px;background:none;border:none;color:#374151;cursor:pointer;font-size:13px;line-height:1;padding:2px 5px">x</button>'+
-      '<div style="padding:18px 20px 14px">'+
+      // VIEW MODE
+      '<div id="ovd-view-'+di+'" style="padding:16px 18px 14px">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
-          '<select data-did="'+di+'" onchange="ovDriverUrgency(this)" '+
-            'style="background:#0d1220;border:1px solid #1e2638;border-radius:6px;color:#5a6480;font-size:10px;font-family:inherit;padding:3px 6px;outline:none;cursor:pointer">'+
+          '<span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;background:'+pillBg+';color:'+pillColor+'">'+urgLabel+'</span>'+
+          '<button data-did="'+di+'" onclick="ovEditDriver(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit;border-radius:4px;border:1px solid #1e2638">&#9998; Edit</button>'+
+        '</div>'+
+        '<div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:10px;line-height:1.3">'+esc(d.label)+'</div>'+
+        bulletsView+
+        '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #1a2035;display:flex;align-items:center;gap:8px">'+
+          '<span style="font-size:9px;color:#5a6480;text-transform:uppercase;letter-spacing:.08em">TARGET</span>'+
+          '<span style="font-size:11px;font-weight:700;color:#c9a84c">'+esc(d.target||'—')+'</span>'+
+        '</div>'+
+      '</div>'+
+      // EDIT MODE
+      '<div id="ovd-edit-'+di+'" style="display:none;padding:16px 18px 14px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+          '<select data-di="'+di+'" onchange="ovDriverUrgency(this)" style="background:#0d1220;border:1px solid #1e2638;border-radius:6px;color:'+pillColor+';font-size:10px;font-weight:800;font-family:inherit;padding:4px 8px;outline:none;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">'+
             '<option value="critical"'+(d.urgency==='critical'?' selected':'')+'>CRITICAL</option>'+
             '<option value="watch"'+(d.urgency==='watch'?' selected':'')+'>WATCH</option>'+
             '<option value="risk"'+(d.urgency==='risk'?' selected':'')+'>RISK</option>'+
           '</select>'+
-          '<span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;background:'+pillBg+';color:'+pillColor+'">'+urgLabel+'</span>'+
+          '<button data-did="'+di+'" onclick="ovDelDriver(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit">Delete</button>'+
         '</div>'+
-        '<textarea data-did="'+di+'" oninput="ovDriverLabel(this);autoResize(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#e8e4d9;font-size:14px;font-weight:700;width:100%;outline:none;font-family:inherit;margin-bottom:12px;padding-bottom:4px;resize:none;overflow:hidden;line-height:1.4;min-height:24px;display:block">'+esc(d.label)+'</textarea>'+
-        bulletHtml+
-        '<button data-did="'+di+'" onclick="ovAddBullet(this)" '+
-          'style="margin-top:6px;font-size:11px;color:#5a6480;background:none;border:none;cursor:pointer;padding:0;font-family:inherit">+ bullet</button>'+
-      '</div>'+
-      '<div style="display:flex;align-items:center;padding:10px 20px 14px;border-top:1px solid #1a2035;margin-top:12px;gap:8px">'+
-        '<span style="font-size:9px;color:#5a6480;text-transform:uppercase;letter-spacing:.08em">TARGET</span>'+
-        '<input value="'+esc(d.target)+'" data-did="'+di+'" oninput="ovDriverTarget(this)" '+
-          'style="background:transparent;border:none;color:#c9a84c;font-size:11px;font-weight:700;outline:none;font-family:inherit;flex:1" placeholder="Set target..." />'+
+        '<input value="'+esc(d.label)+'" data-did="'+di+'" oninput="ovDriverLabel(this)" style="width:100%;background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#e8e4d9;font-size:14px;font-weight:700;outline:none;font-family:inherit;margin-bottom:12px;padding-bottom:4px;box-sizing:border-box" placeholder="Driver title..." />'+
+        bulletsEdit+
+        '<button data-did="'+di+'" onclick="ovAddBullet(this)" style="margin:4px 0 10px;font-size:11px;color:#5a6480;background:none;border:none;cursor:pointer;padding:0;font-family:inherit">+ Add bullet</button>'+
+        '<div style="border-top:1px solid #1a2035;padding-top:10px;margin-top:4px">'+
+          '<div style="font-size:9px;color:#5a6480;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">TARGET</div>'+
+          '<input value="'+esc(d.target||'')+'" data-did="'+di+'" oninput="ovDriverTarget(this)" style="width:100%;background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#c9a84c;font-size:11px;font-weight:700;outline:none;font-family:inherit;box-sizing:border-box" placeholder="Set target..." />'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;margin-top:12px">'+
+          '<button data-did="'+di+'" onclick="ovSaveDriver(this)" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:7px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit">Save</button>'+
+          '<button data-did="'+di+'" onclick="ovCancelDriver(this)" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-family:inherit">Cancel</button>'+
+        '</div>'+
       '</div>'+
     '</div>';
   }).join('');
-
-  // Build must-dos HTML
+/ Build must-dos HTML
   var mustDosHtml=(ov.must_dos||[]).map(function(item,idx){
     return '<div class="must-do-item">'+
       '<div class="must-do-num">'+(idx+1)+'</div>'+
@@ -2146,6 +2165,23 @@ function addOvDriver(){
   if(!state.overview.drivers)state.overview.drivers=[];
   state.overview.drivers.push({urgency:'watch',label:'New Driver',bullets:['Add detail here'],target:'Set target'});
   scheduleSave();renderOverview();
+}
+
+function ovEditDriver(btn){
+  var di=btn.getAttribute('data-did');
+  document.getElementById('ovd-view-'+di).style.display='none';
+  document.getElementById('ovd-edit-'+di).style.display='block';
+}
+function ovSaveDriver(btn){
+  var di=+btn.getAttribute('data-did');
+  scheduleSave();
+  // Re-render to refresh view mode with new values
+  renderOverview();
+}
+function ovCancelDriver(btn){
+  var di=btn.getAttribute('data-did');
+  document.getElementById('ovd-view-'+di).style.display='block';
+  document.getElementById('ovd-edit-'+di).style.display='none';
 }
 function ovDelDriver(btn){
   var di=+btn.getAttribute('data-did');
