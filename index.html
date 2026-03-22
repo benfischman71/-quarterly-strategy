@@ -1194,7 +1194,7 @@ function openGridModal(){
   g.rows.forEach(function(row,ri){
     var tr=document.createElement('tr');
     var tdName=document.createElement('td');
-    tdName.style.cssText='padding:10px 14px;font-size:13px;font-weight:600;color:#e8e4d9;border:1px solid #1e2638;background:#0d1220;white-space:nowrap;position:sticky;left:0;z-index:1';
+    tdName.style.cssText='padding:10px 14px;font-size:13px;font-weight:600;color:#e8e4d9;border:1px solid #1e2638;background:#0d1220;white-space:normal;word-break:break-word;min-width:200px;max-width:260px;position:sticky;left:0;z-index:1';
     tdName.textContent=row.name;
     tr.appendChild(tdName);
     var total=0;
@@ -1204,7 +1204,7 @@ function openGridModal(){
       td.style.cssText='padding:8px;border:1px solid #1e2638;background:#111827;text-align:center;cursor:pointer';
       td.title='Click to cycle';
       var span=document.createElement('span');
-      span.style.cssText='display:inline-block;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;background:'+scoreColors[score]+';color:'+scoreTextColors[score]+';min-width:40px;text-align:center';
+      span.style.cssText='display:inline-block;border-radius:6px;padding:5px 8px;font-size:11px;font-weight:700;background:'+scoreColors[score]+';color:'+scoreTextColors[score]+';min-width:36px;text-align:center';
       span.textContent=scoreLabels[score];
       td.appendChild(span);
       (function(r,c){td.onclick=function(){gridCycleScore(r,c);};})(ri,di);
