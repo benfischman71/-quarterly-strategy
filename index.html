@@ -403,10 +403,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="field"><label>Email</label><input class="input" id="auth-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')doAuth()"></div>
     <div class="field"><label>Password</label><input class="input" id="auth-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()"></div>
     <div class="field" id="auth-name-field" style="display:none"><label>Your Name</label><input class="input" id="auth-name" placeholder="First Last"></div>
-    <div id="remember-row" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer" onclick="document.getElementById('remember-me').click()">
+    <label id="remember-row" for="remember-me" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer">
       <input type="checkbox" id="remember-me" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0">
       <span style="font-size:12px;color:var(--muted);user-select:none">Remember me for 60 days</span>
-    </div>
+    </label>
     <button class="btn btn-gold" style="width:100%;justify-content:center;padding:11px" onclick="doAuth()" id="auth-btn">Sign In</button>
     <p style="margin-top:16px;font-size:11px;color:var(--dim)">By signing in you agree to use this for legitimate business purposes.</p>
   </div>
@@ -812,7 +812,6 @@ function renderCurrentTab(){
 // ═══════════════════════════════════════════════════════════════
 function renderOverview(){
   var ov=state.overview;
-  // Load stats from state or use empty defaults
   if(!ov.stats)ov.stats=[
     {val:'',label:'Revenue Target',delta:'',up:true},
     {val:'',label:'CAC Budget',delta:'',up:true},
@@ -820,62 +819,64 @@ function renderOverview(){
     {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
     {val:'',label:'Gross Margin',delta:'',up:false}
   ];
-  var heroStats=ov.stats;
-  var statsHtml=heroStats.map(function(s,i){
-    var displayVal=s.val||'<span style="color:var(--border);font-size:18px">Set value</span>';
-    var displayDelta=s.delta||'';
-    return (i>0?'<div class="stat-divider"></div>':'')+
-      '<div><div class="ov-stat-val'+(s.red?' red':'')+'">'+displayVal+'</div>'+
-      '<div class="ov-stat-label">'+esc(s.label)+'</div>'+
-      (displayDelta?'<div class="ov-stat-delta '+(s.up?'delta-up':'delta-down')+'">'+esc(displayDelta)+'</div>':'')+
-    '</div>';
+  if(!ov.drivers)ov.drivers=[];
+
+  // Build stats HTML
+  var statsHtml=ov.stats.map(function(s,i){
+    var displayVal=s.val||'<span style="color:#374151;font-size:18px">Set value</span>';
+    var deltaHtml=s.delta?'<div style="font-size:11px;font-weight:600;margin-top:2px;color:'+(s.up?'#4ade80':'#f87171')+'">'+esc(s.delta)+'</div>':'';
+    return (i>0?'<div style="width:1px;background:#1e2638"></div>':'')+
+      '<div><div style="font-family:Georgia,serif;font-size:24px;color:'+(s.red?'#f87171':'#c9a84c')+';line-height:1">'+displayVal+'</div>'+
+      '<div style="font-size:11px;color:#5a6480;margin-top:3px">'+esc(s.label)+'</div>'+deltaHtml+'</div>';
   }).join('');
 
-  // Use workspace drivers if set, otherwise empty for new workspaces
-  var ovDrivers=(ov.drivers&&ov.drivers.length>0)?ov.drivers:[];
+  // Build driver tiles HTML
+  var ovDrivers=ov.drivers||[];
   var driversHtml=ovDrivers.map(function(d,di){
-    var dotCls='dot-'+d.urgency;
-    var stripeCls='stripe-'+d.urgency;
-    var pillCls='up-'+d.urgency;
+    var dotColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency]||'#c9a84c';
+    var stripeColor={critical:'#dc2626',watch:'#c9a84c',risk:'#7c3aed'}[d.urgency]||'#c9a84c';
     var urgLabel=d.urgency.toUpperCase();
-    var bulletsHtml=d.bullets.map(function(b,bi){
-      return '<div class="driver-bullet">'+
-        '<div class="bullet-dot '+dotCls+'"></div>'+
+    var pillBg={critical:'#dc262222',watch:'#c9a84c22',risk:'#7c3aed22'}[d.urgency];
+    var pillColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency];
+    var bulletHtml=(d.bullets||[]).map(function(b,bi){
+      return '<div style="display:flex;gap:8px;margin-bottom:7px">'+
+        '<div style="width:4px;height:4px;border-radius:50%;background:'+dotColor+';margin-top:8px;flex-shrink:0"></div>'+
         '<input value="'+esc(b)+'" data-did="'+di+'" data-bi="'+bi+'" oninput="ovBulletInput(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px dashed var(--border2);color:#8a9ab8;font-size:12px;width:100%;outline:none;font-family:inherit;line-height:1.6;padding-bottom:2px" placeholder="Add detail..." />'+
+          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#8a9ab8;font-size:12px;width:100%;outline:none;font-family:inherit;padding-bottom:2px" placeholder="Add detail..." />'+
         '<button data-did="'+di+'" data-bi="'+bi+'" onclick="ovDelBullet(this)" '+
-          'style="background:none;border:none;color:var(--border);cursor:pointer;font-size:11px;padding:0 3px;flex-shrink:0">x</button>'+
+          'style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:0 3px">x</button>'+
       '</div>';
     }).join('');
-    return '<div class="driver-tile" style="position:relative">'+
-      '<div class="'+stripeCls+'"></div>'+
+    return '<div style="background:linear-gradient(160deg,#111827,#0f1520);border-radius:14px;border:1px solid #1e2638;overflow:hidden;position:relative">'+
+      '<div style="height:3px;background:'+stripeColor+'"></div>'+
       '<button data-did="'+di+'" onclick="ovDelDriver(this)" '+
-        'style="position:absolute;top:10px;right:10px;background:none;border:none;color:var(--border);cursor:pointer;font-size:13px;line-height:1;padding:2px 5px;border-radius:4px">x</button>'+
-      '<div class="driver-body">'+
-        '<div class="driver-icon-row" style="margin-bottom:8px">'+
+        'style="position:absolute;top:10px;right:10px;background:none;border:none;color:#374151;cursor:pointer;font-size:13px;line-height:1;padding:2px 5px">x</button>'+
+      '<div style="padding:18px 20px 14px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
           '<select data-did="'+di+'" onchange="ovDriverUrgency(this)" '+
-            'style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--dim);font-size:10px;font-family:inherit;padding:3px 6px;outline:none;cursor:pointer">'+
+            'style="background:#0d1220;border:1px solid #1e2638;border-radius:6px;color:#5a6480;font-size:10px;font-family:inherit;padding:3px 6px;outline:none;cursor:pointer">'+
             '<option value="critical"'+(d.urgency==='critical'?' selected':'')+'>CRITICAL</option>'+
             '<option value="watch"'+(d.urgency==='watch'?' selected':'')+'>WATCH</option>'+
             '<option value="risk"'+(d.urgency==='risk'?' selected':'')+'>RISK</option>'+
           '</select>'+
-          '<span class="urgency-pill '+pillCls+'">'+urgLabel+'</span>'+
+          '<span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;background:'+pillBg+';color:'+pillColor+'">'+urgLabel+'</span>'+
         '</div>'+
         '<input value="'+esc(d.label)+'" data-did="'+di+'" oninput="ovDriverLabel(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px dashed var(--border2);color:var(--text);font-size:14px;font-weight:700;width:100%;outline:none;font-family:inherit;margin-bottom:12px;padding-bottom:4px" placeholder="Driver title..." />'+
-        bulletsHtml+
+          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#e8e4d9;font-size:14px;font-weight:700;width:100%;outline:none;font-family:inherit;margin-bottom:12px;padding-bottom:4px" placeholder="Driver title..." />'+
+        bulletHtml+
         '<button data-did="'+di+'" onclick="ovAddBullet(this)" '+
-          'style="margin-top:6px;font-size:11px;color:var(--dim);background:none;border:none;cursor:pointer;padding:0;font-family:inherit">+ bullet</button>'+
+          'style="margin-top:6px;font-size:11px;color:#5a6480;background:none;border:none;cursor:pointer;padding:0;font-family:inherit">+ bullet</button>'+
       '</div>'+
-      '<div class="driver-footer">'+
-        '<span class="target-label">TARGET</span>'+
+      '<div style="display:flex;align-items:center;padding:10px 20px 14px;border-top:1px solid #1a2035;margin-top:12px;gap:8px">'+
+        '<span style="font-size:9px;color:#5a6480;text-transform:uppercase;letter-spacing:.08em">TARGET</span>'+
         '<input value="'+esc(d.target)+'" data-did="'+di+'" oninput="ovDriverTarget(this)" '+
-          'style="background:transparent;border:none;color:var(--gold);font-size:11px;font-weight:700;outline:none;font-family:inherit;flex:1" placeholder="Set target..." />'+
+          'style="background:transparent;border:none;color:#c9a84c;font-size:11px;font-weight:700;outline:none;font-family:inherit;flex:1" placeholder="Set target..." />'+
       '</div>'+
     '</div>';
   }).join('');
 
-  var mustDosHtml=ov.must_dos.map(function(item,idx){
+  // Build must-dos HTML
+  var mustDosHtml=(ov.must_dos||[]).map(function(item,idx){
     return '<div class="must-do-item">'+
       '<div class="must-do-num">'+(idx+1)+'</div>'+
       '<textarea class="must-do-text" rows="2" oninput="updateMustDo('+idx+',this.value)">'+esc(item)+'</textarea>'+
@@ -883,14 +884,31 @@ function renderOverview(){
     '</div>';
   }).join('');
 
+  // Drivers section
+  var driversSectionHtml;
+  if(ovDrivers.length===0){
+    driversSectionHtml='<div style="margin:0 32px 20px;padding:32px;border:1px dashed #1e2638;border-radius:14px;text-align:center;background:#0d1220">'+
+      '<div style="font-size:14px;color:#7a8499;margin-bottom:16px">No key drivers yet. Add your first driver or load a template.</div>'+
+      '<div style="display:flex;gap:12px;justify-content:center">'+
+        '<button class="btn btn-gold btn-sm" onclick="addOvDriver()">+ Add Driver</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="loadDriverTemplate()">Load Q2 2026 Template</button>'+
+      '</div>'+
+    '</div>';
+  } else {
+    driversSectionHtml='<div class="driver-grid">'+driversHtml+
+      '<button class="add-driver-tile-btn" onclick="addOvDriver()">+ Add Driver</button>'+
+    '</div>';
+  }
+
   document.getElementById('tab-0').innerHTML=
     '<div class="ov-hero">'+
       '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
-        '<div class="ov-quarter-pill">'+esc(ov.quarter)+'</div>'+
-        '<div style="display:flex;align-items:center;gap:6px"><div class="rt-dot"></div><span style="font-size:11px;color:var(--green);font-weight:600;letter-spacing:.06em">BUDGET ACTIVE</span></div>'+
+        '<div class="ov-quarter-pill">'+esc(ov.quarter||'Q2 2026')+'</div>'+
+        '<div style="display:flex;align-items:center;gap:6px"><div class="rt-dot"></div>'+
+          '<span style="font-size:11px;color:#4ade80;font-weight:600;letter-spacing:.06em">BUDGET ACTIVE</span></div>'+
       '</div>'+
-      '<input class="ov-headline" value="'+esc(ov.headline)+'" oninput="updateOvField(\'headline\',this.value)" />'+
-      '<input class="ov-sub" value="'+esc(ov.subline)+'" oninput="updateOvField(\'subline\',this.value)" />'+
+      '<input class="ov-headline" value="'+esc(ov.headline||'')+'" oninput="updateOvField(\'headline\',this.value)" />'+
+      '<input class="ov-sub" value="'+esc(ov.subline||'')+'" oninput="updateOvField(\'subline\',this.value)" />'+
       '<div class="ov-stats">'+statsHtml+'</div>'+
       '<div style="margin-top:14px;display:flex;align-items:center;gap:10px">'+
         '<button class="btn btn-ghost btn-sm" onclick="editHeroStats()" style="font-size:11px">&#9998; Edit Key Metrics</button>'+
@@ -899,31 +917,19 @@ function renderOverview(){
       '</div>'+
       '<div id="metrics-drop-zone" ondragover="metricsDropOver(event)" ondragleave="metricsDropLeave(event)" ondrop="handleMetricsDrop(event)" onclick="document.getElementById(\'metrics-file-drop\').click()" style="margin-top:10px;border:1px dashed #1e2638;border-radius:10px;padding:14px 18px;font-size:12px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:10px">'+
         '<span style="font-size:18px">&#128202;</span>'+
-        '<span>Drag &amp; drop a budget screenshot, PDF, or CSV here &mdash; Claude will extract your key metrics</span>'+
+        '<span>Drag &amp; drop a budget screenshot, PDF, or CSV &mdash; Claude will extract key metrics automatically</span>'+
       '</div>'+
       '<div id="metrics-extract-box" class="claude-box" style="display:none;margin-top:10px"></div>'+
     '</div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 32px 12px">'+
-      '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)">Key Drivers &amp; Prescriptive Targets</div>'+
+      '<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#5a6480">Key Drivers &amp; Prescriptive Targets</div>'+
       '<button class="btn btn-claude btn-sm" id="btn-ov-claude" onclick="ovClaudeAnalysis()">&#9734; Claude Risk Analysis</button>'+
     '</div>'+
     '<div id="ov-claude-box" class="claude-box" style="display:none;margin:0 32px 16px"></div>'+
-    (ovDrivers.length===0?
-      '<div style="margin:0 32px 20px;padding:32px;border:1px dashed var(--border);border-radius:14px;text-align:center;background:var(--surface2)">'+
-        '<div style="font-size:14px;color:var(--muted);margin-bottom:16px">No key drivers yet. Add your first driver or use the template.</div>'+
-        '<div style="display:flex;gap:12px;justify-content:center">'+
-          '<button class="btn btn-gold btn-sm" onclick="addOvDriver()">+ Add Driver</button>'+
-          '<button class="btn btn-ghost btn-sm" onclick="loadDriverTemplate()">Load Q2 2026 Template</button>'+
-        '</div>'+
-      '</div>'
-      :
-      '<div class="driver-grid">'+driversHtml+
-        '<button onclick="addOvDriver()" style="border:1px dashed var(--border);background:transparent;border-radius:14px;padding:20px;cursor:pointer;color:var(--dim);font-size:13px;font-family:inherit;transition:all .2s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--dim)'">+ Add Driver</button>'+
-      '</div>'
-    )+
+    driversSectionHtml+
     '<div class="must-do-section">'+
       '<div class="must-do-head">'+
-        '<div class="must-do-title"><div style="width:3px;height:14px;background:var(--red);border-radius:2px"></div>What We Must Do This Quarter</div>'+
+        '<div class="must-do-title"><div style="width:3px;height:14px;background:#f87171;border-radius:2px"></div>What We Must Do This Quarter</div>'+
         '<button class="btn btn-claude btn-sm" id="btn-md-claude" onclick="mustDosClaude()">&#9734; Generate with Claude</button>'+
       '</div>'+
       '<div id="md-claude-box" class="claude-box" style="display:none;padding:14px 22px"></div>'+
@@ -933,12 +939,6 @@ function renderOverview(){
       '</div>'+
     '</div>';
 }
-function updateOvField(k,v){state.overview[k]=v;scheduleSave();}
-function updateMustDo(idx,v){state.overview.must_dos[idx]=v;scheduleSave();}
-function deleteMustDo(idx){state.overview.must_dos.splice(idx,1);scheduleSave();renderOverview();}
-function addMustDo(){state.overview.must_dos.push('');scheduleSave();renderOverview();setTimeout(function(){var items=document.querySelectorAll('.must-do-text');if(items.length)items[items.length-1].focus();},50);}
-function ovClaudeAnalysis(){askClaude('Q2 2026: Revenue $11.74M (+9.7% YoY), CAC $77 (vs $102 LY), Active subs 107.6K, EBITDA $38K (barely breakeven, June -$19K risk), GM 29.3% (-330bps), COGS +7.4% YoY. What are the 3 biggest risks and 2 biggest opportunities? Be very specific.','btn-ov-claude','ov-claude-box');}
-function mustDosClaude(){askClaude('For Q2 2026: CAC budget $77 (cut from $102 LY, grow acquisition 4% YoY), Revenue $11.74M (+9.7% YoY), Active subs hold at 107.6K, EBITDA swing to $38K breakeven (June -$19K risk), GM 29.3% (330bps below LY, COGS +7.4%). Write 5-6 specific action-oriented imperatives starting with strong verbs. One sentence each.','btn-md-claude','md-claude-box',function(text){var lines=text.split('\n').filter(function(l){return l.trim().length>5;});if(lines.length>0&&confirm('Replace all must-dos with Claude\'s suggestions?')){state.overview.must_dos=lines.map(function(t){return t.replace(/^\d+\.\s*/,'').replace(/^[-]\s*/,'');});scheduleSave();renderOverview();}});}
 
 // ═══════════════════════════════════════════════════════════════
 // MODULE 1: BUDGET INPUT
