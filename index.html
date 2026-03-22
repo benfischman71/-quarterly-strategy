@@ -1361,7 +1361,7 @@ function openInitPanel(id){
         '</div>'+
       '</div>'+
       '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:160px;line-height:1.7" placeholder="Describe this initiative: What are we building? Why does it matter? When does it launch?">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
-      '<div id="desc-drop-'+id+'" onclick="document.getElementById(\'file-upload-'+id+'\').click()" ondragover="event.preventDefault()" ondrop="panelFileDrop(event,this.parentNode)" '+
+      '<div id="desc-drop-'+id+'" onclick="document.getElementById(\'file-upload-'+id+'\').click()" ondragover="event.preventDefault()" ondrop="panelFileDrop(event,this)" '+
       'style="margin-top:8px;border:1px dashed #1e2638;border-radius:8px;padding:12px 16px;font-size:12px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:10px">'+
       '<span style="font-size:18px">&#128206;</span>'+
       '<span>Drop a file, image or PDF here — Claude will extract details and apply to description</span>'+
@@ -2274,57 +2274,6 @@ function applyBudgetJsonText(txt){
   return false;
 }
 
-  if(!txt) return false;
-  try{
-    // Strip code fences
-    var cl = txt.replace(/```json/g,'').replace(/```/g,'').trim();
-    // Find the outermost JSON object
-    var start = cl.indexOf('{');
-    var end = cl.lastIndexOf('}');
-    if(start < 0 || end < 0) return false;
-    cl = cl.slice(start, end+1);
-    // Fix common JSON issues from Claude output:
-    // 1. Replace em-dashes with regular minus
-    cl = cl.replace(/–/g,'-').replace(/—/g,'-');
-    // 2. Replace smart quotes with straight quotes
-    cl = cl.replace(/[‘’]/g,"'").replace(/[“”]/g,'"');
-    var prs = JSON.parse(cl);
-    var rws = prs.rows || prs;
-    if(typeof rws !== 'object' || Array.isArray(rws)) return false;
-    if(!state.budget_data) state.budget_data = {};
-    var colMap = {
-      "Q2 '26 Budget": "Q2 '25 Budget",
-      "Q2 '25 Actual": "Q3 '25 Budget",
-      "Q2 Var ($)": "Q3 Var ($)",
-      "Q2 Var (%)": "Q3 Var (%)"
-    };
-    var filled = 0;
-    Object.keys(rws).forEach(function(metric){
-      var metricData = rws[metric];
-      if(typeof metricData !== 'object' || Array.isArray(metricData)) return;
-      if(!state.budget_data[metric]) state.budget_data[metric] = {};
-      Object.keys(metricData).forEach(function(col){
-        var mappedCol = colMap[col] || col;
-        var val = metricData[col];
-        if(val !== null && val !== undefined && val !== ''){
-          state.budget_data[metric][mappedCol] = String(val);
-          filled++;
-        }
-      });
-    });
-    if(filled > 0){
-      scheduleSave();
-      renderBudget();
-      var bx = document.getElementById('budget-extract-box');
-      if(bx) bx.innerHTML = '<div class="claude-label">&#10003; Filled '+filled+' cells in the table!</div>';
-      return true;
-    }
-    return false;
-  } catch(e){
-    console.log('Budget parse error:', e.message);
-    return false;
-  }
-}
 function applyBudgetJson(btn){
   var raw=btn.getAttribute('data-raw')||'';
   // Strip backtick code fences
