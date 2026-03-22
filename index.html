@@ -1323,9 +1323,10 @@ function renderInitiatives(){
     var pbCls={HIGH:'pb-high',MED:'pb-med',LOW:'pb-low'}[p];
     var statusLabel=init.status==='hold'?'ON HOLD':p+' PRIORITY';
     var pbActual=init.status==='hold'?'pb-hold':pbCls;
-    return '<div class="init-card'+(init.status==='hold'?' on-hold':'')+'" onclick="openInitPanel(\''+init.id+'\')">'+
+    return '<div class="init-card'+(init.status==='hold'?' on-hold':'')+'" style="position:relative" onclick="openInitPanel(\''+init.id+'\')">'+
       '<div class="init-card-bar" style="background:'+(init.status==='hold'?'#374151':'linear-gradient(90deg,'+color+',#f59e0b)')+'"></div>'+
       '<div class="priority-badge '+pbActual+'">'+statusLabel+'</div>'+
+      '<button data-iid="'+init.id+'" onclick="event.stopPropagation();deleteInit(this.getAttribute(\'data-iid\'))" style="position:absolute;top:8px;right:8px;background:#1e2638;border:1px solid #2a3450;color:#5a6480;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2;font-family:inherit" onmouseover="this.style.background=\'#2a1020\';this.style.color=\'#f87171\';this.style.borderColor=\'#f8717144\'" onmouseout="this.style.background=\'#1e2638\';this.style.color=\'#5a6480\';this.style.borderColor=\'#2a3450\'">&#10005;</button>'+
       '<div class="init-title">'+esc(init.title)+'</div>'+
       '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
       '<div class="score-chips">'+
