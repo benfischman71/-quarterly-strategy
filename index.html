@@ -1169,11 +1169,11 @@ function openGridModal(){
   headRow.appendChild(thInit);
   g.drivers.forEach(function(d,di){
     var th=document.createElement('th');
-    th.style.cssText='padding:8px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:120px';
+    th.style.cssText='padding:8px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:160px';
     var inp=document.createElement('input');
     inp.value=d;
     inp.dataset.di=di;
-    inp.style.cssText='background:transparent;border:none;color:#c9a84c;font-size:10px;font-weight:700;width:100px;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase';
+    inp.style.cssText='background:transparent;border:none;color:#c9a84c;font-size:10px;font-weight:700;width:140px;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase';
     inp.oninput=function(){gridUpdateDriver(this);};
     th.appendChild(inp);
     headRow.appendChild(th);
@@ -1237,10 +1237,10 @@ function openGridModal(){
 }
 
 function gridCycleScore(ri,di){
-  var g=state.grid;
-  g.rows[ri].scores[di]=(g.rows[ri].scores[di]+1)%4;
+  if(!state.grid||!state.grid.rows||!state.grid.rows[ri])return;
+  state.grid.rows[ri].scores[di]=(state.grid.rows[ri].scores[di]+1)%4;
   scheduleSave();
-  openGridModal();
+  setTimeout(openGridModal, 30);
 }
 function gridUpdateDriver(input){
   var di=+input.getAttribute('data-di');
@@ -1248,11 +1248,14 @@ function gridUpdateDriver(input){
   scheduleSave();
 }
 function gridAddDriver(){
-  var g=state.grid;
-  g.drivers.push('New Driver');
-  g.rows.forEach(function(r){r.scores.push(0);});
+  if(!state.grid||!state.grid.drivers)return;
+  state.grid.drivers.push('New Driver');
+  state.grid.rows.forEach(function(r){
+    while(r.scores.length<state.grid.drivers.length)r.scores.push(0);
+  });
   scheduleSave();
-  openGridModal();
+  // Small delay to ensure state is saved before reopening
+  setTimeout(openGridModal, 50);
 }
 function gridClaudeScore(){
   var g=state.grid;
