@@ -1570,16 +1570,23 @@ function panelEditField(which, id){
   if(btns)btns.style.display='flex';
 }
 function panelSaveField(which, id){
-  var edit=document.getElementById(which+'-edit-'+id);
+  var editDiv=document.getElementById(which+'-edit-'+id);
   var view=document.getElementById(which+'-view-'+id);
   var btns=document.getElementById(which+'-btns-'+id);
-  if(!edit)return;
+  if(!editDiv)return;
+  var ta=editDiv.querySelector('textarea');
+  var val=ta?ta.value:'';
   var field=which==='short'?'shortDescription':'description';
-  var val=edit.value;
+  // Normalize bullets to new lines
+  val=val.replace(/\s*•/g,'\n•').replace(/^\n/,'').trim();
   updateInit(id,field,val);
-  if(view)view.innerHTML=val?esc(val):'<span style="color:#374151">Click to edit...</span>';
-  if(view)view.style.display='block';
-  if(edit)edit.style.display='none';
+  if(view){
+    view.innerHTML=(val?esc(val):'<span style="color:#374151">Click to edit...</span>')+'<span style="float:right;font-size:10px;color:#5a6480">&#9998;</span>';
+    view.style.display='block';
+  }
+  if(editDiv)editDiv.style.display='none';
+  if(btns)btns.style.display='none';
+  toast('Saved!');
   if(btns)btns.style.display='none';
   toast('Saved!');
 }
