@@ -2591,14 +2591,6 @@ function getGrid() {
   return state.grid;
 }
 
-function gridCycleScore(btn) {
-  var ri = +btn.getAttribute('data-ri');
-  var di = +btn.getAttribute('data-di');
-  var g = getGrid();
-  g.rows[ri].scores[di] = (g.rows[ri].scores[di] + 1) % 4;
-  scheduleSave();
-  renderGrid();
-}
 function gridUpdateName(input) {
   var ri = +input.getAttribute('data-ri');
   getGrid().rows[ri].name = input.value;
