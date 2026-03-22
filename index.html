@@ -162,9 +162,9 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 .stat-divider{width:1px;background:var(--border)}
 
 /* ── driver tiles ── */
-.driver-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px 28px}
+.driver-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px 28px;align-items:start}
 .driver-tile{background:linear-gradient(160deg,#111827,#0f1520);border-radius:14px;
-  border:1px solid var(--border);overflow:hidden;transition:transform .2s,border-color .2s}
+  border:1px solid var(--border);overflow:visible;transition:transform .2s,border-color .2s;word-break:break-word}
 .driver-tile:hover{transform:translateY(-2px);border-color:#2a3550}
 .stripe-critical{height:3px;background:linear-gradient(90deg,#dc2626,#ef4444 50%,transparent)}
 .stripe-watch{height:3px;background:linear-gradient(90deg,var(--gold),#f59e0b 50%,transparent)}
@@ -851,13 +851,7 @@ function renderOverview(){
     var pillBg={critical:'#dc262222',watch:'#c9a84c22',risk:'#7c3aed22'}[d.urgency];
     var pillColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency];
     var bulletHtml=(d.bullets||[]).map(function(b,bi){
-      return '<div style="display:flex;gap:8px;margin-bottom:7px">'+
-        '<div style="width:4px;height:4px;border-radius:50%;background:'+dotColor+';margin-top:8px;flex-shrink:0"></div>'+
-        '<input value="'+esc(b)+'" data-did="'+di+'" data-bi="'+bi+'" oninput="ovBulletInput(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#8a9ab8;font-size:12px;width:100%;outline:none;font-family:inherit;padding-bottom:2px" placeholder="Add detail..." />'+
-        '<button data-did="'+di+'" data-bi="'+bi+'" onclick="ovDelBullet(this)" '+
-          'style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:0 3px">x</button>'+
-      '</div>';
+      return '<div style="display:flex;gap:8px;margin-bottom:7px">'+'<div style="width:4px;height:4px;border-radius:50%;background:'+dotColor+';margin-top:6px;flex-shrink:0"></div>'+'<textarea data-did="'+di+'" data-bi="'+bi+'" oninput="ovBulletInput(this)" style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#8a9ab8;font-size:12px;width:100%;outline:none;font-family:inherit;padding-bottom:2px;resize:none;overflow:hidden;line-height:1.5;min-height:18px" placeholder="Add detail...">'+esc(b)+'</textarea>'+'<button data-did="'+di+'" data-bi="'+bi+'" onclick="ovDelBullet(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:0 3px;flex-shrink:0">x</button>'+'</div>';
     }).join('');
     return '<div style="background:linear-gradient(160deg,#111827,#0f1520);border-radius:14px;border:1px solid #1e2638;overflow:hidden;position:relative">'+
       '<div style="height:3px;background:'+stripeColor+'"></div>'+
@@ -873,8 +867,8 @@ function renderOverview(){
           '</select>'+
           '<span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;background:'+pillBg+';color:'+pillColor+'">'+urgLabel+'</span>'+
         '</div>'+
-        '<input value="'+esc(d.label)+'" data-did="'+di+'" oninput="ovDriverLabel(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#e8e4d9;font-size:14px;font-weight:700;width:100%;outline:none;font-family:inherit;margin-bottom:12px;padding-bottom:4px" placeholder="Driver title..." />'+
+        '<textarea data-did="'+di+'" oninput="ovDriverLabel(this);autoResize(this)" '+
+          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#e8e4d9;font-size:14px;font-weight:700;width:100%;outline:none;font-family:inherit;margin-bottom:12px;padding-bottom:4px;resize:none;overflow:hidden;line-height:1.4;min-height:24px;display:block">'+esc(d.label)+'</textarea>'+
         bulletHtml+
         '<button data-did="'+di+'" onclick="ovAddBullet(this)" '+
           'style="margin-top:6px;font-size:11px;color:#5a6480;background:none;border:none;cursor:pointer;padding:0;font-family:inherit">+ bullet</button>'+
@@ -950,6 +944,13 @@ function renderOverview(){
         '<button class="add-btn-dashed" onclick="addMustDo()">+ Add Imperative</button>'+
       '</div>'+
     '</div>';
+  // Auto-resize all textareas in driver tiles
+  setTimeout(function(){
+    document.querySelectorAll('.driver-tile textarea').forEach(function(ta){
+      ta.style.height='auto';
+      ta.style.height=ta.scrollHeight+'px';
+    });
+  },50);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1063,57 +1064,117 @@ function openInitPanel(id){
   var init=state.initiatives.find(function(i){return i.id===id;});
   if(!init)return;
   var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
-  var pColor=p==='HIGH'?'var(--gold)':p==='MED'?'var(--blue)':'var(--dim)';
-  document.getElementById('side-panel').innerHTML=
-    '<div class="flex justify-between items-center" style="margin-bottom:24px">'+
-      '<div style="font-family:var(--font-serif);font-size:18px;color:var(--text)">Initiative Details</div>'+
+  var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
+  var panel=document.getElementById('side-panel');
+  panel.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">'+
+      '<div style="font-family:Georgia,serif;font-size:18px;color:#e8e4d9">Initiative Details</div>'+
       '<button class="btn btn-ghost btn-sm" onclick="closePanel()">x Close</button>'+
     '</div>'+
-    '<div class="field"><label>Title</label><input class="input" value="'+esc(init.title)+'" oninput="updateInit(\''+id+'\',\'title\',this.value)" /></div>'+
-    '<div class="field"><label>Status</label>'+
-      '<div style="display:flex;background:var(--surface2);border-radius:8px;padding:3px">'+
-        '<span onclick="updateInit(\''+id+'\',\'status\',\'active\');renderInitiatives()" style="flex:1;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;background:'+(init.status==='active'?'var(--gold)':'transparent')+';color:'+(init.status==='active'?'var(--bg)':'var(--muted)')+'">Active</span>'+
-        '<span onclick="updateInit(\''+id+'\',\'status\',\'hold\');renderInitiatives()" style="flex:1;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;background:'+(init.status==='hold'?'var(--gold)':'transparent')+';color:'+(init.status==='hold'?'var(--bg)':'var(--muted)')+'">On Hold</span>'+
+    '<div class="field"><label class="field-label">Title</label>'+
+      '<input class="input" data-iid="'+id+'" data-field="title" value="'+esc(init.title)+'" oninput="panelUpdateInit(this)" /></div>'+
+    '<div class="field"><label class="field-label">Status</label>'+
+      '<div style="display:flex;background:#0d1220;border-radius:8px;padding:3px">'+
+        '<span data-iid="'+id+'" data-status="active" onclick="panelSetStatus(this)" style="flex:1;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;background:'+(init.status==='active'?'#c9a84c':'transparent')+';color:'+(init.status==='active'?'#0a0e1a':'#7a8499')+'">Active</span>'+
+        '<span data-iid="'+id+'" data-status="hold" onclick="panelSetStatus(this)" style="flex:1;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;background:'+(init.status==='hold'?'#c9a84c':'transparent')+';color:'+(init.status==='hold'?'#0a0e1a':'#7a8499')+'">On Hold</span>'+
+      '</div></div>'+
+    '<div class="field">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<label class="field-label">Description</label>'+
+        '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="desc" onclick="panelDraftClaude(this)">&#9734; Draft</button></div>'+
+      '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)">'+esc(init.description)+'</textarea>'+
+      '<div id="claude-desc-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)">'+
+        '<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+
       '</div>'+
     '</div>'+
     '<div class="field">'+
-      '<div class="flex justify-between items-center" style="margin-bottom:6px"><label style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">Description</label>'+
-      '<button class="btn btn-claude btn-sm" id="btn-desc-'+id+'" onclick="draftDesc(\''+id+'\')">&#9734; Draft</button></div>'+
-      '<textarea class="input textarea" oninput="updateInit(\''+id+'\',\'description\',this.value)">'+esc(init.description)+'</textarea>'+
-      '<div id="desc-box-'+id+'" class="claude-box" style="display:none;cursor:pointer" onclick="applyClaudeToField(\''+id+'\',\'description\',\'desc-box-'+id+'\')"></div>'+
-    '</div>'+
-    '<div class="field">'+
-      '<div class="flex justify-between items-center" style="margin-bottom:6px"><label style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">What / Why / When</label>'+
-      '<button class="btn btn-claude btn-sm" id="btn-www-'+id+'" onclick="draftWWW(\''+id+'\')">&#9734; Draft</button></div>'+
-      '<textarea class="input textarea" oninput="updateInit(\''+id+'\',\'whatWhyWhen\',this.value)">'+esc(init.whatWhyWhen)+'</textarea>'+
-      '<div id="www-box-'+id+'" class="claude-box" style="display:none;cursor:pointer" onclick="applyClaudeToField(\''+id+'\',\'whatWhyWhen\',\'www-box-'+id+'\')"></div>'+
-    '</div>'+
-    '<div class="grid-2" style="gap:12px;margin-bottom:16px">'+
-      '<div class="field"><label>Launch Date</label><input type="date" class="input" value="'+(init.launchDate||'')+'" onchange="updateInit(\''+id+'\',\'launchDate\',this.value)" /></div>'+
-      '<div class="field"><label>Ramp Weeks</label><input type="number" class="input" min="0" max="12" value="'+(init.rampWeeks||0)+'" onchange="updateInit(\''+id+'\',\'rampWeeks\',+this.value)" /></div>'+
-    '</div>'+
-    '<div class="grid-2" style="gap:12px;margin-bottom:16px">'+
-      '<div class="field"><label>Expected Total Impact</label><input class="input" value="'+esc(init.expectedImpact||'')+'" placeholder="e.g. $1.2M" oninput="updateInit(\''+id+'\',\'expectedImpact\',this.value)" /></div>'+
-      '<div class="field"><label>Monthly Run Rate</label><input class="input" value="'+esc(init.monthlyRunRate||'')+'" placeholder="e.g. $400K/mo" oninput="updateInit(\''+id+'\',\'monthlyRunRate\',this.value)" /></div>'+
-    '</div>'+
-    '<div class="field">'+
-      '<div class="flex justify-between items-center" style="margin-bottom:14px"><label style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">Ranking Scores</label>'+
-      '<button class="btn btn-claude btn-sm" id="btn-rank-'+id+'" onclick="draftRank(\''+id+'\')">&#9734; Suggest Scores</button></div>'+
-      buildSlider(id,'impactScore','Impact','var(--amber)',init.impactScore)+
-      buildSlider(id,'effortScore','Effort','var(--blue)',init.effortScore)+
-      buildSlider(id,'mvpScore','MVP Speed','var(--purple)',init.mvpScore)+
-      '<div id="rank-box-'+id+'" class="claude-box" style="display:none"></div>'+
-      '<div style="margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">'+
-        '<span style="font-size:11px;color:var(--muted)">Priority: </span>'+
-        '<span style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-left:6px;background:'+pColor+'22;color:'+pColor+'">'+p+'</span>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<label class="field-label">What / Why / When</label>'+
+        '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="www" onclick="panelDraftClaude(this)">&#9734; Draft</button></div>'+
+      '<textarea class="input textarea" data-iid="'+id+'" data-field="whatWhyWhen" oninput="panelUpdateInit(this)">'+esc(init.whatWhyWhen)+'</textarea>'+
+      '<div id="claude-www-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="whatWhyWhen" onclick="panelApplyClaude(this)">'+
+        '<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+
       '</div>'+
     '</div>'+
-    '<div class="flex gap-8" style="margin-top:8px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+      '<div class="field" style="margin:0"><label class="field-label">Launch Date</label>'+
+        '<input type="date" class="input" data-iid="'+id+'" data-field="launchDate" value="'+(init.launchDate||'')+'" onchange="panelUpdateInit(this)" /></div>'+
+      '<div class="field" style="margin:0"><label class="field-label">Ramp Weeks</label>'+
+        '<input type="number" class="input" min="0" max="12" data-iid="'+id+'" data-field="rampWeeks" value="'+(init.rampWeeks||0)+'" onchange="panelUpdateInitNum(this)" /></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+      '<div class="field" style="margin:0"><label class="field-label">Expected Total Impact</label>'+
+        '<input class="input" data-iid="'+id+'" data-field="expectedImpact" value="'+esc(init.expectedImpact||'')+'" placeholder="e.g. $1.2M" oninput="panelUpdateInit(this)" /></div>'+
+      '<div class="field" style="margin:0"><label class="field-label">Monthly Run Rate</label>'+
+        '<input class="input" data-iid="'+id+'" data-field="monthlyRunRate" value="'+esc(init.monthlyRunRate||'')+'" placeholder="e.g. $400K/mo" oninput="panelUpdateInit(this)" /></div>'+
+    '</div>'+
+    '<div class="field">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
+        '<label class="field-label">Ranking Scores</label>'+
+        '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="rank" onclick="panelDraftClaude(this)">&#9734; Suggest Scores</button></div>'+
+      buildSlider(id,'impactScore','Impact','#fbbf24',init.impactScore)+
+      buildSlider(id,'effortScore','Effort','#60a5fa',init.effortScore)+
+      buildSlider(id,'mvpScore','MVP Speed','#a78bfa',init.mvpScore)+
+      '<div id="claude-rank-'+id+'" class="claude-box" style="display:none"></div>'+
+      '<div style="margin-top:12px;padding:10px 14px;background:#0d1220;border-radius:8px;border:1px solid #1e2638">'+
+        '<span style="font-size:11px;color:#7a8499">Priority: </span>'+
+        '<span id="priority-badge-'+id+'" style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-left:6px;background:'+pColor+'22;color:'+pColor+'">'+p+'</span>'+
+      '</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px">'+
       '<button class="btn btn-gold" style="flex:1;justify-content:center" onclick="closePanel();renderInitiatives()">Done</button>'+
-      '<button class="btn btn-danger" onclick="deleteInit(\''+id+'\')">Delete</button>'+
+      '<button class="btn btn-danger" data-iid="'+id+'" onclick="panelDeleteInit(this)">Delete</button>'+
     '</div>';
   document.getElementById('panel-overlay').classList.add('open');
 }
+function panelUpdateInit(el){
+  var id=el.getAttribute('data-iid');
+  var field=el.getAttribute('data-field');
+  updateInit(id,field,el.value);
+}
+function panelUpdateInitNum(el){
+  var id=el.getAttribute('data-iid');
+  var field=el.getAttribute('data-field');
+  updateInit(id,field,Number(el.value));
+}
+function panelSetStatus(el){
+  var id=el.getAttribute('data-iid');
+  var status=el.getAttribute('data-status');
+  updateInit(id,'status',status);
+  renderInitiatives();
+  openInitPanel(id);
+}
+function panelDeleteInit(el){
+  deleteInit(el.getAttribute('data-iid'));
+}
+function panelDraftClaude(el){
+  var id=el.getAttribute('data-iid');
+  var type=el.getAttribute('data-type');
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  if(!init)return;
+  var boxId='claude-'+type+'-'+id;
+  var prompt='';
+  if(type==='desc')prompt='Write a 2-sentence executive description for an initiative called "'+init.title+'". Be concise and outcome-focused.';
+  else if(type==='www')prompt='For "'+init.title+'": Write a brief What/Why/When breakdown. Three short bullets starting with What:, Why:, When:.';
+  else if(type==='rank')prompt='Rate "'+init.title+'" ('+init.description+'): Impact (1-10), Effort (1-10, 10=complex), MVP Speed (1-10).\nFormat:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason';
+  askClaude(prompt,el.id||'btn-draft',boxId,function(text){
+    var box=document.getElementById(boxId);
+    if(box){box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+esc(text).replace(/\n/g,'<br>');box.style.display='block';}
+  });
+  el.disabled=true;
+  var box=document.getElementById(boxId);
+  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';}
+}
+function panelApplyClaude(el){
+  var id=el.getAttribute('data-iid');
+  var field=el.getAttribute('data-field');
+  var text=el.innerText.replace('✦ Click to apply','').replace('Click to apply','').trim();
+  updateInit(id,field,text);
+  var ta=document.querySelector('[data-iid="'+id+'"][data-field="'+field+'"]');
+  if(ta&&ta.tagName==='TEXTAREA')ta.value=text;
+  toast('Applied!');
+}
+
 function buildSlider(id,key,label,color,val){
   return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'+
     '<span style="font-size:12px;color:'+color+';width:80px;flex-shrink:0">'+label+'</span>'+
@@ -1450,6 +1511,10 @@ function ovDriverLabel(input){
   state.overview.drivers[di].label=input.value;
   scheduleSave();
 }
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=(el.scrollHeight)+'px';
+}
 function ovDriverTarget(input){
   var di=+input.getAttribute('data-did');
   state.overview.drivers[di].target=input.value;
@@ -1458,7 +1523,7 @@ function ovDriverTarget(input){
 function ovBulletInput(input){
   var di=+input.getAttribute('data-did');
   var bi=+input.getAttribute('data-bi');
-  state.overview.drivers[di].bullets[bi]=input.value;
+  state.overview.drivers[di].bullets[bi]=input.value||input.textContent;
   scheduleSave();
 }
 function ovDelBullet(btn){
