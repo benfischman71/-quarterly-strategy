@@ -1597,9 +1597,16 @@ function panelFileUpload(input){
     var mediaType=file.type||'image/png';
     var isImage=file.type.startsWith('image/')||file.type==='application/pdf';
     var init=state.initiatives.find(function(i){return i.id===id;});
-    var prompt='Extract and summarize the key information from this document relevant to the initiative "'+
-      (init?init.title:'this initiative')+'". '+
-      'Return a concise description structured as What/Why/When (under 150 words).';
+    var prompt='You are analyzing a document for a business initiative called "'+(init?init.title:'this initiative')+'". '+
+      'Return EXACTLY two sections separated by ---FULL---:\n'+
+      'Section 1 (SHORT): A 2-sentence executive summary of what this initiative is and why it matters. Max 40 words.\n'+
+      '---FULL---\n'+
+      'Section 2 (FULL): A complete structured description with these headers:\n'+
+      '**What:** What exactly are we building or changing?\n'+
+      '**Why:** What problem or opportunity does this address?\n'+
+      '**When:** Key milestones and launch timing.\n'+
+      '**Expected Impact:** Quantified outcomes if possible.\n'+
+      'Max 200 words total.';
     var msgContent=[];
     if(isImage){msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});}
     msgContent.push({type:'text',text:prompt});
@@ -1615,18 +1622,64 @@ function panelFileUpload(input){
     .then(function(d){
       var blk=d.content&&d.content.find(function(b){return b.type==='text';});
       var text=blk?blk.text:'';
-      if(box){
-        box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:6px">&#9734; Extracted from file — click to apply to description</div>'+
-          '<div style="font-size:12px;line-height:1.6;color:#d4c5ff">'+esc(text)+'</div>';
-        var capturedId=id; var capturedText=text;
-        box.onclick=function(){
-          updateInit(capturedId,'description',capturedText);
-          // Find textarea - try multiple selectors
+      if(box&&text){
+        // Split into short and full
+        var parts=text.split('---FULL---');
+        var shortDesc=(parts[0]||text).trim();
+        var fullDesc=(parts[1]||text).trim();
+        var capturedId=id;
+        box.style.display='block';
+        box.innerHTML=
+          '<div style="font-size:10px;color:#a78bfa;font-weight:700;letter-spacing:.08em;margin-bottom:8px">&#9734; EXTRACTED FROM FILE</div>'+
+          '<div style="font-size:13px;color:#e8e4d9;line-height:1.6;margin-bottom:12px">'+esc(shortDesc)+'</div>'+
+          '<div style="display:flex;gap:8px">'+
+            '<button id="apply-short-'+id+'" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit">Apply Short Description</button>'+
+            '<button id="view-full-'+id+'" style="flex:1;background:#1e2638;border:1px solid #2a3450;color:#e8e4d9;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">View Full Description</button>'+
+          '</div>';
+        // Apply short
+        document.getElementById('apply-short-'+id).onclick=function(){
+          updateInit(capturedId,'description',shortDesc);
           var ta=document.querySelector('textarea[data-iid="'+capturedId+'"]');
-          if(!ta)ta=document.querySelector('[data-iid="'+capturedId+'"][data-field="description"]');
-          if(ta){ta.value=capturedText;ta.dispatchEvent(new Event('input'));}
-          this.style.display='none';
-          toast('Applied to description!');
+          if(ta){ta.value=shortDesc;ta.dispatchEvent(new Event('input'));}
+          box.style.display='none';
+          toast('Short description applied!');
+        };
+        // View full - opens a modal
+        document.getElementById('view-full-'+id).onclick=function(){
+          var old=document.getElementById('full-desc-modal');
+          if(old)old.remove();
+          var overlay=document.createElement('div');
+          overlay.id='full-desc-modal';
+          overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.85);z-index:9999;display:flex;align-items:center;justify-content:center';
+          var box2=document.createElement('div');
+          box2.style.cssText='background:#111827;border:1px solid #1e2638;border-radius:14px;padding:28px;width:600px;max-width:95vw;max-height:85vh;overflow:auto';
+          var closeBtn=document.createElement('button');
+          closeBtn.style.cssText='float:right;background:transparent;border:none;color:#5a6480;font-size:18px;cursor:pointer;font-family:inherit';
+          closeBtn.textContent='✕';
+          closeBtn.onclick=function(){overlay.remove();};
+          var title=document.createElement('div');
+          title.style.cssText='font-family:Georgia,serif;font-size:18px;color:#e8e4d9;margin-bottom:16px';
+          title.textContent='Full Description';
+          var body=document.createElement('div');
+          body.style.cssText='font-size:13px;color:#c8d4e8;line-height:1.8;white-space:pre-wrap';
+          body.textContent=fullDesc;
+          var applyBtn=document.createElement('button');
+          applyBtn.style.cssText='margin-top:20px;width:100%;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit';
+          applyBtn.textContent='Apply Full Description';
+          applyBtn.onclick=function(){
+            updateInit(capturedId,'description',fullDesc);
+            var ta=document.querySelector('textarea[data-iid="'+capturedId+'"]');
+            if(ta){ta.value=fullDesc;ta.dispatchEvent(new Event('input'));}
+            overlay.remove();
+            box.style.display='none';
+            toast('Full description applied!');
+          };
+          box2.appendChild(closeBtn);
+          box2.appendChild(title);
+          box2.appendChild(body);
+          box2.appendChild(applyBtn);
+          overlay.appendChild(box2);
+          document.body.appendChild(overlay);
         };
       }
     }).catch(function(){
