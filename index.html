@@ -1093,110 +1093,148 @@ function budgetInsightsClaude(){askClaude('For a quarterly budget review with me
 // MODULE 2: INITIATIVES
 // ═══════════════════════════════════════════════════════════════
 function openGridModal(){
-  // Build rows from actual initiatives in state
-  var inits = state.initiatives.filter(function(i){return i.status==='active';});
-  var g = state.grid || {};
-  if(!g.drivers||!g.drivers.length){
-    g.drivers = ['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'];
+  // Sync initiatives into grid rows
+  var inits=state.initiatives.filter(function(i){return i.status==='active';});
+  if(!state.grid||!state.grid.drivers){
+    state.grid={drivers:['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'],rows:[]};
   }
-  // Sync grid rows with current initiatives
-  if(!g.rows) g.rows = [];
+  var g=state.grid;
+  // Sync rows with initiatives
   inits.forEach(function(init){
-    var existing = g.rows.find(function(r){return r.id===init.id;});
-    if(!existing){
-      g.rows.push({id:init.id, name:init.title, scores:g.drivers.map(function(){return 0;})});
-    } else {
-      existing.name = init.title;
-      // Ensure scores array matches driver count
-      while(existing.scores.length < g.drivers.length) existing.scores.push(0);
-    }
+    var row=g.rows.find(function(r){return r.id===init.id;});
+    if(!row){g.rows.push({id:init.id,name:init.title,scores:g.drivers.map(function(){return 0;})});}
+    else{row.name=init.title;while(row.scores.length<g.drivers.length)row.scores.push(0);}
   });
-  // Remove rows for deleted initiatives
-  g.rows = g.rows.filter(function(r){
-    return inits.find(function(i){return i.id===r.id;});
-  });
-  state.grid = g;
+  g.rows=g.rows.filter(function(r){return inits.find(function(i){return i.id===r.id;});});
 
-  var scoreColors = ['#1e2638','#60a5fa44','#c9a84c44','#4ade8044'];
-  var scoreLabels = ['-','Low','Med','High'];
+  // Remove existing modal
+  var old=document.getElementById('grid-full-modal');
+  if(old)old.remove();
 
-  // Build header
-  var headHtml = '<tr><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#5a6480;letter-spacing:.08em;text-transform:uppercase;background:#0d1220;border:1px solid #1e2638;white-space:nowrap;min-width:200px">Initiative</th>';
+  // Create full-screen overlay using DOM (no innerHTML string escaping issues)
+  var overlay=document.createElement('div');
+  overlay.id='grid-full-modal';
+  overlay.style.cssText='position:fixed;inset:0;background:#080d16;z-index:9999;display:flex;flex-direction:column;overflow:hidden';
+
+  // Header
+  var hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid #1e2638;background:#0d1220;flex-shrink:0';
+  hdr.innerHTML='<div style="font-family:Georgia,serif;font-size:22px;color:#e8e4d9">Initiative Grid</div>';
+  var hdrRight=document.createElement('div');
+  hdrRight.style.cssText='display:flex;gap:12px;align-items:center';
+  var claudeBtn=document.createElement('button');
+  claudeBtn.className='btn btn-claude btn-sm';
+  claudeBtn.id='btn-grid-claude';
+  claudeBtn.textContent='✦ Claude Score All';
+  claudeBtn.onclick=gridClaudeScore;
+  var closeBtn=document.createElement('button');
+  closeBtn.className='btn btn-ghost btn-sm';
+  closeBtn.textContent='✕ Close';
+  closeBtn.onclick=function(){overlay.remove();};
+  hdrRight.appendChild(claudeBtn);
+  hdrRight.appendChild(closeBtn);
+  hdr.appendChild(hdrRight);
+  overlay.appendChild(hdr);
+
+  // Claude response box
+  var claudeBox=document.createElement('div');
+  claudeBox.id='grid-claude-box';
+  claudeBox.className='claude-box';
+  claudeBox.style.cssText='display:none;margin:12px 28px 0';
+  overlay.appendChild(claudeBox);
+
+  // Body
+  var body=document.createElement('div');
+  body.style.cssText='flex:1;overflow:auto;padding:20px 28px';
+
+  // Info text
+  var info=document.createElement('p');
+  info.style.cssText='font-size:12px;color:#5a6480;margin-bottom:16px';
+  info.textContent='Click any cell to cycle: — / Low / Med / High. Columns are your strategic drivers.';
+  body.appendChild(info);
+
+  // Build table
+  var tableWrap=document.createElement('div');
+  tableWrap.style.cssText='overflow-x:auto';
+  var table=document.createElement('table');
+  table.style.cssText='width:100%;border-collapse:collapse';
+
+  // Header row
+  var thead=document.createElement('thead');
+  var headRow=document.createElement('tr');
+  var thInit=document.createElement('th');
+  thInit.style.cssText='padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#5a6480;letter-spacing:.08em;text-transform:uppercase;background:#0a0d14;border:1px solid #1e2638;min-width:220px;white-space:nowrap;position:sticky;left:0;z-index:2';
+  thInit.textContent='Initiative';
+  headRow.appendChild(thInit);
   g.drivers.forEach(function(d,di){
-    headHtml += '<th style="padding:10px 8px;font-size:11px;font-weight:700;color:#5a6480;letter-spacing:.06em;text-transform:uppercase;background:#0d1220;border:1px solid #1e2638;text-align:center;min-width:100px"><input value="'+esc(d)+'" data-di="'+di+'" oninput="gridUpdateDriver(this)" style="background:transparent;border:none;color:#c9a84c;font-size:10px;font-weight:700;width:90px;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase" /></th>';
+    var th=document.createElement('th');
+    th.style.cssText='padding:8px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:120px';
+    var inp=document.createElement('input');
+    inp.value=d;
+    inp.dataset.di=di;
+    inp.style.cssText='background:transparent;border:none;color:#c9a84c;font-size:10px;font-weight:700;width:100px;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase';
+    inp.oninput=function(){gridUpdateDriver(this);};
+    th.appendChild(inp);
+    headRow.appendChild(th);
   });
-  headHtml += '<th style="padding:10px 8px;font-size:11px;font-weight:700;color:#c9a84c;background:#0d1220;border:1px solid #1e2638;text-align:center;min-width:60px">SCORE</th>';
-  headHtml += '<th style="padding:10px 8px;background:#0d1220;border:1px solid #1e2638;min-width:40px"></th></tr>';
+  var thScore=document.createElement('th');
+  thScore.style.cssText='padding:10px 8px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:70px;font-size:11px;font-weight:700;color:#c9a84c;letter-spacing:.08em';
+  thScore.textContent='SCORE';
+  headRow.appendChild(thScore);
+  thead.appendChild(headRow);
+  table.appendChild(thead);
 
-  // Build rows
-  var rowsHtml = '';
+  // Body rows
+  var tbody=document.createElement('tbody');
+  tbody.id='grid-tbody';
+  var scoreColors=['#1e2638','#1e3a5f','#3d2e00','#0d3320'];
+  var scoreTextColors=['#374151','#60a5fa','#c9a84c','#4ade80'];
+  var scoreLabels=['-','Low','Med','High'];
   g.rows.forEach(function(row,ri){
-    var total = row.scores.reduce(function(s,v){return s+v;},0);
-    var maxScore = g.drivers.length * 3;
-    var pct = maxScore > 0 ? Math.round((total/maxScore)*100) : 0;
-    rowsHtml += '<tr>';
-    rowsHtml += '<td style="padding:10px 14px;font-size:13px;font-weight:600;color:#e8e4d9;border:1px solid #1e2638;background:#111827">'+esc(row.name)+'</td>';
+    var tr=document.createElement('tr');
+    var tdName=document.createElement('td');
+    tdName.style.cssText='padding:10px 14px;font-size:13px;font-weight:600;color:#e8e4d9;border:1px solid #1e2638;background:#0d1220;white-space:nowrap;position:sticky;left:0;z-index:1';
+    tdName.textContent=row.name;
+    tr.appendChild(tdName);
+    var total=0;
     row.scores.forEach(function(score,di){
-      var scoreColor = scoreColors[score] || '#1e2638';
-      var scoreLabel = scoreLabels[score] || '-';
-      var textColor = score === 0 ? '#374151' : score === 1 ? '#60a5fa' : score === 2 ? '#c9a84c' : '#4ade80';
-      rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#111827;text-align:center" onclick="gridCycleScore('+ri+','+di+')" title="Click to cycle"><span class="grid-score-cell" style="background:'+scoreColor+';color:'+textColor+'">'+scoreLabel+'</span></td>';
+      total+=score;
+      var td=document.createElement('td');
+      td.style.cssText='padding:8px;border:1px solid #1e2638;background:#111827;text-align:center;cursor:pointer';
+      td.title='Click to cycle';
+      var span=document.createElement('span');
+      span.style.cssText='display:inline-block;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;background:'+scoreColors[score]+';color:'+scoreTextColors[score]+';min-width:40px;text-align:center';
+      span.textContent=scoreLabels[score];
+      td.appendChild(span);
+      (function(r,c){td.onclick=function(){gridCycleScore(r,c);};})(ri,di);
+      tr.appendChild(td);
     });
-    rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#0d1220;text-align:center"><span class="grid-score-pct" style="color:'+(pct>=70?'#4ade80':pct>=40?'#c9a84c':'#60a5fa')+'">'+pct+'%</span></td>';
-    rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#0d1220"></td>';
-    rowsHtml += '</tr>';
+    var maxScore=g.drivers.length*3;
+    var pct=maxScore>0?Math.round((total/maxScore)*100):0;
+    var pctColor=pct>=70?'#4ade80':pct>=40?'#c9a84c':'#60a5fa';
+    var tdPct=document.createElement('td');
+    tdPct.style.cssText='padding:8px;border:1px solid #1e2638;background:#0d1220;text-align:center';
+    tdPct.innerHTML='<span style="font-size:14px;font-weight:700;color:'+pctColor+'">'+pct+'%</span>';
+    tr.appendChild(tdPct);
+    tbody.appendChild(tr);
   });
+  table.appendChild(tbody);
+  tableWrap.appendChild(table);
+  body.appendChild(tableWrap);
 
-  var modalHtml =
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'+
-      '<div style="font-family:Georgia,serif;font-size:20px;color:#e8e4d9">Initiative Grid</div>'+
-      '<div style="display:flex;gap:10px">'+
-        '<button class="btn btn-claude btn-sm" onclick="gridClaudeScore()" id="btn-grid-claude">&#9734; Claude Score All</button>'+
-        '<button class="btn btn-ghost btn-sm" onclick="closePanel()">x Close</button>'+
-      '</div>'+
-    '</div>'+
-    '<p style="font-size:12px;color:#5a6480;margin-bottom:16px">Click any cell to cycle score: — / Low / Med / High. Drivers auto-populated from your initiatives.</p>'+
-    '<div style="overflow-x:auto">'+
-      '<table style="width:100%;border-collapse:collapse">'+
-        '<thead>'+headHtml+'</thead>'+
-        '<tbody id="grid-tbody">'+rowsHtml+'</tbody>'+
-      '</table>'+
-    '</div>'+
-    '<div style="margin-top:16px;display:flex;gap:10px">'+
-      '<button class="btn btn-ghost btn-sm" onclick="gridAddDriver()">+ Add Driver Column</button>'+
-    '</div>'+
-    '<div id="grid-claude-box" class="claude-box" style="display:none;margin-top:16px"></div>';
-
-  // Remove existing grid modal if present
-  var existing = document.getElementById('grid-full-modal');
-  if(existing) existing.remove();
-
-  var overlay = document.createElement('div');
-  overlay.id = 'grid-full-modal';
-  overlay.className = 'grid-modal-overlay';
-  overlay.innerHTML =
-    '<div class="grid-modal-header">'+
-      '<div style="font-family:Georgia,serif;font-size:22px;color:#e8e4d9">Initiative Grid</div>'+
-      '<div style="display:flex;gap:12px;align-items:center">'+
-        '<span style="font-size:12px;color:#5a6480">Click any cell to cycle: — / Low / Med / High</span>'+
-        '<button class="btn btn-claude btn-sm" onclick="gridClaudeScore()" id="btn-grid-claude">&#9734; Claude Score All</button>'+
-        '<button class="btn btn-ghost btn-sm" onclick="document.getElementById('grid-full-modal').remove()">&#10005; Close</button>'+
-      '</div>'+
-    '</div>'+
-    '<div class="grid-modal-body">'+
-      '<div id="grid-claude-box" class="claude-box" style="display:none;margin-bottom:20px"></div>'+
-      '<div style="overflow-x:auto">'+
-        '<table class="grid-table">'+
-          '<thead><tr>'+headHtml+'</tr></thead>'+
-          '<tbody id="grid-tbody">'+rowsHtml+'</tbody>'+
-        '</table>'+
-      '</div>'+
-      '<div style="margin-top:20px;display:flex;gap:10px">'+
-        '<button class="btn btn-ghost btn-sm" onclick="gridAddDriver()">+ Add Driver Column</button>'+
-      '</div>'+
-    '</div>';
+  // Footer buttons
+  var footer=document.createElement('div');
+  footer.style.cssText='margin-top:20px;display:flex;gap:10px';
+  var addBtn=document.createElement('button');
+  addBtn.className='btn btn-ghost btn-sm';
+  addBtn.textContent='+ Add Driver Column';
+  addBtn.onclick=gridAddDriver;
+  footer.appendChild(addBtn);
+  body.appendChild(footer);
+  overlay.appendChild(body);
   document.body.appendChild(overlay);
 }
+
 function gridCycleScore(ri,di){
   var g=state.grid;
   g.rows[ri].scores[di]=(g.rows[ri].scores[di]+1)%4;
