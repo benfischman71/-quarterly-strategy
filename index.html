@@ -1421,7 +1421,7 @@ function openInitPanel(id){
       })()+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-top:16px">'+
-      '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" data-iid="'+id+'" onclick="openInitOverview(this.getAttribute('data-iid'))">&#128196; Full Overview</button>'+
+      '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" data-iid="'+id+'" onclick="openInitOverview(this.dataset.iid)">&#128196; Full Overview</button>'+
     '</div>'+
     '<div style="display:flex;gap:8px;margin-top:8px">'+
       '<button class="btn btn-gold" style="flex:1;justify-content:center" onclick="closePanel();renderInitiatives()">Done</button>'+
@@ -1431,6 +1431,7 @@ function openInitPanel(id){
 }
 
 function openInitOverview(id){
+  if(id&&typeof id==='object')id=id.dataset?id.dataset.iid:id.getAttribute('data-iid');
   var init=state.initiatives.find(function(i){return i.id===id;});
   if(!init)return;
   var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
