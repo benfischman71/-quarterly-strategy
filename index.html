@@ -1361,17 +1361,13 @@ function openInitPanel(id){
         '</div>'+
       '</div>'+
       '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:160px;line-height:1.7" placeholder="Describe this initiative: What are we building? Why does it matter? When does it launch?">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
-      '<div id="desc-drop-'+id+'" '+
-        'ondragover="event.preventDefault();this.style.borderColor=\'#c9a84c\';this.style.background=\'rgba(201,168,76,0.05)\'" '+
-        'ondragleave="this.style.borderColor=\'#1e2638\';this.style.background=\'transparent\'" '+
-        'ondrop="panelFileDrop(event,\''+id+'\')\" '+
-        'onclick="this.querySelector(\'input\').click()" '+
-        'style="margin-top:8px;border:1px dashed #1e2638;border-radius:8px;padding:10px 14px;font-size:11px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s">'+
-        '<span style="font-size:16px">&#128206;</span>'+
-        '<span>Drop a file, image or PDF here — Claude will extract details</span>'+
-        '<input type="file" data-iid="'+id+'" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none" onchange="panelFileUpload(this)" />'+
-      '</div>'+
-      '<div id="claude-desc-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)">'+
+      '<div id="desc-drop-'+id+'" onclick="document.getElementById(\'file-upload-'+id+'\').click()" ondragover="event.preventDefault()" ondrop="panelFileDrop(event,this.parentNode)" '+
+      'style="margin-top:8px;border:1px dashed #1e2638;border-radius:8px;padding:12px 16px;font-size:12px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:10px">'+
+      '<span style="font-size:18px">&#128206;</span>'+
+      '<span>Drop a file, image or PDF here — Claude will extract details and apply to description</span>'+
+      '<input type="file" id="file-upload-'+id+'" data-iid="'+id+'" accept="image/*,.pdf,.txt" style="display:none" onchange="panelFileUpload(this)"/>'+
+    '</div>'+
+    '<div id="claude-desc-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)">'+
         '<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+
       '</div>'+
       '<div id="panel-file-box-'+id+'" class="claude-box" style="display:none;margin-top:8px"></div>'+
@@ -1577,13 +1573,14 @@ function panelDraftClaude(el){
   var box=document.getElementById(boxId);
   if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';}
 }
-function panelFileDrop(event,id){
+function panelFileDrop(event,el){
   event.preventDefault();
-  var dz=document.getElementById('desc-drop-'+id);
-  if(dz){dz.style.borderColor='#1e2638';dz.style.background='transparent';}
   var file=event.dataTransfer.files[0];
   if(!file)return;
-  // Fake the input event
+  // Get id from the drop zone's child input
+  var inp=el.querySelector('input[type="file"]');
+  var id=inp?inp.getAttribute('data-iid'):'';
+  if(!id)return;
   var fakeInput={files:[file],getAttribute:function(){return id;}};
   panelFileUpload(fakeInput);
 }
