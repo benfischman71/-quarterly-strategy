@@ -2210,87 +2210,73 @@ function handleBudgetFile(input){
   input.value='';
 }
 function applyBudgetJsonText(txt){
-  if(!txt) return false;
+  if(!txt||!txt.trim()) return false;
   txt = txt.trim();
   
-  // Try CSV/pipe-delimited format first (new approach)
-  if(txt.includes('|')){
+  // Approach 1: pipe-delimited CSV (new format)
+  if(txt.includes('|') && txt.split('\n').length > 2){
     try{
-      var rows = txt.split('\n').map(function(r){return r.trim();}).filter(Boolean);
-      // Remove any code fence lines
-      rows = rows.filter(function(r){return !r.startsWith('`');});
-      if(rows.length < 2) return false;
+      var rows = txt.split('\n').map(function(r){return r.trim();}).filter(function(r){return r&&!r.startsWith('`');});
       var headers = rows[0].split('|').map(function(h){return h.trim();});
-      if(!state.budget_data) state.budget_data = {};
-      var filled = 0;
-      var colMap = {
-        'Q2 Budget': "Q2 '25 Budget",
-        'Q2 LY': "Q2 '25 Actual",
-        'Q2 Var $': "Q3 Var ($)",
-        'Q2 Var %': "Q3 Var (%)"
-      };
-      for(var ri=1; ri<rows.length; ri++){
-        var cells = rows[ri].split('|').map(function(c){return c.trim();});
-        var metric = cells[0];
-        if(!metric) continue;
-        if(!state.budget_data[metric]) state.budget_data[metric] = {};
-        for(var ci=1; ci<headers.length; ci++){
-          var col = colMap[headers[ci]] || headers[ci];
-          var val = cells[ci] || '';
-          if(val && val !== '-'){
-            state.budget_data[metric][col] = val;
-            filled++;
-          }
+      if(!state.budget_data) state.budget_data={};
+      var colMap={'Q2 Budget':"Q2 '25 Budget",'Q2 LY':"Q2 '25 Actual",'Q2 Var $':"Q3 Var ($)",'Q2 Var %':"Q3 Var (%)"};
+      var filled=0;
+      for(var ri=1;ri<rows.length;ri++){
+        var cells=rows[ri].split('|').map(function(c){return c.trim();});
+        var metric=cells[0];
+        if(!metric||metric==='-')continue;
+        if(!state.budget_data[metric])state.budget_data[metric]={};
+        for(var ci=1;ci<headers.length&&ci<cells.length;ci++){
+          var col=colMap[headers[ci]]||headers[ci];
+          var val=cells[ci]||'';
+          if(val&&val!=='-'&&val!=='N/A'){state.budget_data[metric][col]=val;filled++;}
         }
       }
-      if(filled > 0){
-        scheduleSave();
-        renderBudget();
-        var bx = document.getElementById('budget-extract-box');
-        if(bx) bx.innerHTML = '<div class="claude-label">&#10003; Filled '+filled+' cells in the table!</div>';
-        return true;
-      }
-    } catch(e){ console.log('CSV parse error:', e); }
+      if(filled>0){scheduleSave();renderBudget();var bx=document.getElementById('budget-extract-box');if(bx)bx.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells!</div>';return true;}
+    }catch(e){console.log('CSV parse error:',e);}
   }
   
-  // Fallback: try JSON
+  // Approach 2: regex extraction - pull out "Key": "Value" pairs grouped by metric
   try{
-    var cl = txt.replace(/```json/g,'').replace(/```/g,'').trim();
-    cl = cl.replace(/\u2013/g,'-').replace(/\u2014/g,'-');
-    cl = cl.replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
-    var start = cl.indexOf('{');
-    var end = cl.lastIndexOf('}');
-    if(start < 0 || end < 0) return false;
-    cl = cl.slice(start, end+1);
-    var prs = JSON.parse(cl);
-    var rws = prs.rows || prs;
-    if(typeof rws !== 'object' || Array.isArray(rws)) return false;
-    if(!state.budget_data) state.budget_data = {};
-    var colMap2 = {"Q2 '26 Budget":"Q2 '25 Budget","Q2 '25 Actual":"Q3 '25 Budget","Q2 Var ($)":"Q3 Var ($)","Q2 Var (%)":"Q3 Var (%)"};
-    var filled2 = 0;
-    Object.keys(rws).forEach(function(metric){
-      var metricData = rws[metric];
-      if(typeof metricData !== 'object' || Array.isArray(metricData)) return;
-      if(!state.budget_data[metric]) state.budget_data[metric] = {};
-      Object.keys(metricData).forEach(function(col){
-        var mappedCol = colMap2[col] || col;
-        var val = metricData[col];
-        if(val !== null && val !== undefined && val !== ''){
-          state.budget_data[metric][mappedCol] = String(val);
-          filled2++;
-        }
-      });
-    });
-    if(filled2 > 0){
-      scheduleSave(); renderBudget();
-      var bx2 = document.getElementById('budget-extract-box');
-      if(bx2) bx2.innerHTML = '<div class="claude-label">&#10003; Filled '+filled2+' cells!</div>';
+    // Normalize special chars
+    var cl=txt.replace(/–|—/g,'-').replace(/[‘’]/g,"'").replace(/[“”]/g,'"');
+    // Strip code fences
+    cl=cl.replace(/```[a-z]*/g,'').replace(/```/g,'').trim();
+    
+    if(!state.budget_data)state.budget_data={};
+    var filled=0;
+    
+    // Match metric blocks: "Metric Name": { ... }
+    var metricPattern=/"([^"]+)"\s*:\s*\{([^}]+)\}/g;
+    var m;
+    while((m=metricPattern.exec(cl))!==null){
+      var metric=m[1];
+      var block=m[2];
+      if(!state.budget_data[metric])state.budget_data[metric]={};
+      // Extract key-value pairs within the block
+      var kvPattern=/"([^"]+)"\s*:\s*"([^"]*)"/g;
+      var kv;
+      var colMap2={"Q2 '26 Budget":"Q2 '25 Budget","Q2 '25 Actual":"Q3 '25 Budget","Q2 Var ($)":"Q3 Var ($)","Q2 Var (%)":"Q3 Var (%)"};
+      while((kv=kvPattern.exec(block))!==null){
+        var col=colMap2[kv[1]]||kv[1];
+        var val=kv[2];
+        if(val&&val!=='-'){state.budget_data[metric][col]=val;filled++;}
+      }
+    }
+    
+    if(filled>0){
+      scheduleSave();renderBudget();
+      var bx2=document.getElementById('budget-extract-box');
+      if(bx2)bx2.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells!</div>';
+      var bm=document.getElementById('budget-paste-modal');
+      if(bm)bm.remove();
       return true;
     }
-    return false;
-  } catch(e){ console.log('Budget parse error:', e.message); return false; }
+  }catch(e){console.log('Regex parse error:',e);}
+  
+  return false;
 }
-function _OLD_applyBudgetJsonText_replaced(){
+
   if(!txt) return false;
   try{
     // Strip code fences
@@ -2695,202 +2681,6 @@ function gridClaudeScore() {
 // ═══════════════════════════════════════════════════════════════
 // MODULE 5: INITIATIVE GRID
 // ═══════════════════════════════════════════════════════════════
-function getGrid(){
-  if(!state.grid)state.grid={columns:['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'],rows:[]};
-  if(!state.grid.columns)state.grid.columns=['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'];
-  if(!state.grid.rows)state.grid.rows=[];
-  return state.grid;
-}
-
-function renderInitGrid(){
-  var g=getGrid();
-  var cols=g.columns;
-  var rows=g.rows;
-
-  // Column headers row
-  var thCols=cols.map(function(c,ci){
-    return '<th style="min-width:80px;max-width:100px">'+
-      '<div style="display:flex;flex-direction:column;align-items:center;gap:3px">'+
-        '<input class="ig-col-input" value="'+esc(c)+'" data-ci="'+ci+'" oninput="igUpdateCol(this)" title="Click to edit column name" />'+
-        '<button data-ci="'+ci+'" onclick="igDelCol(this)" class="ig-del-btn" title="Remove column">x</button>'+
-      '</div>'+
-    '</th>';
-  }).join('');
-
-  // Data rows
-  var trs=rows.map(function(row,ri){
-    var rowTotal=cols.reduce(function(s,_,ci){return s+(row.scores[ci]||0);},0);
-    var maxScore=cols.length*3;
-    var pct=maxScore>0?Math.round(rowTotal/maxScore*100):0;
-    var tds=cols.map(function(_,ci){
-      var score=row.scores[ci]||0;
-      return '<td class="ig-score-cell ig-score-'+score+'" data-ri="'+ri+'" data-ci="'+ci+'" onclick="igCycleScore(this)" title="Click to score (0-3)">'+
-        (score===0?'&mdash;':score)+
-      '</td>';
-    }).join('');
-    return '<tr>'+
-      '<td class="ig-table td:first-child">'+
-        '<div class="ig-init-name">'+
-          '<button data-ri="'+ri+'" onclick="igDelRow(this)" class="ig-del-btn">x</button>'+
-          '<input value="'+esc(row.name)+'" data-ri="'+ri+'" oninput="igUpdateName(this)" style="background:transparent;border:none;color:#e8e4d9;font-size:12px;font-weight:600;font-family:inherit;outline:none;flex:1" />'+
-        '</div>'+
-      '</td>'+
-      tds+
-      '<td class="ig-total-cell" title="Total score / '+maxScore+'">'+
-        '<div style="font-size:14px">'+rowTotal+'</div>'+
-        '<div style="font-size:9px;color:#5a6480;font-weight:400">'+pct+'%</div>'+
-      '</td>'+
-    '</tr>';
-  }).join('');
-
-  // Column totals row
-  var colTotals=cols.map(function(_,ci){
-    var t=rows.reduce(function(s,row){return s+(row.scores[ci]||0);},0);
-    return '<td class="ig-col-total">'+t+'</td>';
-  }).join('');
-  var grandTotal=rows.reduce(function(s,row){return s+cols.reduce(function(s2,_,ci){return s2+(row.scores[ci]||0);},0);},0);
-
-  document.getElementById('tab-5').innerHTML=
-    '<div style="padding:20px 28px">'+
-      '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">'+
-        '<div>'+
-          '<div style="font-family:Georgia,serif;font-size:26px;color:#e8e4d9;margin-bottom:6px">Initiative Grid</div>'+
-          '<div style="font-size:13px;color:#7a8499">Score each initiative against strategic drivers. Click any cell to cycle 0 → 1 → 2 → 3.</div>'+
-        '</div>'+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">'+
-          '<button class="btn btn-ghost btn-sm" onclick="igAddCol()">+ Add Driver Column</button>'+
-          '<button class="btn btn-gold btn-sm" onclick="igAddRow()">+ Add Initiative</button>'+
-          '<button class="btn btn-ghost btn-sm" onclick="igImportInits()">Import from Initiatives tab</button>'+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap">'+
-        '<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5a6480">SCORE KEY:</div>'+
-        '<div style="display:flex;gap:12px;font-size:11px">'+
-          '<span style="color:#2a3450">&#8212; = No impact</span>'+
-          '<span style="color:#60a5fa;font-weight:700">1 = Low impact</span>'+
-          '<span style="color:#c9a84c;font-weight:700">2 = Medium impact</span>'+
-          '<span style="color:#4ade80;font-weight:700">3 = High impact</span>'+
-        '</div>'+
-      '</div>'+
-      (rows.length===0&&cols.length===0?
-        '<div style="padding:48px;text-align:center;border:1px dashed #1e2638;border-radius:12px;background:#0d1220">'+
-          '<div style="font-size:14px;color:#5a6480;margin-bottom:16px">No initiatives or drivers yet.</div>'+
-          '<button class="btn btn-gold" onclick="igImportInits()">Import from Initiatives Tab</button>'+
-        '</div>'
-      :
-        '<div class="ig-wrap">'+
-          '<table class="ig-table">'+
-            '<thead><tr>'+
-              '<th style="text-align:left;background:#0a0d14;min-width:180px">Initiative</th>'+
-              thCols+
-              '<th style="background:#0a0d14;min-width:70px;text-align:center">Total</th>'+
-            '</tr></thead>'+
-            '<tbody>'+trs+'</tbody>'+
-            '<tfoot><tr>'+
-              '<td style="background:#0d1220;padding:6px 12px;font-size:10px;font-weight:700;color:#5a6480;text-transform:uppercase;letter-spacing:.08em">Column Total</td>'+
-              colTotals+
-              '<td class="ig-col-total" style="color:#c9a84c">'+grandTotal+'</td>'+
-            '</tr></tfoot>'+
-          '</table>'+
-        '</div>'
-      )+
-    '</div>';
-}
-
-function igCycleScore(td){
-  var ri=+td.getAttribute('data-ri');
-  var ci=+td.getAttribute('data-ci');
-  var g=getGrid();
-  var cur=g.rows[ri].scores[ci]||0;
-  g.rows[ri].scores[ci]=(cur>=3)?0:cur+1;
-  scheduleSave();
-  renderInitGrid();
-}
-function igUpdateName(input){
-  var ri=+input.getAttribute('data-ri');
-  getGrid().rows[ri].name=input.value;
-  scheduleSave();
-}
-function igUpdateCol(input){
-  var ci=+input.getAttribute('data-ci');
-  getGrid().columns[ci]=input.value;
-  scheduleSave();
-}
-function igDelRow(btn){
-  var ri=+btn.getAttribute('data-ri');
-  getGrid().rows.splice(ri,1);
-  scheduleSave();renderInitGrid();
-}
-function igDelCol(btn){
-  var ci=+btn.getAttribute('data-ci');
-  var g=getGrid();
-  g.columns.splice(ci,1);
-  g.rows.forEach(function(r){r.scores.splice(ci,1);});
-  scheduleSave();renderInitGrid();
-}
-function igAddRow(){
-  var g=getGrid();
-  var name=prompt('Initiative name:');
-  if(!name)return;
-  g.rows.push({name:name,scores:new Array(g.columns.length).fill(0)});
-  scheduleSave();renderInitGrid();
-}
-function igAddCol(){
-  var g=getGrid();
-  var name=prompt('Driver/column name:');
-  if(!name)return;
-  g.columns.push(name);
-  g.rows.forEach(function(r){r.scores.push(0);});
-  scheduleSave();renderInitGrid();
-}
-function igImportInits(){
-  var g=getGrid();
-  var active=state.initiatives.filter(function(i){return i.status==='active';});
-  if(!active.length){toast('No active initiatives to import','error');return;}
-  var added=0;
-  active.forEach(function(init){
-    var exists=g.rows.find(function(r){return r.name===init.title;});
-    if(!exists){
-      g.rows.push({name:init.title,scores:new Array(g.columns.length).fill(0)});
-      added++;
-    }
-  });
-  scheduleSave();renderInitGrid();
-  toast(added+' initiatives imported');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════════════════════════════
-// Check if remember-me has expired
-(function(){
-  var until=localStorage.getItem('qs_remember_until');
-  if(until&&Date.now()>parseInt(until)){
-    localStorage.removeItem('qs_remember');
-    localStorage.removeItem('qs_remember_until');
-    sb.auth.signOut();
-  }
-})();
-sb.auth.onAuthStateChange(function(event,session){
-  if(session&&session.user){
-    currentUser=session.user;
-    document.getElementById('auth-overlay').style.display='none';
-    document.getElementById('app').style.display='flex';
-    var name=(session.user.user_metadata&&session.user.user_metadata.name)||session.user.email.split('@')[0];
-    document.getElementById('user-name-label').textContent=name;
-    // Auto-open workspace selector
-    loadWorkspaces().then(function(wss){
-      var all=wss.owned.concat(wss.shared);
-      if(all.length===1){openWorkspace(all[0].id);}
-      else if(all.length===0){createWorkspace();}
-      else{openWsSelector();}
-    });
-    renderCurrentTab();
-  } else {
-    document.getElementById('auth-overlay').style.display='flex';
-    document.getElementById('app').style.display='none';
-  }
-});
 </script>
 
 <!-- New Workspace Modal -->
