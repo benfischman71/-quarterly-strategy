@@ -509,7 +509,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="tab" data-tab="2" onclick="switchTab(2)"><span class="tab-num">2</span>Initiatives</div>
     <div class="tab" data-tab="3" onclick="switchTab(3)"><span class="tab-num">3</span>Mapping & Timeline</div>
     <div class="tab" data-tab="4" onclick="switchTab(4)"><span class="tab-num">4</span>Output</div>
-    <div class="tab" data-tab="5" onclick="switchTab(5)"><span class="tab-num">5</span>Initiative Grid</div>
+
   </div>
 
   <div id="content">
@@ -868,11 +868,11 @@ function setupRealtime(wsId){
 function switchTab(n){
   currentTab=n;
   document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',+t.dataset.tab===n);});
-  for(var i=0;i<=5;i++){document.getElementById('tab-'+i).style.display=i===n?'block':'none';}
+  for(var i=0;i<=4;i++){document.getElementById('tab-'+i).style.display=i===n?'block':'none';}
   renderCurrentTab();
 }
 function renderCurrentTab(){
-  var fns=[renderOverview,renderBudget,renderInitiatives,renderMapping,renderOutput,renderGrid];
+  var fns=[renderOverview,renderBudget,renderInitiatives,renderMapping,renderOutput];
   fns[currentTab]();
 }
 
@@ -1072,6 +1072,126 @@ function budgetInsightsClaude(){askClaude('For a quarterly budget review with me
 // ═══════════════════════════════════════════════════════════════
 // MODULE 2: INITIATIVES
 // ═══════════════════════════════════════════════════════════════
+function openGridModal(){
+  // Build rows from actual initiatives in state
+  var inits = state.initiatives.filter(function(i){return i.status==='active';});
+  var g = state.grid || {};
+  if(!g.drivers||!g.drivers.length){
+    g.drivers = ['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'];
+  }
+  // Sync grid rows with current initiatives
+  if(!g.rows) g.rows = [];
+  inits.forEach(function(init){
+    var existing = g.rows.find(function(r){return r.id===init.id;});
+    if(!existing){
+      g.rows.push({id:init.id, name:init.title, scores:g.drivers.map(function(){return 0;})});
+    } else {
+      existing.name = init.title;
+      // Ensure scores array matches driver count
+      while(existing.scores.length < g.drivers.length) existing.scores.push(0);
+    }
+  });
+  // Remove rows for deleted initiatives
+  g.rows = g.rows.filter(function(r){
+    return inits.find(function(i){return i.id===r.id;});
+  });
+  state.grid = g;
+
+  var scoreColors = ['#1e2638','#60a5fa44','#c9a84c44','#4ade8044'];
+  var scoreLabels = ['-','Low','Med','High'];
+
+  // Build header
+  var headHtml = '<tr><th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:#5a6480;letter-spacing:.08em;text-transform:uppercase;background:#0d1220;border:1px solid #1e2638;white-space:nowrap;min-width:200px">Initiative</th>';
+  g.drivers.forEach(function(d,di){
+    headHtml += '<th style="padding:10px 8px;font-size:11px;font-weight:700;color:#5a6480;letter-spacing:.06em;text-transform:uppercase;background:#0d1220;border:1px solid #1e2638;text-align:center;min-width:100px"><input value="'+esc(d)+'" data-di="'+di+'" oninput="gridUpdateDriver(this)" style="background:transparent;border:none;color:#c9a84c;font-size:10px;font-weight:700;width:90px;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase" /></th>';
+  });
+  headHtml += '<th style="padding:10px 8px;font-size:11px;font-weight:700;color:#c9a84c;background:#0d1220;border:1px solid #1e2638;text-align:center;min-width:60px">SCORE</th>';
+  headHtml += '<th style="padding:10px 8px;background:#0d1220;border:1px solid #1e2638;min-width:40px"></th></tr>';
+
+  // Build rows
+  var rowsHtml = '';
+  g.rows.forEach(function(row,ri){
+    var total = row.scores.reduce(function(s,v){return s+v;},0);
+    var maxScore = g.drivers.length * 3;
+    var pct = maxScore > 0 ? Math.round((total/maxScore)*100) : 0;
+    rowsHtml += '<tr>';
+    rowsHtml += '<td style="padding:10px 14px;font-size:13px;font-weight:600;color:#e8e4d9;border:1px solid #1e2638;background:#111827">'+esc(row.name)+'</td>';
+    row.scores.forEach(function(score,di){
+      var scoreColor = scoreColors[score] || '#1e2638';
+      var scoreLabel = scoreLabels[score] || '-';
+      var textColor = score === 0 ? '#374151' : score === 1 ? '#60a5fa' : score === 2 ? '#c9a84c' : '#4ade80';
+      rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#111827;text-align:center;cursor:pointer" onclick="gridCycleScore('+ri+','+di+')" title="Click to cycle: - / Low / Med / High"><div style="background:'+scoreColor+';border-radius:6px;padding:5px 8px;font-size:11px;font-weight:700;color:'+textColor+'">'+scoreLabel+'</div></td>';
+    });
+    rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#111827;text-align:center"><span style="font-size:13px;font-weight:700;color:'+(pct>=70?'#4ade80':pct>=40?'#c9a84c':'#60a5fa')+'">'+pct+'%</span></td>';
+    rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#0d1220"></td>';
+    rowsHtml += '</tr>';
+  });
+
+  var modalHtml =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'+
+      '<div style="font-family:Georgia,serif;font-size:20px;color:#e8e4d9">Initiative Grid</div>'+
+      '<div style="display:flex;gap:10px">'+
+        '<button class="btn btn-claude btn-sm" onclick="gridClaudeScore()" id="btn-grid-claude">&#9734; Claude Score All</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="closePanel()">x Close</button>'+
+      '</div>'+
+    '</div>'+
+    '<p style="font-size:12px;color:#5a6480;margin-bottom:16px">Click any cell to cycle score: — / Low / Med / High. Drivers auto-populated from your initiatives.</p>'+
+    '<div style="overflow-x:auto">'+
+      '<table style="width:100%;border-collapse:collapse">'+
+        '<thead>'+headHtml+'</thead>'+
+        '<tbody id="grid-tbody">'+rowsHtml+'</tbody>'+
+      '</table>'+
+    '</div>'+
+    '<div style="margin-top:16px;display:flex;gap:10px">'+
+      '<button class="btn btn-ghost btn-sm" onclick="gridAddDriver()">+ Add Driver Column</button>'+
+    '</div>'+
+    '<div id="grid-claude-box" class="claude-box" style="display:none;margin-top:16px"></div>';
+
+  document.getElementById('side-panel').innerHTML = modalHtml;
+  document.getElementById('panel-overlay').classList.add('open');
+}
+function gridCycleScore(ri,di){
+  var g=state.grid;
+  g.rows[ri].scores[di]=(g.rows[ri].scores[di]+1)%4;
+  scheduleSave();
+  openGridModal();
+}
+function gridUpdateDriver(input){
+  var di=+input.getAttribute('data-di');
+  state.grid.drivers[di]=input.value;
+  scheduleSave();
+}
+function gridAddDriver(){
+  var g=state.grid;
+  g.drivers.push('New Driver');
+  g.rows.forEach(function(r){r.scores.push(0);});
+  scheduleSave();
+  openGridModal();
+}
+function gridClaudeScore(){
+  var g=state.grid;
+  var inits=state.initiatives.filter(function(i){return i.status==='active';});
+  var prompt='Score each initiative against each strategic driver. Initiatives: '+
+    inits.map(function(i){return i.title+(i.description?' - '+i.description.slice(0,80):'');}).join('; ')+
+    '. Drivers: '+g.drivers.join(', ')+
+    '. Return ONLY a JSON array of rows in this exact format: [{"id":"initiative_id","scores":[0,1,2,3]},...] '+
+    'where scores are 0=none, 1=low, 2=medium, 3=high for each driver in order.';
+  askClaude(prompt,'btn-grid-claude','grid-claude-box',function(text){
+    try{
+      var clean=text.replace(/```json|```/g,'').trim();
+      var parsed=JSON.parse(clean);
+      if(Array.isArray(parsed)){
+        parsed.forEach(function(item){
+          var row=g.rows.find(function(r){return r.id===item.id||r.name===item.name;});
+          if(row&&item.scores)row.scores=item.scores;
+        });
+        scheduleSave();
+        openGridModal();
+      }
+    }catch(e){}
+  });
+}
+
 function renderInitiatives(){
   var active=state.initiatives.filter(function(i){return i.status==='active';});
   var hold=state.initiatives.filter(function(i){return i.status==='hold';});
@@ -1104,7 +1224,7 @@ function renderInitiatives(){
     '<div class="module">'+
       '<div class="flex justify-between items-center mb-24">'+
         '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Initiatives</div><div style="font-size:13px;color:var(--muted)">Create and rank initiatives. All changes sync in real time.</div></div>'+
-        '<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+
+        '<div style="display:flex;gap:10px">'+'<button class="btn btn-ghost" onclick="openGridModal()" style="font-size:13px">&#9783; Grid View</button>'+'<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+'</div>'+
       '</div>'+
       '<div class="section-label">Active Initiatives</div>'+
       '<div class="grid-3">'+activeHtml+'</div>'+
