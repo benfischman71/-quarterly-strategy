@@ -1594,6 +1594,11 @@ function panelFileUpload(input){
   var reader=new FileReader();
   reader.onload=function(e){
     var base64=e.target.result.split(',')[1];
+    // Check size - base64 of 2MB file = ~2.7MB string
+    if(base64&&base64.length>3000000){
+      if(box)box.innerHTML='<div class="claude-label">File too large</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Please use a file under 2MB. Try a screenshot instead of a full PDF.</div>';
+      return;
+    }
     var mediaType=file.type||'image/png';
     var isImage=file.type.startsWith('image/')||file.type==='application/pdf';
     var init=state.initiatives.find(function(i){return i.id===id;});
@@ -1682,8 +1687,8 @@ function panelFileUpload(input){
           document.body.appendChild(overlay);
         };
       }
-    }).catch(function(){
-      if(box)box.innerHTML='<div class="claude-label">Error reading file</div>';
+    }).catch(function(e){
+      if(box)box.innerHTML='<div class="claude-label">Error — '+esc(e.message||'Could not reach edge function')+'</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Try a smaller file or use Draft button instead.</div>';
     });
   };
   reader.readAsDataURL(file);
@@ -2099,6 +2104,11 @@ function processMetricsFile(file){
   var reader=new FileReader();
   reader.onload=function(e){
     var base64=e.target.result.split(',')[1];
+    // Check size - base64 of 2MB file = ~2.7MB string
+    if(base64&&base64.length>3000000){
+      if(box)box.innerHTML='<div class="claude-label">File too large</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Please use a file under 2MB. Try a screenshot instead of a full PDF.</div>';
+      return;
+    }
     var mediaType=file.type||'image/png';
     var isImage=file.type.startsWith('image/')||file.type==='application/pdf';
 
