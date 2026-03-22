@@ -342,17 +342,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ── quick-links ── */
-#quick-links{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:8000}
-.ql-btn{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;
-  font-size:12px;font-weight:600;text-decoration:none;border:1px solid var(--border);
-  background:var(--surface);color:var(--muted);cursor:pointer;transition:all .2s;
-  box-shadow:0 4px 16px rgba(0,0,0,.4);white-space:nowrap}
-.ql-btn:hover{transform:translateX(-3px);border-color:var(--gold);color:var(--text)}
-.ql-btn .ql-icon{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
-.ql-claude .ql-icon{background:#d97706;color:#fff}
-.ql-supabase .ql-icon{background:#3ecf8e;color:#fff}
-.ql-github .ql-icon{background:#333;color:#fff}
+/* quick-links moved to header */
 
 /* ── new workspace modal ── */
 #new-ws-modal{position:fixed;inset:0;background:rgba(10,14,26,.85);backdrop-filter:blur(6px);
@@ -377,6 +367,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
   padding:32px;width:540px;max-height:90vh;overflow-y:auto}
 .mm-card h2{font-family:var(--font-serif);font-size:20px;color:var(--text);margin-bottom:4px}
 .mm-card p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.hdr-link{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:6px;
+  border:1px solid #1e2638;background:#111827;color:#7a8499;font-size:11px;font-weight:600;
+  text-decoration:none;transition:all .15s;white-space:nowrap}
+.hdr-link:hover{border-color:#c9a84c44;color:#c9a84c}
+.hdr-link-icon{width:15px;height:15px;border-radius:3px;display:flex;align-items:center;
+  justify-content:center;font-size:8px;color:#fff;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -438,6 +434,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       <div class="flex gap-12">
         <button class="btn btn-ghost btn-sm" onclick="shareWorkspace()" title="Share workspace">&#128279; Share</button>
         <button class="btn btn-ghost btn-sm" onclick="openWsSelector()">&#9776; Workspaces</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <a href="https://claude.ai/chat/4588ff43-6159-4a71-b217-cdfb8ab1b24a" target="_blank" class="hdr-link">
+          <span class="hdr-link-icon" style="background:#d97706">✦</span>Claude
+        </a>
+        <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" class="hdr-link">
+          <span class="hdr-link-icon" style="background:#3ecf8e">⚡</span>Supabase
+        </a>
+        <a href="https://github.com/benfischman71/-quarterly-strategy/blob/main/index.html" target="_blank" class="hdr-link">
+          <span class="hdr-link-icon" style="background:#24292e">&#128025;</span>GitHub
+        </a>
       </div>
       <div id="user-pill" class="user-pill">
         <div class="dot"></div>
@@ -1631,17 +1638,6 @@ sb.auth.onAuthStateChange(function(event,session){
   </div>
 </div>
 
-<!-- Quick Links -->
-<div id="quick-links">
-  <a class="ql-btn ql-claude" href="https://claude.ai/chat/4588ff43-6159-4a71-b217-cdfb8ab1b24a" target="_blank">
-    <span class="ql-icon">✦</span> Claude Chat
-  </a>
-  <a class="ql-btn ql-supabase" href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho" target="_blank">
-    <span class="ql-icon">⚡</span> Supabase
-  </a>
-  <a class="ql-btn ql-github" href="https://github.com/benfischman71/quarterly-strategy" target="_blank">
-    <span class="ql-icon">&#128025;</span> GitHub
-  </a>
-</div>
+<!-- Quick Links moved to header -->
 </body>
 </html>
