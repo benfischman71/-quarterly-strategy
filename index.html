@@ -1442,39 +1442,34 @@ function handleMetricsFile(input){
 }
 function processMetricsFile(file){
   var box=document.getElementById('metrics-extract-box');
-  box.innerHTML='<div class="claude-label">&#9734; Reading file with Claude...</div><div class="spinner">&#8987;</div>';
+  box.innerHTML='<div class="claude-label">&#9734; Reading file with Claude...</div>';
   box.style.display='block';
 
   var reader=new FileReader();
-  var isImage=file.type.startsWith('image/');
-  var isPdf=file.type==='application/pdf';
-
   reader.onload=function(e){
     var base64=e.target.result.split(',')[1];
     var mediaType=file.type||'image/png';
+    var isImage=file.type.startsWith('image/')||file.type==='application/pdf';
 
-    var prompt='This is a budget or financial document. Extract the key metrics and return them as JSON only, no other text. Use this exact format:
-'+
-      '{"metrics":['+
-      '{"label":"Revenue Target","val":"$X.XM","delta":"+X.X% YoY"},'+
-      '{"label":"CAC Budget","val":"$XX","delta":"vs. $XX LY"},'+
-      '{"label":"Active Sub Target","val":"XXXK","delta":"+X.X% YoY"},'+
-      '{"label":"EBITDA Budget","val":"$XXK","delta":"vs. ($XXK) LY"},'+
-      '{"label":"Gross Margin","val":"XX.X%","delta":"-XXXbps vs. LY"}'+
-      ']}
-'+
-      'If a metric is not found, use empty string for val and delta. Only return the JSON.';
+    var promptText=[
+      'This is a budget or financial document.',
+      'Extract key metrics and return ONLY valid JSON, no other text, no markdown.',
+      'Use this exact format:',
+      '{"metrics":[',
+      '{"label":"Revenue Target","val":"","delta":""},',
+      '{"label":"CAC Budget","val":"","delta":""},',
+      '{"label":"Active Sub Target","val":"","delta":""},',
+      '{"label":"EBITDA Budget","val":"","delta":""},',
+      '{"label":"Gross Margin","val":"","delta":""}',
+      ']}',
+      'Fill val and delta from the document. Use empty string if not found.'
+    ].join(' ');
 
     var msgContent=[];
-    if(isImage||isPdf){
+    if(isImage){
       msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});
-    } else {
-      // For CSV/Excel - send as text
-      var text=atob(base64);
-      msgContent.push({type:'text',text:'Here is the file content:
-'+text.slice(0,8000)});
     }
-    msgContent.push({type:'text',text:prompt});
+    msgContent.push({type:'text',text:promptText});
 
     sb.auth.getSession().then(function(res){
       var token=(res.data&&res.data.session)?res.data.session.access_token:'';
@@ -1483,7 +1478,7 @@ function processMetricsFile(file){
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
         body:JSON.stringify({
           messages:[{role:'user',content:msgContent}],
-          system:'You are a data extraction assistant. Extract financial metrics from documents and return only valid JSON.'
+          system:'You are a data extraction assistant. Extract financial metrics and return only valid JSON.'
         })
       });
     }).then(function(r){return r.json();})
@@ -1494,7 +1489,6 @@ function processMetricsFile(file){
         var clean=text.replace(/```json|```/g,'').trim();
         var parsed=JSON.parse(clean);
         if(parsed.metrics&&parsed.metrics.length){
-          // Apply to state
           if(!state.overview.stats)state.overview.stats=[];
           parsed.metrics.forEach(function(m,i){
             if(state.overview.stats[i]){
@@ -1505,27 +1499,24 @@ function processMetricsFile(file){
           });
           scheduleSave();
           renderOverview();
-          box=document.getElementById('metrics-extract-box');
-          if(box){
-            box.innerHTML='<div class="claude-label">&#10003; Metrics extracted and applied!</div>'+
-              parsed.metrics.map(function(m){return '<div style="font-size:12px;margin-top:4px"><strong style="color:var(--text)">'+esc(m.label)+':</strong> '+esc(m.val)+(m.delta?' <span style="color:var(--muted)">('+esc(m.delta)+')</span>':'')+'</div>';}).join('');
+          var b2=document.getElementById('metrics-extract-box');
+          if(b2){
+            var rows=parsed.metrics.map(function(m){
+              return '<div style="font-size:12px;margin-top:4px"><strong style="color:#e8e4d9">'+esc(m.label)+':</strong> '+esc(m.val)+(m.delta?' <span style="color:#7a8499">('+esc(m.delta)+')</span>':'')+'</div>';
+            }).join('');
+            b2.innerHTML='<div class="claude-label">&#10003; Metrics extracted and applied!</div>'+rows;
           }
         } else {
-          box.innerHTML='<div class="claude-label">Could not extract metrics</div>Try a clearer image or enter manually using Edit Key Metrics.';
+          box.innerHTML='<div class="claude-label">Could not extract metrics</div>Try a clearer image or use Edit Key Metrics to enter manually.';
         }
       } catch(e){
-        box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div>'+esc(text)+'<br><br><em style="font-size:11px;color:var(--dim)">Could not auto-apply - try Edit Key Metrics to enter manually.</em>';
+        box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div>'+esc(text)+'<br><br><em style="font-size:11px;color:#5a6480">Could not auto-apply. Use Edit Key Metrics to enter manually.</em>';
       }
     }).catch(function(){
-      box.innerHTML='<div class="claude-label">Error</div>Could not process file. Make sure Claude edge function is set up.';
+      box.innerHTML='<div class="claude-label">Error</div>Could not process file. Check edge function setup.';
     });
   };
-
-  if(file.type.startsWith('image/')||file.type==='application/pdf'){
-    reader.readAsDataURL(file);
-  } else {
-    reader.readAsDataURL(file);
-  }
+  reader.readAsDataURL(file);
 }
 
 // ═══════════════════════════════════════════════════════════════
