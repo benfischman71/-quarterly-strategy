@@ -1907,176 +1907,117 @@ function draftRank(id){var init=state.initiatives.find(function(i){return i.id==
 var mapSubTab='timeline';
 function renderMapping(){
   var active=state.initiatives.filter(function(i){return i.status==='active';});
-  document.getElementById('tab-3').innerHTML=
-    '<div class="module">'+
-      '<div class="flex justify-between items-center mb-24">'+
-        '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Mapping & Timeline</div><div style="font-size:13px;color:var(--muted)">Timeline view, financial gap analysis, and driver coverage - all in one.</div></div>'+
-        '<button class="btn btn-claude btn-sm" id="btn-mi-claude" onclick="mappingClaude()">&#9734; Claude Gap Analysis</button>'+
-      '</div>'+
-      '<div id="mi-claude-box" class="claude-box" style="display:none;margin-bottom:20px"></div>'+
-      '<div style="display:flex;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:24px;width:fit-content">'+
-        '<div class="'+(mapSubTab==='timeline'?'tab active':'tab')+'" style="border-bottom:none;padding:8px 20px;border-radius:7px;background:'+(mapSubTab==='timeline'?'var(--border)':'transparent')+';color:'+(mapSubTab==='timeline'?'var(--gold)':'var(--dim)')+'" onclick="setMapTab(\'timeline\')">Timeline</div>'+
-        '<div class="'+(mapSubTab==='gap'?'tab active':'tab')+'" style="border-bottom:none;padding:8px 20px;border-radius:7px;background:'+(mapSubTab==='gap'?'var(--border)':'transparent')+';color:'+(mapSubTab==='gap'?'var(--gold)':'var(--dim)')+'" onclick="setMapTab(\'gap\')">Financial Gap</div>'+
-      '</div>'+
-      '<div id="map-sub-content"></div>'+
-    '</div>';
-  renderMapSubTab();
-}
-function setMapTab(t){mapSubTab=t;renderMapping();}
-function mappingClaude(){
-  var active=state.initiatives.filter(function(i){return i.status==='active';});
-  var prompt='Initiatives: '+active.map(function(i){return i.title+' (launch: '+(i.launchDate||'TBD')+', ramp: '+(i.rampWeeks||0)+'w, MRR: '+(i.monthlyRunRate||i.expectedImpact||'TBD')+')';}).join('; ')+'. Budget drivers: '+BUDGET_DRIVERS.join(', ')+'. What mapping or timing gaps should we address to hit Q2 budget?';
-  askClaude(prompt,'btn-mi-claude','mi-claude-box');
-}
-function renderMapSubTab(){
-  var el=document.getElementById('map-sub-content');
-  if(!el)return;
-  if(mapSubTab==='timeline')el.innerHTML=buildTimeline();
-  else el.innerHTML=buildGapAnalysis();
-}
-function buildTimeline(){
-  var active=state.initiatives.filter(function(i){return i.status==='active';});
-  if(!active.length)return '<div style="color:var(--dim);padding:40px;text-align:center">No active initiatives. Add some in the Initiatives tab.</div>';
-  var rows=active.map(function(init,idx){
-    var color=INIT_COLORS[idx%INIT_COLORS.length];
-    var sc={planning:'var(--blue)',launching:'var(--gold)',live:'var(--green)',hold:'var(--dim)'}[init.launchStatus||'planning'];
-    var lMs=init.launchDate?new Date(init.launchDate).getTime():null;
-    var rampDays=(init.rampWeeks||0)*7;
-    var barCells=Q2_MONTHS.map(function(m){
-      var mStartOff=(m.startMs-APR_MS)/86400000;
-      if(!lMs){return'<div class="tl-cell"></div>';}
-      var launchOff=(lMs-APR_MS)/86400000;
-      if(launchOff>=mStartOff+m.days){return'<div class="tl-cell"></div>';}
-      var barStart=Math.max(launchOff-mStartOff,0);
-      var leftPct=(barStart/m.days)*100;
-      var widthPct=((m.days-barStart)/m.days)*100;
-      var rampEnd=launchOff+rampDays, rampInCell=Math.max(0,Math.min(rampEnd,mStartOff+m.days)-Math.max(lMs/86400000/1000+APR_MS/86400000/1000,mStartOff+(APR_MS/86400000)));
-      var rampEndOff=launchOff+rampDays, rampCellEnd=Math.min(rampEndOff,mStartOff+m.days), rampCellStart=Math.max(launchOff,mStartOff);
-      var rampW=rampCellEnd>rampCellStart?(rampCellEnd-rampCellStart)/m.days*100:0;
-      var rampLeft=(rampCellStart-mStartOff)/m.days*100;
-      return'<div class="tl-cell">'+
-        '<div class="tl-bar" style="left:'+leftPct+'%;width:'+widthPct+'%;background:'+color+'cc">'+
-          (widthPct>20&&barStart===0?'<span style="font-size:9px;font-weight:700;color:#000;padding:0 7px;white-space:nowrap;overflow:hidden">'+esc(init.title)+'</span>':'')+
-        '</div>'+
-        (rampW>0?'<div class="tl-ramp" style="left:'+rampLeft+'%;width:'+rampW+'%"></div>':'')+
-      '</div>';
-    }).join('');
-    var editCells=
-      '<div style="padding-left:16px;display:flex;align-items:center"><span style="font-size:9px;color:var(--border);font-weight:700;letter-spacing:.08em;text-transform:uppercase">EDIT</span></div>'+
-      '<div style="grid-column:span 3;display:flex;align-items:center;gap:16px;padding-left:12px;flex-wrap:wrap">'+
-        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Launch</span><input type="date" class="tl-date-in" value="'+(init.launchDate||'')+'" onchange="updateInit(\''+init.id+'\',\'launchDate\',this.value);renderMapSubTab()" /></div>'+
-        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Ramp wks</span><input type="number" class="tl-num-in" style="color:var(--gold)" min="0" max="12" value="'+(init.rampWeeks||0)+'" onchange="updateInit(\''+init.id+'\',\'rampWeeks\',+this.value);renderMapSubTab()" /></div>'+
-        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Monthly $</span><input class="tl-date-in" style="color:var(--green);width:80px" value="'+esc(init.monthlyRunRate||'')+'" placeholder="$0" onchange="updateInit(\''+init.id+'\',\'monthlyRunRate\',this.value)" /></div>'+
-        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:10px;color:var(--dim);font-weight:600">Status</span><select class="tl-status-sel" style="color:'+sc+'" onchange="updateInit(\''+init.id+'\',\'launchStatus\',this.value);renderMapSubTab()"><option'+(init.launchStatus==='planning'?' selected':'')+'>planning</option><option'+(init.launchStatus==='launching'?' selected':'')+'>launching</option><option'+(init.launchStatus==='live'?' selected':'')+'>live</option><option'+(init.launchStatus==='hold'?' selected':'')+'>hold</option></select></div>'+
-      '</div>';
-    return'<div class="tl-row">'+
-      '<div class="tl-bar-row">'+
-        '<div class="tl-label"><div style="width:7px;height:7px;border-radius:50%;background:'+sc+';flex-shrink:0"></div><div><div style="font-size:12px;font-weight:600;color:var(--text)">'+esc(init.title)+'</div><div style="font-size:10px;color:var(--dim)">'+(init.launchDate?'Launch: '+init.launchDate:'No date set')+'</div></div></div>'+
-        barCells+
-      '</div>'+
-      '<div class="tl-edit-row" style="grid-template-columns:180px 1fr">'+editCells+'</div>'+
-    '</div>';
-  }).join('');
-  var legend='<div class="tl-legend">'+
-    '<div class="tl-leg"><div style="width:20px;height:8px;border-radius:3px;background:var(--gold)"></div><span>Active (full impact)</span></div>'+
-    '<div class="tl-leg"><div style="width:20px;height:8px;border-radius:3px;background:repeating-linear-gradient(45deg,#555,#555 3px,transparent 3px,transparent 6px)"></div><span>Ramp period</span></div>'+
-    ['planning:var(--blue)','launching:var(--gold)','live:var(--green)'].map(function(s){var p=s.split(':');return'<div class="tl-leg"><div style="width:8px;height:8px;border-radius:50%;background:'+p[1]+'"></div><span>'+p[0]+'</span></div>';}).join('')+
-  '</div>';
-  return'<div class="tl-wrap">'+
-    '<div class="tl-head">'+
-      '<div class="tl-head-cell" style="text-align:left;padding-left:16px;border-left:none">INITIATIVE</div>'+
-      Q2_MONTHS.map(function(m){return'<div class="tl-head-cell">'+m.label+'</div>';}).join('')+
-    '</div>'+rows+legend+'</div>';
-}
-function buildGapAnalysis(){
-  var maps=state.mappings||{};
-  var inits=state.initiatives;
-  // compute projections
-  var proj={};
-  BUDGET_DRIVERS.forEach(function(driver){
-    var mapped=(maps[driver]||[]).map(function(id){return inits.find(function(i){return i.id===id;});}).filter(Boolean);
-    var mp={apr:0,may:0,jun:0};
-    mapped.forEach(function(init){
-      var mrr=parseMoney(init.monthlyRunRate)||parseMoney(init.expectedImpact)/3||0;
-      Q2_MONTHS.forEach(function(m){mp[m.key]+=mrr*impactFraction(init.launchDate,init.rampWeeks||0,m.startMs,m.days);});
-    });
-    var bgt=BUDGET_TARGETS[driver]||{apr:0,may:0,jun:0,total:0};
-    var total=mp.apr+mp.may+mp.jun;
-    proj[driver]={apr:mp.apr,may:mp.may,jun:mp.jun,total:total,budgetTotal:bgt.total,gap:total-bgt.total,pct:bgt.total?(total/bgt.total)*100:0};
-  });
-  var revProj=proj['Net Revenue']||{};
-  var revBgt=BUDGET_TARGETS['Net Revenue'].total;
-  var overallPct=revBgt?(revProj.total/revBgt)*100:0;
-  var driversCov=BUDGET_DRIVERS.filter(function(d){return proj[d]&&proj[d].total>0;}).length;
-  var biggestGap=BUDGET_DRIVERS.reduce(function(w,d){return(proj[d]&&proj[d].gap||0)<(proj[w]&&proj[w].gap||0)?d:w;},BUDGET_DRIVERS[0]);
-  var summaries=[
-    {label:'Total Initiative Impact',val:fmt$(revProj.total||0),sub:'vs. '+fmt$(revBgt)+' revenue budget',pct:Math.min(overallPct,100),color:overallPct>=100?'var(--green)':overallPct>=60?'var(--gold)':'var(--red)'},
-    {label:'Revenue Gap',val:((revProj.gap>=0?'+':'')+fmt$(revProj.gap||0)),sub:overallPct.toFixed(0)+'% of budget covered',pct:Math.min(overallPct,100),color:'var(--blue)'},
-    {label:'Drivers Covered',val:driversCov+'/'+BUDGET_DRIVERS.length,sub:'budget drivers with initiatives',pct:(driversCov/BUDGET_DRIVERS.length)*100,color:'var(--purple)'},
-    {label:'Biggest Gap',val:(biggestGap.split(' ').slice(0,2).join(' ')),sub:fmt$(proj[biggestGap]&&proj[biggestGap].gap||0)+' vs. budget',pct:Math.min((proj[biggestGap]&&proj[biggestGap].pct)||0,100),color:'var(--red)'}
-  ];
-  var summHtml='<div class="grid-4" style="margin-bottom:24px">'+summaries.map(function(s){
-    return'<div class="gap-stat">'+
-      '<div class="gap-stat-label">'+esc(s.label)+'</div>'+
-      '<div class="gap-stat-val" style="color:'+s.color+'">'+esc(s.val)+'</div>'+
-      '<div class="gap-stat-sub">'+esc(s.sub)+'</div>'+
-      '<div class="gap-bar"><div class="gap-bar-fill" style="width:'+s.pct+'%;background:'+s.color+'"></div></div>'+
-    '</div>';
-  }).join('')+'</div>';
-  var driverCards=BUDGET_DRIVERS.map(function(driver){
-    var p=proj[driver]||{apr:0,may:0,jun:0,total:0,budgetTotal:0,gap:0,pct:0};
-    var bgt=BUDGET_TARGETS[driver]||{apr:0,may:0,jun:0,total:0};
-    var u=DRIVER_UNITS[driver]||'$';
-    var mapped=(maps[driver]||[]).map(function(id){return inits.find(function(i){return i.id===id;});}).filter(Boolean);
-    var gapColor=p.gap>=0?'var(--green)':Math.abs(p.gap)<bgt.total*.1?'var(--gold)':'var(--red)';
-    var gc=p.gap>=0?'gc-pos':Math.abs(p.gap)<bgt.total*.1?'gc-warn':'gc-neg';
-    var covPct=Math.min(p.pct,100);
-    var mBars=Q2_MONTHS.map(function(m){
-      var pv=p[m.key]||0, bv=bgt[m.key]||0;
-      var fill=bv>0?Math.min((pv/bv)*100,100):0;
-      var bc=fill>=100?'var(--green)':fill>=60?'var(--gold)':pv>0?'var(--red)':'var(--border)';
-      return'<div>'+
-        '<div class="m-bar-label">'+m.label+'</div>'+
-        '<div class="m-bar-track"><div class="m-bar-fill" style="width:'+fill+'%;background:'+bc+'"></div></div>'+
-        '<div class="m-bar-vals"><span style="color:'+(pv>0?'var(--text)':'var(--border)')+'">'+fmtN(pv,u)+'</span><span>'+fmtN(bv,u)+'</span></div>'+
-      '</div>';
-    }).join('');
-    var isExp=(window._expandedDriver===driver);
-    var activePillInits=inits.filter(function(i){return i.status==='active';}).map(function(init){
-      var on=(maps[driver]||[]).indexOf(init.id)>=0;
-      return'<span class="map-pill '+(on?'mp-on':'mp-off')+'" onclick="toggleMapping(\''+driver+'\',\''+init.id+'\')">'+(on?'&#10003; ':'')+esc(init.title)+(on&&init.launchDate?' ('+init.launchDate+')':'')+' </span>';
-    }).join('');
-    return'<div class="dgap-card">'+
-      '<div class="dgap-head">'+
-        '<div><div class="dgap-name">'+esc(driver)+'</div><div class="dgap-meta">'+mapped.length+' initiative'+(mapped.length!==1?'s':'')+' mapped</div></div>'+
-        '<div><div class="dcol-label">Budget</div><div class="dcol-val" style="color:var(--text)">'+fmtN(bgt.total,u)+'</div></div>'+
-        '<div><div class="dcol-label">Projected</div><div class="dcol-val" style="color:'+(p.total>0?'var(--green)':'var(--text)')+'">'+fmtN(p.total,u)+'</div></div>'+
-        '<div><div class="dcol-label">Gap</div><div><span class="gap-chip '+gc+'">'+(p.gap>=0?'+':'')+fmtN(p.gap,u)+'</span></div></div>'+
-        '<div style="text-align:right"><button class="expand-btn" onclick="toggleExpand(\''+driver+'\')">'+( isExp?'Collapse':'Expand')+'</button></div>'+
-      '</div>'+
-      '<div class="dgap-months" style="grid-template-columns:200px repeat(3,1fr) 110px">'+
-        '<div style="display:flex;align-items:center;gap:8px"><div class="m-bar-track" style="flex:1"><div class="m-bar-fill" style="width:'+covPct+'%;background:'+(covPct>=100?'var(--green)':covPct>=50?'var(--gold)':'var(--red)')+'"></div></div><span style="font-size:10px;color:var(--dim);min-width:36px">'+covPct.toFixed(0)+'%</span></div>'+
-        mBars+
-        '<div></div>'+
-      '</div>'+
-      (isExp?'<div class="dgap-map-row"><div style="font-size:10px;color:var(--dim);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Map Initiatives</div>'+activePillInits+'</div>':'')+
-    '</div>';
-  }).join('');
-  return summHtml+'<div>'+driverCards+'</div>';
-}
-window._expandedDriver=null;
-function toggleExpand(driver){window._expandedDriver=(window._expandedDriver===driver)?null:driver;renderMapSubTab();}
-function toggleMapping(driver,initId){
+  var drivers=state.overview&&state.overview.drivers?state.overview.drivers:[];
   if(!state.mappings)state.mappings={};
-  var cur=state.mappings[driver]||[];
-  state.mappings[driver]=cur.indexOf(initId)>=0?cur.filter(function(x){return x!==initId;}):cur.concat([initId]);
-  scheduleSave();
-  renderMapSubTab();
+
+  // Build driver cards at top
+  var driverCardsHtml='';
+  if(drivers.length===0){
+    driverCardsHtml='<div style="padding:24px;border:1px dashed #1e2638;border-radius:12px;text-align:center;color:#5a6480;font-size:13px">No key drivers defined yet. Add them on the Quarterly Overview tab.</div>';
+  } else {
+    driverCardsHtml=drivers.map(function(d,di){
+      var urgColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency]||'#c9a84c';
+      var mappedInits=(state.mappings[d.label]||[]);
+      var mappedNames=mappedInits.map(function(id){
+        var init=active.find(function(i){return i.id===id;});
+        return init?'<span style="display:inline-flex;align-items:center;gap:4px;background:#1e2638;border-radius:14px;padding:2px 8px;font-size:11px;color:#e8e4d9;margin:2px">'+
+          esc(init.title)+
+          '<button data-driver="'+esc(d.label)+'" data-iid="'+id+'" onclick="unmapInit(this)" style="background:none;border:none;color:#5a6480;cursor:pointer;font-size:11px;padding:0 0 0 4px;line-height:1">&#10005;</button>'+
+          '</span>':'';
+      }).join('');
+      return '<div style="background:linear-gradient(160deg,#111827,#0f1520);border-radius:12px;border:1px solid #1e2638;overflow:hidden;min-width:200px;flex:1">'+
+        '<div style="height:3px;background:'+urgColor+'"></div>'+
+        '<div style="padding:14px 16px">'+
+          '<div style="font-size:10px;font-weight:700;color:'+urgColor+';letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">'+esc(d.urgency||'watch')+'</div>'+
+          '<div style="font-size:13px;font-weight:700;color:#e8e4d9;margin-bottom:8px;line-height:1.3">'+esc(d.label)+'</div>'+
+          '<div style="font-size:11px;color:#c9a84c;font-weight:700;margin-bottom:6px">'+esc(d.target||'')+'</div>'+
+          '<div class="driver-mapped-inits" id="mapped-'+di+'" style="display:flex;flex-wrap:wrap;gap:2px;min-height:22px">'+
+            (mappedNames||'<span style="font-size:11px;color:#374151;font-style:italic">No initiatives mapped</span>')+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Build initiative rows
+  var initRowsHtml='';
+  if(active.length===0){
+    initRowsHtml='<div style="padding:24px;text-align:center;color:#5a6480;font-size:13px">No active initiatives. Add them on the Initiatives tab.</div>';
+  } else {
+    initRowsHtml=active.map(function(init){
+      var mappedDrivers=[];
+      Object.keys(state.mappings).forEach(function(dName){
+        if((state.mappings[dName]||[]).indexOf(init.id)>=0)mappedDrivers.push(dName);
+      });
+      var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+      var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
+
+      // Driver toggle buttons
+      var driverBtns=drivers.map(function(d){
+        var isMapped=(state.mappings[d.label]||[]).indexOf(init.id)>=0;
+        var urgColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency]||'#c9a84c';
+        return '<button data-driver="'+esc(d.label)+'" data-iid="'+init.id+'" onclick="toggleMappingBtn(this)" '+
+          'style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;'+
+          'border:1px solid '+(isMapped?urgColor:'#1e2638')+';'+
+          'background:'+(isMapped?urgColor+'22':'transparent')+';'+
+          'color:'+(isMapped?urgColor:'#5a6480')+'">'+
+          (isMapped?'&#10003; ':'')+ esc(d.label)+
+        '</button>';
+      }).join('');
+
+      return '<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid #1a2035">'+
+        '<div style="min-width:220px;max-width:260px;flex-shrink:0">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
+            '<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:12px;background:'+pColor+'22;color:'+pColor+'">'+p+'</span>'+
+            '<span style="font-size:13px;font-weight:700;color:#e8e4d9">'+esc(init.title)+'</span>'+
+          '</div>'+
+          '<div style="font-size:11px;color:#5a6480">'+esc(init.shortDescription?init.shortDescription.slice(0,80)+(init.shortDescription.length>80?'...':''):'')+'</div>'+
+        '</div>'+
+        '<div style="flex:1;display:flex;flex-wrap:wrap;gap:6px;align-items:center">'+
+          (drivers.length>0?driverBtns:'<span style="font-size:12px;color:#374151">Add drivers on Overview tab first</span>')+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('tab-3').innerHTML=
+    '<div style="padding:20px 28px">'+
+      '<div style="font-family:Georgia,serif;font-size:24px;color:#e8e4d9;margin-bottom:4px">Mapping & Timeline</div>'+
+      '<div style="font-size:13px;color:#5a6480;margin-bottom:24px">Map your initiatives to strategic drivers. Click a driver button to toggle the connection.</div>'+
+
+      // Driver cards
+      '<div style="font-size:10px;font-weight:800;color:#5a6480;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px">KEY DRIVERS &amp; PRESCRIPTIVE TARGETS</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:32px">'+driverCardsHtml+'</div>'+
+
+      // Initiatives
+      '<div style="font-size:10px;font-weight:800;color:#5a6480;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px">INITIATIVES — click a driver button to map/unmap</div>'+
+      '<div style="font-size:11px;color:#374151;margin-bottom:16px">Mapped drivers appear highlighted on each initiative row</div>'+
+      '<div>'+initRowsHtml+'</div>'+
+    '</div>';
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MODULE 4: OUTPUT
-// ═══════════════════════════════════════════════════════════════
+function toggleMappingBtn(btn){
+  var driver=btn.getAttribute('data-driver');
+  var id=btn.getAttribute('data-iid');
+  if(!state.mappings)state.mappings={};
+  if(!state.mappings[driver])state.mappings[driver]=[];
+  var idx=state.mappings[driver].indexOf(id);
+  if(idx>=0){state.mappings[driver].splice(idx,1);}
+  else{state.mappings[driver].push(id);}
+  scheduleSave();
+  renderMapping();
+}
+
+function unmapInit(btn){
+  var driver=btn.getAttribute('data-driver');
+  var id=btn.getAttribute('data-iid');
+  if(state.mappings&&state.mappings[driver]){
+    state.mappings[driver]=state.mappings[driver].filter(function(i){return i!==id;});
+  }
+  scheduleSave();
+  renderMapping();
+}
+
 function renderOutput(){
   var inits=state.initiatives;
   var active=inits.filter(function(i){return i.status==='active';});
