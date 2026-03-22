@@ -548,11 +548,11 @@ function blankState(quarter) {
       quarter: quarter||'Q2 2026',
       must_dos: [],
       stats: [
-        {val:'',label:'Revenue Target',delta:'',up:true},
-        {val:'',label:'CAC Budget',delta:'',up:true},
-        {val:'',label:'Active Sub Target',delta:'',up:true},
-        {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
-        {val:'',label:'Gross Margin',delta:'',up:false}
+        {val:'',label:'Revenue Target',delta:'',qoq:'',up:true},
+        {val:'',label:'CAC Budget',delta:'',qoq:'',up:true},
+        {val:'',label:'Active Sub Target',delta:'',qoq:'',up:true},
+        {val:'',label:'EBITDA Budget',delta:'',qoq:'',up:true,red:true},
+        {val:'',label:'Gross Margin',delta:'',qoq:'',up:false}
       ],
       drivers: []
     },
@@ -824,21 +824,22 @@ function renderCurrentTab(){
 function renderOverview(){
   var ov=state.overview;
   if(!ov.stats)ov.stats=[
-    {val:'',label:'Revenue Target',delta:'',up:true},
-    {val:'',label:'CAC Budget',delta:'',up:true},
-    {val:'',label:'Active Sub Target',delta:'',up:true},
-    {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
-    {val:'',label:'Gross Margin',delta:'',up:false}
+    {val:'',label:'Revenue Target',delta:'',qoq:'',up:true},
+    {val:'',label:'CAC Budget',delta:'',qoq:'',up:true},
+    {val:'',label:'Active Sub Target',delta:'',qoq:'',up:true},
+    {val:'',label:'EBITDA Budget',delta:'',qoq:'',up:true,red:true},
+    {val:'',label:'Gross Margin',delta:'',qoq:'',up:false}
   ];
   if(!ov.drivers)ov.drivers=[];
 
   // Build stats HTML
   var statsHtml=ov.stats.map(function(s,i){
-    var displayVal=s.val||'<span style="color:#374151;font-size:18px">Set value</span>';
-    var deltaHtml=s.delta?'<div style="font-size:11px;font-weight:600;margin-top:2px;color:'+(s.up?'#4ade80':'#f87171')+'">'+esc(s.delta)+'</div>':'';
-    return (i>0?'<div style="width:1px;background:#1e2638"></div>':'')+
-      '<div><div style="font-family:Georgia,serif;font-size:24px;color:'+(s.red?'#f87171':'#c9a84c')+';line-height:1">'+displayVal+'</div>'+
-      '<div style="font-size:11px;color:#5a6480;margin-top:3px">'+esc(s.label)+'</div>'+deltaHtml+'</div>';
+    var displayVal=s.val||'<span style="color:#374151;font-size:16px">Set value</span>';
+    var yoyHtml=s.delta?'<div style="font-size:10px;font-weight:600;margin-top:2px;color:'+(s.up?'#4ade80':'#f87171')+'">'+esc(s.delta)+' <span style="color:#374151;font-weight:400">YoY</span></div>':'';
+    var qoqHtml=s.qoq?'<div style="font-size:10px;font-weight:600;margin-top:1px;color:'+(s.qoq.startsWith('-')?'#f87171':'#60a5fa')+'">'+esc(s.qoq)+' <span style="color:#374151;font-weight:400">vs Q1</span></div>':'';
+    return (i>0?'<div style="width:1px;background:#1e2638;flex-shrink:0"></div>':'')+
+      '<div style="min-width:0"><div style="font-family:Georgia,serif;font-size:20px;color:'+(s.red?'#f87171':'#c9a84c')+';line-height:1;white-space:nowrap">'+displayVal+'</div>'+
+      '<div style="font-size:10px;color:#5a6480;margin-top:3px">'+esc(s.label)+'</div>'+yoyHtml+qoqHtml+'</div>';
   }).join('');
 
   // Build driver tiles HTML
@@ -1467,13 +1468,14 @@ function processMetricsFile(file){
       'Extract key metrics and return ONLY valid JSON, no other text, no markdown.',
       'Use this exact format:',
       '{"metrics":[',
-      '{"label":"Revenue Target","val":"","delta":""},',
-      '{"label":"CAC Budget","val":"","delta":""},',
-      '{"label":"Active Sub Target","val":"","delta":""},',
-      '{"label":"EBITDA Budget","val":"","delta":""},',
-      '{"label":"Gross Margin","val":"","delta":""}',
+      '{"label":"Revenue Target","val":"","delta":"","qoq":""},',
+      '{"label":"CAC Budget","val":"","delta":"","qoq":""},',
+      '{"label":"Active Sub Target","val":"","delta":"","qoq":""},',
+      '{"label":"EBITDA Budget","val":"","delta":"","qoq":""},',
+      '{"label":"Gross Margin","val":"","delta":"","qoq":""}',
       ']}',
-      'Fill val and delta from the document. Use empty string if not found.'
+      'Fill: val=current quarter value, delta=vs last year (e.g. +9.7% YoY), qoq=vs previous quarter (e.g. +4.6% vs Q1).',
+      'Use empty string if not found.'
     ].join(' ');
 
     var msgContent=[];
@@ -1521,6 +1523,7 @@ function processMetricsFile(file){
               if(m.val&&m.val!=='')state.overview.stats[i].val=m.val;
               if(m.delta&&m.delta!=='')state.overview.stats[i].delta=m.delta;
               if(m.label&&m.label!=='')state.overview.stats[i].label=m.label;
+              if(m.qoq&&m.qoq!=='')state.overview.stats[i].qoq=m.qoq;
             }
           });
           scheduleSave();
@@ -1558,17 +1561,18 @@ function processMetricsFile(file){
 function editHeroStats(){
   var ov=state.overview;
   if(!ov.stats)ov.stats=[
-    {val:'',label:'Revenue Target',delta:'',up:true},
-    {val:'',label:'CAC Budget',delta:'',up:true},
-    {val:'',label:'Active Sub Target',delta:'',up:true},
-    {val:'',label:'EBITDA Budget',delta:'',up:true,red:true},
-    {val:'',label:'Gross Margin',delta:'',up:false}
+    {val:'',label:'Revenue Target',delta:'',qoq:'',up:true},
+    {val:'',label:'CAC Budget',delta:'',qoq:'',up:true},
+    {val:'',label:'Active Sub Target',delta:'',qoq:'',up:true},
+    {val:'',label:'EBITDA Budget',delta:'',qoq:'',up:true,red:true},
+    {val:'',label:'Gross Margin',delta:'',qoq:'',up:false}
   ];
   var rowsHtml=ov.stats.map(function(s,i){
-    return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">'+
-      '<input class="input" style="font-size:12px" placeholder="e.g. Revenue Target" value="'+esc(s.label||'')+'" id="mm-label-'+i+'" />'+
-      '<input class="input" style="font-size:12px" placeholder="e.g. $11.7M" value="'+esc(s.val||'')+'" id="mm-val-'+i+'" />'+
-      '<input class="input" style="font-size:12px" placeholder="e.g. +9.7% YoY" value="'+esc(s.delta||'')+'" id="mm-delta-'+i+'" />'+
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px">'+
+      '<input class="input" style="font-size:11px" placeholder="Label" value="'+esc(s.label||'')+'" id="mm-label-'+i+'" />'+
+      '<input class="input" style="font-size:11px" placeholder="Value e.g. $11.7M" value="'+esc(s.val||'')+'" id="mm-val-'+i+'" />'+
+      '<input class="input" style="font-size:11px" placeholder="vs LY e.g. +9.7%" value="'+esc(s.delta||'')+'" id="mm-delta-'+i+'" />'+
+      '<input class="input" style="font-size:11px" placeholder="vs Q1 e.g. +4.6%" value="'+esc(s.qoq||'')+'" id="mm-qoq-'+i+'" />'+
     '</div>';
   }).join('');
   document.getElementById('mm-rows').innerHTML=rowsHtml;
@@ -1580,6 +1584,8 @@ function saveMetrics(){
     state.overview.stats[i].label=document.getElementById('mm-label-'+i).value.trim();
     state.overview.stats[i].val=document.getElementById('mm-val-'+i).value.trim();
     state.overview.stats[i].delta=document.getElementById('mm-delta-'+i).value.trim();
+    var qoqEl=document.getElementById('mm-qoq-'+i);
+    if(qoqEl)state.overview.stats[i].qoq=qoqEl.value.trim();
   }
   scheduleSave();
   closeMetricsModal();
@@ -1653,8 +1659,8 @@ sb.auth.onAuthStateChange(function(event,session){
   <div class="mm-card">
     <h2>Edit Key Metrics</h2>
     <p>Set your headline numbers for the quarter. These appear in the hero bar at the top of the overview.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px;font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">
-      <span>Metric Label</span><span>Value (e.g. $11.7M)</span><span>vs. Prior (e.g. +9.7% YoY)</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:6px;font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.08em;text-transform:uppercase">
+      <span>Label</span><span>Value</span><span>vs. LY</span><span>vs. Q1</span>
     </div>
     <div id="mm-rows"></div>
     <div class="flex gap-12" style="margin-top:20px">
