@@ -510,7 +510,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="tab" data-tab="3" onclick="switchTab(3)"><span class="tab-num">3</span>Mapping & Timeline</div>
     <div class="tab" data-tab="4" onclick="switchTab(4)"><span class="tab-num">4</span>Output</div>
     <div class="tab" data-tab="5" onclick="switchTab(5)"><span class="tab-num">5</span>Initiative Grid</div>
-    <div class="tab" data-tab="5" onclick="switchTab(5)"><span class="tab-num">5</span>Initiative Grid</div>
   </div>
 
   <div id="content">
@@ -1944,7 +1943,7 @@ function processBudgetFile(file){
 
 // Grid state stored in workspace data
 function getGrid() {
-  if (!state.grid) {
+  if (!state.grid || !state.grid.drivers) {
     state.grid = {
       drivers: ['Brand', 'New Customer Prospecting', 'New Customer Conversion', 'Retention', 'LTV'],
       rows: [
@@ -1965,6 +1964,10 @@ function getGrid() {
 
 function renderGrid() {
   var g = getGrid();
+  if (!g || !g.drivers) {
+    document.getElementById('tab-5').innerHTML = '<div style="padding:40px;text-align:center;color:#5a6480">Loading grid...</div>';
+    return;
+  }
   var numDrivers = g.drivers.length;
 
   // Build header row
