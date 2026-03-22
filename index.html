@@ -1501,31 +1501,38 @@ function processMetricsFile(file){
       var block=d.content&&d.content.find(function(b){return b.type==='text';});
       var text=block?block.text:'';
       try{
+        // Strip markdown, extract JSON
         var clean=text.replace(/```json|```/g,'').trim();
+        // Try to find JSON object anywhere in response
+        var jsonMatch=clean.match(/\{[\s\S]*\}/);
+        if(jsonMatch)clean=jsonMatch[0];
         var parsed=JSON.parse(clean);
-        if(parsed.metrics&&parsed.metrics.length){
+        var metrics=parsed.metrics||parsed.data||parsed;
+        if(Array.isArray(metrics)&&metrics.length){
           if(!state.overview.stats)state.overview.stats=[];
-          parsed.metrics.forEach(function(m,i){
+          metrics.forEach(function(m,i){
             if(state.overview.stats[i]){
-              if(m.val)state.overview.stats[i].val=m.val;
-              if(m.delta)state.overview.stats[i].delta=m.delta;
-              if(m.label)state.overview.stats[i].label=m.label;
+              if(m.val&&m.val!=='')state.overview.stats[i].val=m.val;
+              if(m.delta&&m.delta!=='')state.overview.stats[i].delta=m.delta;
+              if(m.label&&m.label!=='')state.overview.stats[i].label=m.label;
             }
           });
           scheduleSave();
           renderOverview();
           var b2=document.getElementById('metrics-extract-box');
           if(b2){
-            var rows=parsed.metrics.map(function(m){
-              return '<div style="font-size:12px;margin-top:4px"><strong style="color:#e8e4d9">'+esc(m.label)+':</strong> '+esc(m.val)+(m.delta?' <span style="color:#7a8499">('+esc(m.delta)+')</span>':'')+'</div>';
+            var rows=metrics.map(function(m){
+              return '<div style="font-size:12px;margin-top:4px"><strong style="color:#e8e4d9">'+esc(m.label||'')+':</strong> '+(m.val||'—')+(m.delta?' <span style="color:#7a8499">('+esc(m.delta)+')</span>':'')+'</div>';
             }).join('');
             b2.innerHTML='<div class="claude-label">&#10003; Metrics extracted and applied!</div>'+rows;
           }
         } else {
-          box.innerHTML='<div class="claude-label">Could not extract metrics</div>Try a clearer image or use Edit Key Metrics to enter manually.';
+          // Show raw response so user can see what Claude returned
+          box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div><div style="font-size:12px;margin-top:6px">'+esc(text)+'</div><br><em style="font-size:11px;color:#5a6480">Could not auto-apply. Use <strong>Edit Key Metrics</strong> to enter manually.</em>';
         }
       } catch(e){
-        box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div>'+esc(text)+'<br><br><em style="font-size:11px;color:#5a6480">Could not auto-apply. Use Edit Key Metrics to enter manually.</em>';
+        // Show raw response so user can see what Claude returned
+        box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div><div style="font-size:12px;margin-top:6px;white-space:pre-wrap">'+esc(text)+'</div><br><em style="font-size:11px;color:#5a6480">Could not auto-apply. Use <strong>Edit Key Metrics</strong> to enter manually.</em>';
       }
     }).catch(function(err){
       box.innerHTML='<div class="claude-label">Error</div>'+
