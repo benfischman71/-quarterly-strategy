@@ -1430,6 +1430,7 @@ function openInitPanel(id){
   document.getElementById('panel-overlay').classList.add('open');
 }
 
+function closeInitOverview(){var m=document.getElementById('init-overview-modal');if(m)m.remove();}
 function openInitOverview(id){
   if(id&&typeof id==='object')id=id.dataset?id.dataset.iid:id.getAttribute('data-iid');
   var init=state.initiatives.find(function(i){return i.id===id;});
@@ -1475,7 +1476,7 @@ function openInitOverview(id){
       '</div>'+
       '<div style="display:flex;gap:10px">'+
         '<button onclick="window.print()" style="background:#1e2638;border:1px solid #2a3450;color:#e8e4d9;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">&#128438; Print / Save PDF</button>'+
-        '<button onclick="document.getElementById('init-overview-modal').remove()" style="background:transparent;border:1px solid #2a3450;color:#5a6480;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">✕ Close</button>'+
+        '<button onclick="closeInitOverview()" style="background:transparent;border:1px solid #2a3450;color:#5a6480;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">&#10005; Close</button>'+
       '</div>'+
     '</div>'+
     '<div style="margin-bottom:12px">'+
