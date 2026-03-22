@@ -1354,10 +1354,7 @@ function openInitPanel(id){
           '<label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:10px" title="Upload file, image or PDF">&#128206; <input type="file" data-iid="'+id+'" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none" onchange="panelFileUpload(this)"/></label>'+
         '</div>'+
       '</div>'+
-      '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:160px;line-height:1.7" placeholder="Describe this initiative. Include:
-- What: what exactly are we building/changing?
-- Why: what problem does it solve or opportunity does it unlock?
-- When: key milestones or launch timing">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
+      '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:160px;line-height:1.7" placeholder="Describe this initiative: What are we building? Why does it matter? When does it launch?">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
       '<div id="claude-desc-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)">'+
         '<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+
       '</div>'+
