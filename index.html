@@ -1055,6 +1055,7 @@ function renderBudget(){
   document.getElementById('tab-1').innerHTML=
     '<div class="module">'+
       '<div class="mb-24"><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Budget Input</div><div style="font-size:13px;color:var(--muted)">Enter budget data directly or paste from Excel. Data auto-saves and syncs to all collaborators.</div></div>'+
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn btn-gold" onclick="openBudgetPasteModal()" style="font-size:13px">&#128203; Paste JSON to Fill Table</button></div>'+
       '<div class="grid-2 mb-24">'+
         '<div id="budget-drop-zone" ondragover="budgetDropOver(event)" ondragleave="budgetDropLeave(event)" ondrop="handleBudgetDrop(event)" onclick="document.getElementById(\'budget-file-input\').click()" '+
           'style="border:2px dashed #1e2638;border-radius:12px;padding:40px 24px;text-align:center;background:var(--surface2);cursor:pointer;transition:all .2s">'+
@@ -2094,6 +2095,54 @@ function applyBudgetJson(btn){
   }
 }
 
+
+function openBudgetPasteModal(){
+  var old=document.getElementById('budget-paste-modal');
+  if(old)old.remove();
+  var overlay=document.createElement('div');
+  overlay.id='budget-paste-modal';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.92);z-index:9999;display:flex;align-items:center;justify-content:center';
+  var box=document.createElement('div');
+  box.style.cssText='background:#111827;border:1px solid #1e2638;border-radius:16px;padding:28px;width:680px;max-width:95vw';
+  var title=document.createElement('div');
+  title.style.cssText='font-family:Georgia,serif;font-size:20px;color:#e8e4d9;margin-bottom:10px';
+  title.textContent='Paste Claude JSON Response';
+  var instructions=document.createElement('p');
+  instructions.style.cssText='font-size:12px;color:#5a6480;margin-bottom:14px';
+  instructions.textContent='Copy the JSON from the Claude Response box on the right and paste it here, then click Apply.';
+  var textarea=document.createElement('textarea');
+  textarea.id='budget-paste-ta';
+  textarea.style.cssText='width:100%;height:260px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#e8e4d9;font-size:12px;font-family:monospace;padding:12px;outline:none;resize:vertical;box-sizing:border-box';
+  textarea.placeholder='Paste the JSON here...';
+  var btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:10px;margin-top:16px;justify-content:flex-end';
+  var applyBtn=document.createElement('button');
+  applyBtn.className='btn btn-gold';
+  applyBtn.textContent='Apply to Table';
+  applyBtn.onclick=function(){
+    var txt=textarea.value.trim();
+    var result=applyBudgetJsonText(txt);
+    if(result){
+      overlay.remove();
+    } else {
+      applyBtn.textContent='Parse failed - check JSON';
+      applyBtn.style.background='#f87171';
+    }
+  };
+  var cancelBtn=document.createElement('button');
+  cancelBtn.className='btn btn-ghost';
+  cancelBtn.textContent='Cancel';
+  cancelBtn.onclick=function(){overlay.remove();};
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(applyBtn);
+  box.appendChild(title);
+  box.appendChild(instructions);
+  box.appendChild(textarea);
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  setTimeout(function(){textarea.focus();},100);
+}
 function processBudgetFile(file){
   var box=document.getElementById('budget-extract-box');
   if(!box)return;
