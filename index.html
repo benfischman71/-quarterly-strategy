@@ -1600,7 +1600,8 @@ function panelFileUpload(input){
       return;
     }
     var mediaType=file.type||'image/png';
-    var isImage=file.type.startsWith('image/')||file.type==='application/pdf';
+    var isImage=file.type.startsWith('image/'); // PDFs handled as text below
+    var isPDF=file.type==='application/pdf';
     var init=state.initiatives.find(function(i){return i.id===id;});
     var prompt='You are analyzing a document for a business initiative called "'+(init?init.title:'this initiative')+'". '+
       'Return EXACTLY two sections separated by ---FULL---:\n'+
@@ -1613,8 +1614,22 @@ function panelFileUpload(input){
       '**Expected Impact:** Quantified outcomes if possible.\n'+
       'Max 200 words total.';
     var msgContent=[];
-    if(isImage){msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});}
-    msgContent.push({type:'text',text:prompt});
+    if(isPDF){
+      // For PDFs, decode base64 to text and send as text content
+      try{
+        var pdfText=atob(base64);
+        // Extract readable text (strip binary)
+        var readable=pdfText.replace(/[^\x20-\x7E\n\r\t]/g,' ').replace(/\s+/g,' ').slice(0,4000);
+        msgContent.push({type:'text',text:'Document content: '+readable+'\n\n'+prompt});
+      }catch(e){
+        msgContent.push({type:'text',text:prompt});
+      }
+    } else if(isImage){
+      msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});
+      msgContent.push({type:'text',text:prompt});
+    } else {
+      msgContent.push({type:'text',text:prompt});
+    }
     sb.auth.getSession().then(function(res){
       var token=(res.data&&res.data.session)?res.data.session.access_token:'';
       return fetch(EDGE_FUNCTION_URL,{
