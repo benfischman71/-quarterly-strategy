@@ -1635,12 +1635,20 @@ function panelDraftClaude(el){
   } else if(type==='short_draft'){
     prompt='Write a short description for "'+init.title+'". STRICT FORMAT:\n1 sentence only (max 20 words).\n• Bullet 1 (what it does — 10 words max)\n• Bullet 2 (why it matters — 10 words max)\n• Bullet 3 (key outcome — 10 words max)\nNo headers, no bold, exactly 3 bullets.';
   } else if(type==='short_clean'){
-    var existingShort=init.shortDescription||'';
+    var shortTa=document.querySelector('textarea[data-iid="'+id+'"][data-field="shortDescription"]');
+    var existingShort=(shortTa&&shortTa.value)||init.shortDescription||'';
     if(!existingShort){toast('Add a short description first');return;}
+    var scBox=document.getElementById('claude-short_clean-'+id);
+    if(scBox){scBox.style.display='none';scBox.innerHTML='';}
     prompt='Clean up this short description. Keep the 1-sentence + 3-bullet format. Make it punchier and more concise. No bold, no headers.\n\nCurrent:\n'+existingShort;
   } else if(type==='clean'){
-    var existing=init.description||'';
+    // Read from live textarea first, fall back to state
+    var cleanTa=document.querySelector('textarea[data-iid="'+id+'"][data-field="description"]');
+    var existing=(cleanTa&&cleanTa.value)||init.description||'';
     if(!existing){toast('Add a full description first');return;}
+    // Reset the box so it shows fresh result even if used before
+    var cleanBox=document.getElementById('claude-clean-'+id);
+    if(cleanBox){cleanBox.style.display='none';cleanBox.innerHTML='';}
     prompt='Clean up and improve this initiative description. Make it clearer, more structured, and executive-ready. Add **What:**, **Why:**, **When:** headers. Keep under 150 words.\n\nCurrent text:\n'+existing;
   } else if(type==='short_from_long'||type==='short_from_full'){
     var long=init.description||'';
