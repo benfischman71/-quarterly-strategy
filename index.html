@@ -1382,7 +1382,7 @@ function openInitPanel(id){
     '<div class="field">'+
       '<label class="field-label" style="font-size:11px">SHORT DESCRIPTION <span style="color:#374151;font-weight:400">(2 sentences)</span></label>'+
       '<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px">'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_draft" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Draft</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_clean" onclick="panelDraftClaude(this)" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_long" onclick="panelDraftClaude(this)" style="font-size:10px;background:#0d2010">&#8651; From Long</button>'+'</div>'+
-      '<div id="short-view-'+id+'" onclick="panelEditField(\'short\',\''+id+'\')" style="min-height:44px;max-height:150px;overflow-y:auto;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;cursor:pointer;font-size:13px;color:#c8d4e8;line-height:1.6;'+(init.shortDescription?'':'display:none')+'">'+
+      '<div id="short-view-'+id+'" onclick="panelEditField(\'short\',\''+id+'\')" style="min-height:44px;max-height:150px;overflow-y:auto;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;cursor:pointer;font-size:13px;color:#c8d4e8;line-height:1.6;white-space:pre-line;'+(init.shortDescription?'':'display:none')+'">'+
         (init.shortDescription?esc(init.shortDescription)+'<span style="float:right;font-size:10px;color:#5a6480">&#9998;</span>':'')+'</div>'+
       '<div id="short-edit-'+id+'" style="'+(init.shortDescription?'display:none':'')+'">'+
         '<textarea class="input textarea" data-iid="'+id+'" data-field="shortDescription" oninput="panelUpdateInit(this)" style="min-height:80px;max-height:150px;overflow-y:auto;font-size:13px;resize:none" placeholder="2-sentence executive summary...">'+esc(init.shortDescription||'')+'</textarea>'+
@@ -1828,6 +1828,8 @@ function panelApplyClaude(el){
   var hdr=clone.querySelector('div');
   if(hdr)hdr.remove();
   var text=(clone.innerText||clone.textContent||'').trim();
+  // Normalize bullets to always start on new lines
+  text=text.replace(/\s*•/g,'\n•').replace(/^\n/,'').trim();
   if(!text)text=el.innerText.replace('✦ Click to apply','').replace('Click to apply','').replace('✦ Click to apply to Short','').trim();
   updateInit(id,field,text);
   // Update textarea if in edit mode
