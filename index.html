@@ -1300,7 +1300,7 @@ function renderInitiatives(){
       '<div class="init-card-bar" style="background:'+(init.status==='hold'?'#374151':'linear-gradient(90deg,'+color+',#f59e0b)')+'"></div>'+
       '<div class="priority-badge '+pbActual+'">'+statusLabel+'</div>'+
       '<div class="init-title">'+esc(init.title)+'</div>'+
-      '<div class="init-desc">'+esc(init.description||'No description yet.')+'</div>'+
+      '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
       '<div class="score-chips">'+
         '<span class="sc sc-impact">Impact '+init.impactScore+'</span>'+
         '<span class="sc sc-effort">Effort '+init.effortScore+'</span>'+
@@ -1356,19 +1356,47 @@ function openInitPanel(id){
         '<label class="field-label" style="font-size:11px">SHORT DESCRIPTION <span style="color:#374151;font-weight:400">(2 sentences)</span></label>'+
         '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_long" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Generate from Long</button>'+
       '</div>'+
+      '<div id="short-view-'+id+'" style="min-height:50px;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;font-size:13px;color:#c8d4e8;line-height:1.6;margin-bottom:0;cursor:pointer" onclick="panelEditField(\'short\',\''+id+'\')" title="Click to edit">'+
+        (init.shortDescription?esc(init.shortDescription):'<span style="color:#374151">Click to add a short description...</span>')+
+      '</div>'+
+      '<textarea id="short-edit-'+id+'" class="input textarea" data-iid="'+id+'" data-field="shortDescription" oninput="panelUpdateInit(this)" style="min-height:60px;line-height:1.6;font-size:13px;display:none" placeholder="2-sentence executive summary...">'+esc(init.shortDescription||'')+'</textarea>'+
+      '<div id="short-btns-'+id+'" style="display:none;margin-top:6px;display:none;gap:6px">'+
+        '<button onclick="panelSaveField(\'short\',\''+id+'\');renderInitiatives()" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Save</button>'+
+        '<button onclick="panelCancelField(\'short\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button>'+
+      '</div>'+
+      '<div id="short-edit-'+id+'" style="'+(init.shortDescription?'display:none':'')+'">'+ 
       '<textarea class="input textarea" data-iid="'+id+'" data-field="shortDescription" oninput="panelUpdateInit(this)" style="min-height:60px;line-height:1.6;font-size:13px" placeholder="2-sentence executive summary...">'+esc(init.shortDescription||'')+'</textarea>'+
+      '<div style="display:flex;gap:6px;margin-top:6px">'+
+        '<button onclick="panelSaveField(\'short\',\''+id+'\')" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit">Save</button>'+
+        '<button onclick="panelCancelField(\'short\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Cancel</button>'+
+      '</div>'+
+      '</div>'+
       '<div id="claude-short_from_long-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
     '</div>'+
     '<div class="field">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-        '<label class="field-label" style="font-size:11px">FULL DESCRIPTION <span style="color:#374151;font-weight:400">(What / Why / When)</span></label>'+
+      '<div id="long-view-'+id+'" style="min-height:80px;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;font-size:13px;color:#c8d4e8;line-height:1.7;white-space:pre-wrap;cursor:pointer" onclick="panelEditField(\'long\',\''+id+'\')" title="Click to edit">'+
+        (init.description?esc(init.description):'<span style="color:#374151">Click to add a full description...</span>')+
+      '</div>'+
+      '<textarea id="long-edit-'+id+'" class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:130px;line-height:1.7;display:none" placeholder="Full description: What, Why, When...">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
+      '<div id="long-btns-'+id+'" style="display:none;margin-top:6px;gap:6px">'+
+        '<button onclick="panelSaveField(\'long\',\''+id+'\');renderInitiatives()" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Save</button>'+
+        '<button onclick="panelCancelField(\'long\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button>'+
+      '</div>'+
         '<div style="display:flex;gap:5px">'+
           '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="desc" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Draft</button>'+
           '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="clean" onclick="panelDraftClaude(this)" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+
           '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_full" onclick="panelDraftClaude(this)" style="font-size:10px;background:#0d2010">&#8651; Short</button>'+
         '</div>'+
       '</div>'+
+      '<div id="full-view-'+id+'" style="'+(init.description?'':'display:none')+';background:#0d1220;border:1px solid #1e2638;border-radius:8px;padding:10px 14px;font-size:13px;color:#c8d4e8;line-height:1.7;cursor:pointer;white-space:pre-wrap;min-height:60px" onclick="panelEditField(\'full\',\''+id+'\')" title="Click to edit">'+esc(init.description||'Click to add...')+'<span style="float:right;font-size:10px;color:#5a6480;margin-top:2px">&#9998; Edit</span></div>'+
+      '<div id="full-edit-'+id+'" style="'+(init.description?'display:none':'')+'">'+ 
       '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:130px;line-height:1.7" placeholder="Full description: What, Why, When...">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
+      '<div style="display:flex;gap:6px;margin-top:6px">'+
+        '<button onclick="panelSaveField(\'full\',\''+id+'\')" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit">Save</button>'+
+        '<button onclick="panelCancelField(\'full\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Cancel</button>'+
+      '</div>'+
+      '</div>'+
       '<div id="claude-desc-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
       '<div id="claude-clean-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
       '<div id="claude-short_from_full-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply to Short</div></div>'+
@@ -1528,6 +1556,65 @@ function openInitOverview(id){
 
   overlay.appendChild(inner);
   document.body.appendChild(overlay);
+}
+
+function panelEditField(type,id){
+  var viewEl=document.getElementById((type==='short'?'short':'full')+'-view-'+id);
+  var editEl=document.getElementById((type==='short'?'short':'full')+'-edit-'+id);
+  if(viewEl)viewEl.style.display='none';
+  if(editEl)editEl.style.display='block';
+  if(editEl){var ta=editEl.querySelector('textarea');if(ta)ta.focus();}
+}
+function panelSaveField(type,id){
+  var editEl=document.getElementById((type==='short'?'short':'full')+'-edit-'+id);
+  var viewEl=document.getElementById((type==='short'?'short':'full')+'-view-'+id);
+  var field=type==='short'?'shortDescription':'description';
+  if(editEl){
+    var ta=editEl.querySelector('textarea');
+    if(ta){
+      updateInit(id,field,ta.value);
+      if(viewEl){viewEl.innerHTML=esc(ta.value||'Click to add...')+'<span style="float:right;font-size:10px;color:#5a6480;margin-top:2px">&#9998; Edit</span>';viewEl.style.display='block';}
+      editEl.style.display='none';
+      toast('Saved!');
+    }
+  }
+}
+function panelCancelField(type,id){
+  var editEl=document.getElementById((type==='short'?'short':'full')+'-edit-'+id);
+  var viewEl=document.getElementById((type==='short'?'short':'full')+'-view-'+id);
+  if(editEl)editEl.style.display='none';
+  if(viewEl)viewEl.style.display='block';
+}
+
+function panelEditField(which, id){
+  var view=document.getElementById(which+'-view-'+id);
+  var edit=document.getElementById(which+'-edit-'+id);
+  var btns=document.getElementById(which+'-btns-'+id);
+  if(view)view.style.display='none';
+  if(edit){edit.style.display='block';edit.focus();edit.selectionStart=edit.value.length;}
+  if(btns)btns.style.display='flex';
+}
+function panelSaveField(which, id){
+  var edit=document.getElementById(which+'-edit-'+id);
+  var view=document.getElementById(which+'-view-'+id);
+  var btns=document.getElementById(which+'-btns-'+id);
+  if(!edit)return;
+  var field=which==='short'?'shortDescription':'description';
+  var val=edit.value;
+  updateInit(id,field,val);
+  if(view)view.innerHTML=val?esc(val):'<span style="color:#374151">Click to edit...</span>';
+  if(view)view.style.display='block';
+  if(edit)edit.style.display='none';
+  if(btns)btns.style.display='none';
+  toast('Saved!');
+}
+function panelCancelField(which, id){
+  var view=document.getElementById(which+'-view-'+id);
+  var edit=document.getElementById(which+'-edit-'+id);
+  var btns=document.getElementById(which+'-btns-'+id);
+  if(view)view.style.display='block';
+  if(edit)edit.style.display='none';
+  if(btns)btns.style.display='none';
 }
 function panelUpdateInit(el){
   var id=el.getAttribute('data-iid');
