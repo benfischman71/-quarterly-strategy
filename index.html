@@ -1482,10 +1482,17 @@ function processMetricsFile(file){
     ].join(' ');
 
     var msgContent=[];
-    if(isImage){
-      msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});
+    if(file.type==='application/pdf'){
+      // Send PDF as text - read the text content
+      msgContent.push({type:'text',text:promptText});
+    } else if(isImage){
+      var validTypes=['image/jpeg','image/png','image/gif','image/webp'];
+      var safeMediaType=validTypes.indexOf(mediaType)>=0?mediaType:'image/jpeg';
+      msgContent.push({type:'image',source:{type:'base64',media_type:safeMediaType,data:base64}});
+      msgContent.push({type:'text',text:promptText});
+    } else {
+      msgContent.push({type:'text',text:promptText});
     }
-    msgContent.push({type:'text',text:promptText});
 
     sb.auth.getSession().then(function(res){
       var token=(res.data&&res.data.session)?res.data.session.access_token:'';
@@ -1647,8 +1654,12 @@ function processBudgetFile(file){
     ];
 
     var msgContent=[];
-    if(file.type.startsWith('image/')||file.type==='application/pdf'){
-      msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});
+    if(file.type==='application/pdf'){
+      msgContent.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}});
+    } else if(file.type.startsWith('image/')){
+      var safeType2=['image/jpeg','image/png','image/gif','image/webp'];
+      var mt2=safeType2.indexOf(file.type)>=0?file.type:'image/png';
+      msgContent.push({type:'image',source:{type:'base64',media_type:mt2,data:base64}});
     }
     msgContent.push({type:'text',text:promptLines.join(' ')});
 
@@ -1699,7 +1710,63 @@ function processBudgetFile(file){
       box.innerHTML='<div class="claude-label">Error</div>Could not process file. Check edge function.';
     });
   };
-  reader.readAsDataURL(file);
+  if(file.type==='application/pdf'){
+    // For PDFs, extract as text and send as text content
+    var txtReader=new FileReader();
+    txtReader.onload=function(ev){
+      var pdfText=ev.target.result||'';
+      var bx=document.getElementById('budget-extract-box');
+      if(!bx)return;
+      if(!pdfText||pdfText.length<20){
+        // PDF text empty, try image approach
+        reader.readAsDataURL(file);
+        return;
+      }
+      bx.innerHTML='<div class="claude-label">&#9734; Reading PDF text...</div>';
+      bx.style.display='block';
+      var metricsList2=[];
+      METRIC_CATS.forEach(function(cat){cat.metrics.forEach(function(m){metricsList2.push(m);});});
+      sb.auth.getSession().then(function(res){
+        var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+        return fetch(EDGE_FUNCTION_URL,{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
+          body:JSON.stringify({
+            messages:[{role:'user',content:'Extract budget table values from this document. Return ONLY JSON: {"rows":{"Metric Name":{"Apr Budget":"val","May Budget":"val","Jun Budget":"val","Q3 '25 Budget":"val","Apr LY":"val","May LY":"val","Jun LY":"val","Q3 '25 LY":"val","Q3 Var ($)":"val","Q3 Var (%)":"val"}}} Metrics: '+metricsList2.join(', ')+'. Document:
+
+'+pdfText.slice(0,8000)}],
+            system:'Extract financial data and return only valid JSON.'
+          })
+        });
+      }).then(function(r){return r.json();})
+      .then(function(d){
+        var blk=d.content&&d.content.find(function(b){return b.type==='text';});
+        var txt=blk?blk.text:'';
+        try{
+          var cl=txt.replace(/```json|```/g,'').trim();
+          var jmatch=cl.match(/\{[\s\S]*\}/);if(jmatch)cl=jmatch[0];
+          var prs=JSON.parse(cl);
+          var rws=prs.rows||prs;
+          var filled=0;
+          if(!state.budget_data)state.budget_data={};
+          Object.keys(rws).forEach(function(metric){
+            if(!state.budget_data[metric])state.budget_data[metric]={};
+            Object.keys(rws[metric]).forEach(function(col){
+              if(rws[metric][col]&&rws[metric][col]!==''){state.budget_data[metric][col]=rws[metric][col];filled++;}
+            });
+          });
+          scheduleSave();renderBudget();
+          var bx2=document.getElementById('budget-extract-box');
+          if(bx2)bx2.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells from PDF!</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Review the table below. Click any cell to edit.</div>';
+        } catch(e2){
+          if(bx)bx.innerHTML='<div class="claude-label">Response</div><div style="font-size:11px">'+esc(txt)+'</div>';
+        }
+      }).catch(function(){if(bx)bx.innerHTML='<div class="claude-label">Error</div>Try a screenshot instead.';});
+    };
+    txtReader.readAsText(file);
+  } else {
+    reader.readAsDataURL(file);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
