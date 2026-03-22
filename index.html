@@ -1918,17 +1918,55 @@ function processBudgetFile(file){
           var rws=prs.rows||prs;
           var filled=0;
           if(!state.budget_data)state.budget_data={};
+          // Normalize column names from Claude's output to our table headers
+          var colMap = {
+            "Q2 '26 Budget": "Q2 '25 Budget",
+            "Q2 '25 Actual": "Q3 '25 Budget",
+            "Q2 Var ($)": "Q3 Var ($)",
+            "Q2 Var (%)": "Q3 Var (%)",
+            "Apr Budget": "Apr Budget",
+            "May Budget": "May Budget",
+            "Jun Budget": "Jun Budget",
+            "Apr LY": "Apr LY",
+            "May LY": "May LY",
+            "Jun LY": "Jun LY"
+          };
           Object.keys(rws).forEach(function(metric){
             if(!state.budget_data[metric])state.budget_data[metric]={};
             Object.keys(rws[metric]).forEach(function(col){
-              if(rws[metric][col]&&rws[metric][col]!==''){state.budget_data[metric][col]=rws[metric][col];filled++;}
+              var mappedCol = colMap[col] || col;
+              if(rws[metric][col]&&rws[metric][col]!==''){
+                state.budget_data[metric][mappedCol]=rws[metric][col];
+                filled++;
+              }
             });
           });
           scheduleSave();renderBudget();
           var bx2=document.getElementById('budget-extract-box');
           if(bx2)bx2.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells from PDF!</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Review the table below. Click any cell to edit.</div>';
         } catch(e2){
-          if(bx)bx.innerHTML='<div class="claude-label">Response</div><div style="font-size:11px">'+esc(txt)+'</div>';
+          // Parse failed - try a more aggressive JSON extraction
+          try {
+            var allJsons = txt.match(/\{[\s\S]+\}/g);
+            if(allJsons && allJsons.length) {
+              var prs2 = JSON.parse(allJsons[allJsons.length-1]);
+              var rws2 = prs2.rows || prs2;
+              if(!state.budget_data)state.budget_data={};
+              var filled2=0;
+              Object.keys(rws2).forEach(function(metric){
+                if(!state.budget_data[metric])state.budget_data[metric]={};
+                Object.keys(rws2[metric]).forEach(function(col){
+                  if(rws2[metric][col]&&rws2[metric][col]!==''){state.budget_data[metric][col]=rws2[metric][col];filled2++;}
+                });
+              });
+              scheduleSave();renderBudget();
+              if(bx)bx.innerHTML='<div class="claude-label">&#10003; Filled '+filled2+' cells!</div>';
+            } else {
+              if(bx)bx.innerHTML='<div class="claude-label">Response — could not auto-fill</div><div style="font-size:11px;max-height:200px;overflow:auto">'+esc(txt.slice(0,500))+'</div>';
+            }
+          } catch(e3){
+            if(bx)bx.innerHTML='<div class="claude-label">Response — could not auto-fill</div><div style="font-size:11px;max-height:200px;overflow:auto">'+esc(txt.slice(0,500))+'</div>';
+          }
         }
       }).catch(function(){if(bx)bx.innerHTML='<div class="claude-label">Error</div>Try a screenshot instead.';});
     };
