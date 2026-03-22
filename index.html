@@ -2220,6 +2220,87 @@ function handleBudgetFile(input){
 }
 function applyBudgetJsonText(txt){
   if(!txt) return false;
+  txt = txt.trim();
+  
+  // Try CSV/pipe-delimited format first (new approach)
+  if(txt.includes('|')){
+    try{
+      var rows = txt.split('\n').map(function(r){return r.trim();}).filter(Boolean);
+      // Remove any code fence lines
+      rows = rows.filter(function(r){return !r.startsWith('`');});
+      if(rows.length < 2) return false;
+      var headers = rows[0].split('|').map(function(h){return h.trim();});
+      if(!state.budget_data) state.budget_data = {};
+      var filled = 0;
+      var colMap = {
+        'Q2 Budget': "Q2 '25 Budget",
+        'Q2 LY': "Q2 '25 Actual",
+        'Q2 Var $': "Q3 Var ($)",
+        'Q2 Var %': "Q3 Var (%)"
+      };
+      for(var ri=1; ri<rows.length; ri++){
+        var cells = rows[ri].split('|').map(function(c){return c.trim();});
+        var metric = cells[0];
+        if(!metric) continue;
+        if(!state.budget_data[metric]) state.budget_data[metric] = {};
+        for(var ci=1; ci<headers.length; ci++){
+          var col = colMap[headers[ci]] || headers[ci];
+          var val = cells[ci] || '';
+          if(val && val !== '-'){
+            state.budget_data[metric][col] = val;
+            filled++;
+          }
+        }
+      }
+      if(filled > 0){
+        scheduleSave();
+        renderBudget();
+        var bx = document.getElementById('budget-extract-box');
+        if(bx) bx.innerHTML = '<div class="claude-label">&#10003; Filled '+filled+' cells in the table!</div>';
+        return true;
+      }
+    } catch(e){ console.log('CSV parse error:', e); }
+  }
+  
+  // Fallback: try JSON
+  try{
+    var cl = txt.replace(/```json/g,'').replace(/```/g,'').trim();
+    cl = cl.replace(/\u2013/g,'-').replace(/\u2014/g,'-');
+    cl = cl.replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
+    var start = cl.indexOf('{');
+    var end = cl.lastIndexOf('}');
+    if(start < 0 || end < 0) return false;
+    cl = cl.slice(start, end+1);
+    var prs = JSON.parse(cl);
+    var rws = prs.rows || prs;
+    if(typeof rws !== 'object' || Array.isArray(rws)) return false;
+    if(!state.budget_data) state.budget_data = {};
+    var colMap2 = {"Q2 '26 Budget":"Q2 '25 Budget","Q2 '25 Actual":"Q3 '25 Budget","Q2 Var ($)":"Q3 Var ($)","Q2 Var (%)":"Q3 Var (%)"};
+    var filled2 = 0;
+    Object.keys(rws).forEach(function(metric){
+      var metricData = rws[metric];
+      if(typeof metricData !== 'object' || Array.isArray(metricData)) return;
+      if(!state.budget_data[metric]) state.budget_data[metric] = {};
+      Object.keys(metricData).forEach(function(col){
+        var mappedCol = colMap2[col] || col;
+        var val = metricData[col];
+        if(val !== null && val !== undefined && val !== ''){
+          state.budget_data[metric][mappedCol] = String(val);
+          filled2++;
+        }
+      });
+    });
+    if(filled2 > 0){
+      scheduleSave(); renderBudget();
+      var bx2 = document.getElementById('budget-extract-box');
+      if(bx2) bx2.innerHTML = '<div class="claude-label">&#10003; Filled '+filled2+' cells!</div>';
+      return true;
+    }
+    return false;
+  } catch(e){ console.log('Budget parse error:', e.message); return false; }
+}
+function _OLD_applyBudgetJsonText_replaced(){
+  if(!txt) return false;
   try{
     // Strip code fences
     var cl = txt.replace(/```json/g,'').replace(/```/g,'').trim();
@@ -2473,8 +2554,8 @@ function processBudgetFile(file){
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
           body:JSON.stringify({
-            messages:[{role:'user',content:'Extract budget table values from this document. Return ONLY valid JSON with metric names as keys and month values as nested objects. Document text: '+pdfText.slice(0,6000)}],
-            system:'Extract financial data and return only valid JSON.'
+            messages:[{role:'user',content:'Extract the budget table from this document as CSV. Header row: Metric|Apr Budget|May Budget|Jun Budget|Q2 Budget|Apr LY|May LY|Jun LY|Q2 LY|Q2 Var $|Q2 Var %. One metric per line separated by |. Document: '+pdfText.slice(0,6000)}],
+            system:'You are a data extractor. Return ONLY pipe-delimited CSV rows, no JSON, no markdown, no explanations. First line must be the header.'
           })
         });
       }).then(function(r){return r.json();})
