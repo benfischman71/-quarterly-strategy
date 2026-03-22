@@ -145,9 +145,7 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 .ov-quarter-pill{display:inline-flex;align-items:center;background:#c9a84c18;
   border:1px solid #c9a84c44;border-radius:5px;padding:3px 10px;font-size:10px;
   font-weight:700;color:var(--gold);letter-spacing:.1em;text-transform:uppercase}
-.ov-headline{font-family:var(--font-serif);font-size:28px;font-weight:700;
-  color:var(--text);line-height:1.2;margin-top:12px;
-  outline:none;border:none;background:transparent;width:100%;border-bottom:2px solid #c9a84c18}
+
 .ov-headline:focus{border-bottom-color:#c9a84c55}
 .ov-sub{font-size:13px;color:#6b7a95;margin-top:8px;
   outline:none;border:none;background:transparent;width:100%;border-bottom:1px dashed #2a3450;
@@ -1020,7 +1018,7 @@ function renderOverview(){
         '<div style="display:flex;align-items:center;gap:6px"><div class="rt-dot"></div>'+
           '<span style="font-size:11px;color:#4ade80;font-weight:600;letter-spacing:.06em">BUDGET ACTIVE</span></div>'+
       '</div>'+
-      '<input class="ov-headline" value="'+esc(ov.headline||'')+'" oninput="updateOvField(\'headline\',this.value)" />'+
+
       '<input class="ov-sub" value="'+esc(ov.subline||'')+'" oninput="updateOvField(\'subline\',this.value)" />'+
       '<div class="ov-stats">'+statsHtml+'</div>'+
       '<div style="margin-top:14px;display:flex;align-items:center;gap:10px">'+
