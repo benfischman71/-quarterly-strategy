@@ -423,6 +423,26 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .ig-col-input:focus{color:#c9a84c}
 .ig-del-btn{background:none;border:none;color:#2a3450;cursor:pointer;font-size:11px;padding:0 3px;line-height:1;transition:color .15s;flex-shrink:0}
 .ig-del-btn:hover{color:#f87171}
+.grid-modal-overlay{position:fixed;inset:0;background:rgba(10,14,26,.95);z-index:2000;
+  display:flex;flex-direction:column;overflow:hidden}
+.grid-modal-header{display:flex;align-items:center;justify-content:space-between;
+  padding:20px 32px;border-bottom:1px solid #1e2638;flex-shrink:0;
+  background:#0d1220}
+.grid-modal-body{flex:1;overflow:auto;padding:28px 32px}
+.grid-table{width:100%;border-collapse:collapse}
+.grid-table th{padding:10px 14px;font-size:11px;font-weight:700;color:#5a6480;
+  letter-spacing:.08em;text-transform:uppercase;background:#0a0d14;
+  border:1px solid #1e2638;white-space:nowrap;position:sticky;top:0;z-index:1}
+.grid-table th:first-child{text-align:left;min-width:220px}
+.grid-table td{padding:8px;border:1px solid #1e2638;background:#111827;text-align:center;vertical-align:middle}
+.grid-table td:first-child{text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#e8e4d9;background:#0d1220}
+.grid-score-cell{border-radius:6px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;
+  transition:all .15s;min-width:60px;display:inline-block}
+.grid-score-cell:hover{filter:brightness(1.3)}
+.grid-driver-input{background:transparent;border:none;color:#c9a84c;font-size:10px;
+  font-weight:700;outline:none;font-family:inherit;text-align:center;
+  letter-spacing:.06em;text-transform:uppercase;width:100%;min-width:80px}
+.grid-score-pct{font-size:14px;font-weight:700}
 </style>
 </head>
 <body>
@@ -1120,9 +1140,9 @@ function openGridModal(){
       var scoreColor = scoreColors[score] || '#1e2638';
       var scoreLabel = scoreLabels[score] || '-';
       var textColor = score === 0 ? '#374151' : score === 1 ? '#60a5fa' : score === 2 ? '#c9a84c' : '#4ade80';
-      rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#111827;text-align:center;cursor:pointer" onclick="gridCycleScore('+ri+','+di+')" title="Click to cycle: - / Low / Med / High"><div style="background:'+scoreColor+';border-radius:6px;padding:5px 8px;font-size:11px;font-weight:700;color:'+textColor+'">'+scoreLabel+'</div></td>';
+      rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#111827;text-align:center" onclick="gridCycleScore('+ri+','+di+')" title="Click to cycle"><span class="grid-score-cell" style="background:'+scoreColor+';color:'+textColor+'">'+scoreLabel+'</span></td>';
     });
-    rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#111827;text-align:center"><span style="font-size:13px;font-weight:700;color:'+(pct>=70?'#4ade80':pct>=40?'#c9a84c':'#60a5fa')+'">'+pct+'%</span></td>';
+    rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#0d1220;text-align:center"><span class="grid-score-pct" style="color:'+(pct>=70?'#4ade80':pct>=40?'#c9a84c':'#60a5fa')+'">'+pct+'%</span></td>';
     rowsHtml += '<td style="padding:8px;border:1px solid #1e2638;background:#0d1220"></td>';
     rowsHtml += '</tr>';
   });
@@ -1147,8 +1167,35 @@ function openGridModal(){
     '</div>'+
     '<div id="grid-claude-box" class="claude-box" style="display:none;margin-top:16px"></div>';
 
-  document.getElementById('side-panel').innerHTML = modalHtml;
-  document.getElementById('panel-overlay').classList.add('open');
+  // Remove existing grid modal if present
+  var existing = document.getElementById('grid-full-modal');
+  if(existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'grid-full-modal';
+  overlay.className = 'grid-modal-overlay';
+  overlay.innerHTML =
+    '<div class="grid-modal-header">'+
+      '<div style="font-family:Georgia,serif;font-size:22px;color:#e8e4d9">Initiative Grid</div>'+
+      '<div style="display:flex;gap:12px;align-items:center">'+
+        '<span style="font-size:12px;color:#5a6480">Click any cell to cycle: — / Low / Med / High</span>'+
+        '<button class="btn btn-claude btn-sm" onclick="gridClaudeScore()" id="btn-grid-claude">&#9734; Claude Score All</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="document.getElementById('grid-full-modal').remove()">&#10005; Close</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="grid-modal-body">'+
+      '<div id="grid-claude-box" class="claude-box" style="display:none;margin-bottom:20px"></div>'+
+      '<div style="overflow-x:auto">'+
+        '<table class="grid-table">'+
+          '<thead><tr>'+headHtml+'</tr></thead>'+
+          '<tbody id="grid-tbody">'+rowsHtml+'</tbody>'+
+        '</table>'+
+      '</div>'+
+      '<div style="margin-top:20px;display:flex;gap:10px">'+
+        '<button class="btn btn-ghost btn-sm" onclick="gridAddDriver()">+ Add Driver Column</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(overlay);
 }
 function gridCycleScore(ri,di){
   var g=state.grid;
@@ -1917,6 +1964,53 @@ function handleBudgetFile(input){
   if(file)processBudgetFile(file);
   input.value='';
 }
+function applyBudgetJsonText(txt){
+  if(!txt) return false;
+  try{
+    // Strip code fences
+    var cl = txt.replace(/```json/g,'').replace(/```/g,'').trim();
+    // Find the outermost JSON object
+    var start = cl.indexOf('{');
+    var end = cl.lastIndexOf('}');
+    if(start < 0 || end < 0) return false;
+    cl = cl.slice(start, end+1);
+    var prs = JSON.parse(cl);
+    var rws = prs.rows || prs;
+    if(typeof rws !== 'object' || Array.isArray(rws)) return false;
+    if(!state.budget_data) state.budget_data = {};
+    var colMap = {
+      "Q2 '26 Budget": "Q2 '25 Budget",
+      "Q2 '25 Actual": "Q3 '25 Budget",
+      "Q2 Var ($)": "Q3 Var ($)",
+      "Q2 Var (%)": "Q3 Var (%)"
+    };
+    var filled = 0;
+    Object.keys(rws).forEach(function(metric){
+      var metricData = rws[metric];
+      if(typeof metricData !== 'object' || Array.isArray(metricData)) return;
+      if(!state.budget_data[metric]) state.budget_data[metric] = {};
+      Object.keys(metricData).forEach(function(col){
+        var mappedCol = colMap[col] || col;
+        var val = metricData[col];
+        if(val !== null && val !== undefined && val !== ''){
+          state.budget_data[metric][mappedCol] = String(val);
+          filled++;
+        }
+      });
+    });
+    if(filled > 0){
+      scheduleSave();
+      renderBudget();
+      var bx = document.getElementById('budget-extract-box');
+      if(bx) bx.innerHTML = '<div class="claude-label">&#10003; Filled '+filled+' cells in the table!</div>';
+      return true;
+    }
+    return false;
+  } catch(e){
+    console.log('Budget parse error:', e.message);
+    return false;
+  }
+}
 function applyBudgetJson(btn){
   var raw=btn.getAttribute('data-raw')||'';
   // Strip backtick code fences
@@ -2076,71 +2170,23 @@ function processBudgetFile(file){
       .then(function(d){
         var blk=d.content&&d.content.find(function(b){return b.type==='text';});
         var txt=blk?blk.text:'';
-        // Always show the response with an Apply button
-        var bxShow=document.getElementById('budget-extract-box');
-        if(bxShow){
-          bxShow.style.display='block';
-          bxShow.innerHTML='<div class="claude-label" style="display:flex;align-items:center;justify-content:space-between">'+
-            '<span>&#9734; CLAUDE RESPONSE</span>'+
-            '<button onclick="applyBudgetJson(this)" data-raw="'+esc(txt)+'" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer">Apply to Table</button>'+
-            '</div>'+
-            '<div style="font-size:11px;color:#5a6480;margin-top:6px;max-height:200px;overflow:auto;white-space:pre-wrap">'+esc(txt.slice(0,1000))+'</div>';
+        if(!txt){
+          if(bx)bx.innerHTML='<div class="claude-label">No response from Claude</div>';
+          return;
         }
-        try{
-          var cl=txt.replace(/```json|```/g,'').trim();
-          var jmatch=cl.match(/\{[\s\S]*\}/);if(jmatch)cl=jmatch[0];
-          var prs=JSON.parse(cl);
-          var rws=prs.rows||prs;
-          var filled=0;
-          if(!state.budget_data)state.budget_data={};
-          // Normalize column names from Claude's output to our table headers
-          var colMap = {
-            "Q2 '26 Budget": "Q2 '25 Budget",
-            "Q2 '25 Actual": "Q3 '25 Budget",
-            "Q2 Var ($)": "Q3 Var ($)",
-            "Q2 Var (%)": "Q3 Var (%)",
-            "Apr Budget": "Apr Budget",
-            "May Budget": "May Budget",
-            "Jun Budget": "Jun Budget",
-            "Apr LY": "Apr LY",
-            "May LY": "May LY",
-            "Jun LY": "Jun LY"
-          };
-          Object.keys(rws).forEach(function(metric){
-            if(!state.budget_data[metric])state.budget_data[metric]={};
-            Object.keys(rws[metric]).forEach(function(col){
-              var mappedCol = colMap[col] || col;
-              if(rws[metric][col]&&rws[metric][col]!==''){
-                state.budget_data[metric][mappedCol]=rws[metric][col];
-                filled++;
-              }
-            });
-          });
-          scheduleSave();renderBudget();
-          var bx2=document.getElementById('budget-extract-box');
-          if(bx2)bx2.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells from PDF!</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Review the table below. Click any cell to edit.</div>';
-        } catch(e2){
-          // Parse failed - try a more aggressive JSON extraction
-          try {
-            var allJsons = txt.match(/\{[\s\S]+\}/g);
-            if(allJsons && allJsons.length) {
-              var prs2 = JSON.parse(allJsons[allJsons.length-1]);
-              var rws2 = prs2.rows || prs2;
-              if(!state.budget_data)state.budget_data={};
-              var filled2=0;
-              Object.keys(rws2).forEach(function(metric){
-                if(!state.budget_data[metric])state.budget_data[metric]={};
-                Object.keys(rws2[metric]).forEach(function(col){
-                  if(rws2[metric][col]&&rws2[metric][col]!==''){state.budget_data[metric][col]=rws2[metric][col];filled2++;}
-                });
-              });
-              scheduleSave();renderBudget();
-              if(bx)bx.innerHTML='<div class="claude-label">&#10003; Filled '+filled2+' cells!</div>';
-            } else {
-              if(bx)bx.innerHTML='<div class="claude-label">Response — could not auto-fill</div><div style="font-size:11px;max-height:200px;overflow:auto">'+esc(txt.slice(0,500))+'</div>';
-            }
-          } catch(e3){
-            if(bx)bx.innerHTML='<div class="claude-label">Response — could not auto-fill</div><div style="font-size:11px;max-height:200px;overflow:auto">'+esc(txt.slice(0,500))+'</div>';
+        // Store response globally so applyBudgetJson can access it
+        window._lastBudgetResponse = txt;
+        // Try to auto-apply immediately
+        var applied = applyBudgetJsonText(txt);
+        if(!applied){
+          // Show raw with apply button if auto-apply failed
+          if(bx){
+            bx.style.display='block';
+            bx.innerHTML='<div class="claude-label" style="display:flex;align-items:center;justify-content:space-between">'+
+              '<span>&#9734; CLAUDE RESPONSE — could not auto-fill</span>'+
+              '<button onclick="applyBudgetJsonText(window._lastBudgetResponse)" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit">Apply Now</button>'+
+              '</div>'+
+              '<div style="font-size:11px;color:#5a6480;margin-top:8px;max-height:300px;overflow:auto;white-space:pre-wrap">'+esc(txt)+'</div>';
           }
         }
       }).catch(function(){if(bx)bx.innerHTML='<div class="claude-label">Error</div>Try a screenshot instead.';});
