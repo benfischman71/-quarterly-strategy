@@ -1498,8 +1498,14 @@ function processMetricsFile(file){
       });
     }).then(function(r){return r.json();})
     .then(function(d){
+      console.log('Claude raw response:', JSON.stringify(d).slice(0,500));
       var block=d.content&&d.content.find(function(b){return b.type==='text';});
       var text=block?block.text:'';
+      if(!text){
+        // Show full response for debugging
+        box.innerHTML='<div class="claude-label">Debug - raw response</div><div style="font-size:10px;color:#5a6480;word-break:break-all">'+esc(JSON.stringify(d).slice(0,800))+'</div>';
+        return;
+      }
       try{
         // Strip markdown, extract JSON
         var clean=text.replace(/```json|```/g,'').trim();
