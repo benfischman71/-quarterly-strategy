@@ -894,17 +894,12 @@ function renderOverview(){
       '<div class="ov-stats">'+statsHtml+'</div>'+
       '<div style="margin-top:14px;display:flex;align-items:center;gap:10px">'+
         '<button class="btn btn-ghost btn-sm" onclick="editHeroStats()" style="font-size:11px">&#9998; Edit Key Metrics</button>'+
-        '<label for="metrics-file-drop" class="btn btn-ghost btn-sm" style="font-size:11px;cursor:pointer">&#128196; Upload File to Extract Metrics</label>'+
-        '<input type="file" id="metrics-file-drop" accept=".pdf,.png,.jpg,.jpeg,.csv,.xls,.xlsx,image/*" style="display:none" onchange="handleMetricsFile(this)" />'+
+        '<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="document.getElementById(\'metrics-file-drop\').click()">&#128196; Upload File</button>'+
+        '<input type="file" id="metrics-file-drop" accept=".pdf,.png,.jpg,.jpeg,.csv,.xls,.xlsx" style="display:none" onchange="handleMetricsFile(this)" />'+
       '</div>'+
-      '<div id="metrics-drop-zone" '+
-        'ondragover="event.preventDefault();this.style.borderColor='var(--gold)';this.style.background='#c9a84c08'" '+
-        'ondragleave="this.style.borderColor='var(--border)';this.style.background='transparent'" '+
-        'ondrop="handleMetricsDrop(event)" '+
-        'style="margin-top:10px;border:1px dashed var(--border);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--dim);transition:all .2s;cursor:pointer;display:flex;align-items:center;gap:10px" '+
-        'onclick="document.getElementById('metrics-file-drop').click()">'+
+      '<div id="metrics-drop-zone" ondragover="metricsDropOver(event)" ondragleave="metricsDropLeave(event)" ondrop="handleMetricsDrop(event)" onclick="document.getElementById(\'metrics-file-drop\').click()" style="margin-top:10px;border:1px dashed #1e2638;border-radius:10px;padding:14px 18px;font-size:12px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:10px">'+
         '<span style="font-size:18px">&#128202;</span>'+
-        '<span>Drag & drop a budget screenshot, PDF, or CSV here — Claude will extract your key metrics automatically</span>'+
+        '<span>Drag &amp; drop a budget screenshot, PDF, or CSV here &mdash; Claude will extract your key metrics</span>'+
       '</div>'+
       '<div id="metrics-extract-box" class="claude-box" style="display:none;margin-top:10px"></div>'+
     '</div>'+
@@ -1424,6 +1419,15 @@ function loadDriverTemplate(){
 // ═══════════════════════════════════════════════════════════════
 // METRICS FILE EXTRACTION
 // ═══════════════════════════════════════════════════════════════
+function metricsDropOver(event){
+  event.preventDefault();
+  var dz=document.getElementById('metrics-drop-zone');
+  if(dz){dz.style.borderColor='#c9a84c';dz.style.background='rgba(201,168,76,0.05)';}
+}
+function metricsDropLeave(event){
+  var dz=document.getElementById('metrics-drop-zone');
+  if(dz){dz.style.borderColor='#1e2638';dz.style.background='transparent';}
+}
 function handleMetricsDrop(event){
   event.preventDefault();
   var dz=document.getElementById('metrics-drop-zone');
