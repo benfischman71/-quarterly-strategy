@@ -1845,9 +1845,7 @@ function processBudgetFile(file){
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
           body:JSON.stringify({
-            messages:[{role:'user',content:'Extract budget table values from this document. Return ONLY JSON: {"rows":{"Metric Name":{"Apr Budget":"val","May Budget":"val","Jun Budget":"val","Q3 '25 Budget":"val","Apr LY":"val","May LY":"val","Jun LY":"val","Q3 '25 LY":"val","Q3 Var ($)":"val","Q3 Var (%)":"val"}}} Metrics: '+metricsList2.join(', ')+'. Document:
-
-'+pdfText.slice(0,8000)}],
+            messages:[{role:'user',content:'Extract budget table values from this document. Return ONLY valid JSON with metric names as keys and month values as nested objects. Document text: '+pdfText.slice(0,6000)}],
             system:'Extract financial data and return only valid JSON.'
           })
         });
