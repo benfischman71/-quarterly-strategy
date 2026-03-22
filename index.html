@@ -1642,10 +1642,11 @@ function panelDraftClaude(el){
   } else if(type==='short_from_long'||type==='short_from_full'){
     var long=init.description||'';
     if(!long){toast('Add a full description first');return;}
-    prompt='Write a short description for this initiative in this exact format:\n\n'+
-      '1-2 sentence executive summary (specific, outcome-focused).\n\n'+
-      'Then 4-8 bullet points (use • ) covering the key details: what it does, why it matters, key mechanics, expected outcomes, timing.\n\n'+
-      'Full description to summarize:\n'+long;
+    prompt='Write a short description for the initiative "'+init.title+'". Follow this EXACT format — no deviations:\n\n'+
+      'SENTENCE(S): Write 1 sentence (2 max). This is the executive summary. End with a period.\n\n'+
+      'BULLETS: Write 3 to 8 bullet points starting with • (bullet character). Each bullet = 1 line. Cover: what it does, why it matters, key mechanics, expected outcome, timing.\n\n'+
+      'Do NOT add headers, labels, or any other text. Just the 1-2 sentences then the bullets.\n\n'+
+      'Source material:\n'+long;
   } else if(type==='rank'){
     prompt='Rate "'+init.title+'" ('+init.description+'): Impact (1-10), Effort (1-10, 10=complex), MVP Speed (1-10).\nFormat:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason';
   }
@@ -1689,7 +1690,7 @@ function panelFileUpload(input){
     var init=state.initiatives.find(function(i){return i.id===id;});
     var prompt='You are analyzing a document for a business initiative called "'+(init?init.title:'this initiative')+'". '+
       'Return EXACTLY two sections separated by ---FULL---:\n'+
-      'Section 1 (SHORT): 1-2 sentence executive summary, then 4-8 bullet points (use • ) covering key details, mechanics, expected outcomes. Max 120 words.\n'+
+      'Section 1 (SHORT): Write 1-2 sentences (max 2) as executive summary, then 3-8 bullet points each starting with • covering what it does, why it matters, mechanics, expected outcome, timing. No headers, no extra text.\n'+
       '---FULL---\n'+
       'Section 2 (FULL): A complete structured description with these headers:\n'+
       '**What:** What exactly are we building or changing?\n'+
