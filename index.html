@@ -1911,7 +1911,7 @@ function renderMapping(){
   var drivers=state.overview&&state.overview.drivers?state.overview.drivers:[];
   if(!state.mappings)state.mappings={};
 
-  // Build driver cards at top
+  // Driver cards
   var driverCardsHtml='';
   if(drivers.length===0){
     driverCardsHtml='<div style="padding:24px;border:1px dashed #1e2638;border-radius:12px;text-align:center;color:#5a6480;font-size:13px">No key drivers defined yet. Add them on the Quarterly Overview tab.</div>';
@@ -1926,10 +1926,9 @@ function renderMapping(){
           '<button data-driver="'+esc(d.label)+'" data-iid="'+id+'" onclick="unmapInit(this)" style="background:none;border:none;color:#5a6480;cursor:pointer;font-size:11px;padding:0 0 0 4px;line-height:1">&#10005;</button>'+
           '</span>':'';
       }).join('');
-      return '<div style="background:linear-gradient(160deg,#111827,#0f1520);border-radius:12px;border:1px solid #1e2638;overflow:hidden;min-width:200px;flex:1">'+
+      return '<div style="background:linear-gradient(160deg,#111827,#0f1520);border-radius:12px;border:1px solid #1e2638;overflow:hidden;min-width:180px;flex:1">'+
         '<div style="height:3px;background:'+urgColor+'"></div>'+
         '<div style="padding:14px 16px">'+
-          // View mode
           '<div id="drv-view-'+di+'" style="">'+
             '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
               '<select data-di="'+di+'" onchange="mapDriverUrgency(this)" style="background:#0d1220;border:1px solid #1e2638;border-radius:5px;color:'+urgColor+';font-size:9px;font-weight:800;font-family:inherit;padding:2px 6px;outline:none;text-transform:uppercase;letter-spacing:.08em;cursor:pointer">'+
@@ -1937,7 +1936,7 @@ function renderMapping(){
                 '<option value="watch"'+(d.urgency==='watch'?' selected':'')+'>WATCH</option>'+
                 '<option value="risk"'+(d.urgency==='risk'?' selected':'')+'>RISK</option>'+
               '</select>'+
-              '<button data-di="'+di+'" onclick="mapEditDriver(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:2px 6px;font-family:inherit">&#9998; Edit</button>'+
+              '<button data-di="'+di+'" onclick="mapEditDriver(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:10px;padding:2px 6px;font-family:inherit">&#9998; Edit</button>'+
             '</div>'+
             '<div style="font-size:13px;font-weight:700;color:#e8e4d9;margin-bottom:6px;line-height:1.3">'+esc(d.label)+'</div>'+
             '<div style="font-size:11px;color:#c9a84c;font-weight:700;margin-bottom:8px">'+esc(d.target||'Set target...')+'</div>'+
@@ -1945,7 +1944,6 @@ function renderMapping(){
               (mappedNames||'<span style="font-size:11px;color:#374151;font-style:italic">No initiatives mapped</span>')+
             '</div>'+
           '</div>'+
-          // Edit mode
           '<div id="drv-edit-'+di+'" style="display:none">'+
             '<input data-di="'+di+'" data-field="label" oninput="mapDriverField(this)" value="'+esc(d.label)+'" style="width:100%;background:#0d1220;border:1px solid #c9a84c44;border-radius:6px;color:#e8e4d9;font-size:13px;font-weight:700;padding:5px 8px;outline:none;font-family:inherit;margin-bottom:6px;box-sizing:border-box" placeholder="Driver title..." />'+
             '<input data-di="'+di+'" data-field="target" oninput="mapDriverField(this)" value="'+esc(d.target||'')+'" style="width:100%;background:#0d1220;border:1px solid #1e2638;border-radius:6px;color:#c9a84c;font-size:11px;font-weight:700;padding:4px 8px;outline:none;font-family:inherit;margin-bottom:8px;box-sizing:border-box" placeholder="Set target..." />'+
@@ -1959,42 +1957,52 @@ function renderMapping(){
     }).join('');
   }
 
-  // Build initiative rows
+  // Initiative rows - redesigned
   var initRowsHtml='';
   if(active.length===0){
-    initRowsHtml='<div style="padding:24px;text-align:center;color:#5a6480;font-size:13px">No active initiatives. Add them on the Initiatives tab.</div>';
+    initRowsHtml='<div style="padding:32px;text-align:center;color:#5a6480;font-size:13px">No active initiatives. Add them on the Initiatives tab.</div>';
   } else {
-    initRowsHtml=active.map(function(init){
+    initRowsHtml=active.map(function(init,ii){
       var mappedDrivers=[];
       Object.keys(state.mappings).forEach(function(dName){
         if((state.mappings[dName]||[]).indexOf(init.id)>=0)mappedDrivers.push(dName);
       });
       var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
       var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
+      var mappedCount=mappedDrivers.length;
+      var rowBg=ii%2===0?'#0d1220':'#111827';
 
-      // Driver toggle buttons
-      var driverBtns=drivers.map(function(d){
+      var driverBtns=drivers.length>0?drivers.map(function(d){
         var isMapped=(state.mappings[d.label]||[]).indexOf(init.id)>=0;
         var urgColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency]||'#c9a84c';
         return '<button data-driver="'+esc(d.label)+'" data-iid="'+init.id+'" onclick="toggleMappingBtn(this)" '+
-          'style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;'+
-          'border:1px solid '+(isMapped?urgColor:'#1e2638')+';'+
-          'background:'+(isMapped?urgColor+'22':'transparent')+';'+
+          'style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;'+
+          'border:1px solid '+(isMapped?urgColor+'88':'#2a3450')+';'+
+          'background:'+(isMapped?urgColor+'18':'#0d1220')+';'+
           'color:'+(isMapped?urgColor:'#5a6480')+'">'+
-          (isMapped?'&#10003; ':'')+ esc(d.label)+
+          '<span style="width:7px;height:7px;border-radius:50%;background:'+(isMapped?urgColor:'#2a3450')+';flex-shrink:0"></span>'+
+          esc(d.label)+
         '</button>';
-      }).join('');
+      }).join(''):'<span style="font-size:12px;color:#374151;font-style:italic">No drivers — add on Overview tab</span>';
 
-      return '<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid #1a2035">'+
-        '<div style="min-width:220px;max-width:260px;flex-shrink:0">'+
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
-            '<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:12px;background:'+pColor+'22;color:'+pColor+'">'+p+'</span>'+
-            '<span style="font-size:13px;font-weight:700;color:#e8e4d9">'+esc(init.title)+'</span>'+
+      return '<div style="display:grid;grid-template-columns:280px 1fr;border-bottom:2px solid #1a2540;background:'+rowBg+'">'+
+        // Left: initiative card
+        '<div style="padding:16px 20px;border-right:2px solid #1a2540">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+            '<span style="font-size:9px;font-weight:800;padding:3px 8px;border-radius:12px;background:'+pColor+'22;color:'+pColor+';letter-spacing:.06em;flex-shrink:0">'+p+'</span>'+
+            '<span style="font-size:14px;font-weight:700;color:#e8e4d9;line-height:1.2">'+esc(init.title)+'</span>'+
           '</div>'+
-          '<div style="font-size:11px;color:#5a6480">'+esc(init.shortDescription?init.shortDescription.slice(0,80)+(init.shortDescription.length>80?'...':''):'')+'</div>'+
+          (init.shortDescription?'<div style="font-size:11px;color:#7a8499;line-height:1.5;margin-bottom:8px">'+esc(init.shortDescription.slice(0,90)+(init.shortDescription.length>90?'...':''))+'</div>':'')+
+          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+            '<span style="font-size:10px;color:#374151">Impact <strong style="color:#fbbf24">'+init.impactScore+'</strong></span>'+
+            '<span style="font-size:10px;color:#374151">Effort <strong style="color:#60a5fa">'+init.effortScore+'</strong></span>'+
+            '<span style="font-size:10px;color:#374151">MVP <strong style="color:#a78bfa">'+init.mvpScore+'</strong></span>'+
+            (mappedCount>0?'<span style="font-size:10px;color:#4ade80;font-weight:600">&#10003; '+mappedCount+' driver'+(mappedCount>1?'s':'')+'</span>':'<span style="font-size:10px;color:#374151;font-style:italic">Not yet mapped</span>')+
+          '</div>'+
         '</div>'+
-        '<div style="flex:1;display:flex;flex-wrap:wrap;gap:6px;align-items:center">'+
-          (drivers.length>0?driverBtns:'<span style="font-size:12px;color:#374151">Add drivers on Overview tab first</span>')+
+        // Right: driver buttons
+        '<div style="padding:14px 20px;display:flex;flex-wrap:wrap;gap:8px;align-content:center">'+
+          driverBtns+
         '</div>'+
       '</div>';
     }).join('');
@@ -2002,53 +2010,25 @@ function renderMapping(){
 
   document.getElementById('tab-3').innerHTML=
     '<div style="padding:20px 28px">'+
-      '<div style="font-family:Georgia,serif;font-size:24px;color:#e8e4d9;margin-bottom:4px">Mapping & Timeline</div>'+
-      '<div style="font-size:13px;color:#5a6480;margin-bottom:24px">Map your initiatives to strategic drivers. Click a driver button to toggle the connection.</div>'+
+      '<div style="font-family:Georgia,serif;font-size:24px;color:#e8e4d9;margin-bottom:4px">Mapping</div>'+
+      '<div style="font-size:13px;color:#5a6480;margin-bottom:24px">Map initiatives to strategic drivers by clicking the driver buttons on each row.</div>'+
 
-      // Driver cards
       '<div style="font-size:10px;font-weight:800;color:#5a6480;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px">KEY DRIVERS &amp; PRESCRIPTIVE TARGETS</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:32px">'+driverCardsHtml+'</div>'+
 
-      // Initiatives
-      '<div style="font-size:10px;font-weight:800;color:#5a6480;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px">INITIATIVES — click a driver button to map/unmap</div>'+
-      '<div style="font-size:11px;color:#374151;margin-bottom:16px">Mapped drivers appear highlighted on each initiative row</div>'+
-      '<div>'+initRowsHtml+'</div>'+
+      '<div style="font-size:10px;font-weight:800;color:#5a6480;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px">ACTIVE INITIATIVES</div>'+
+      '<div style="font-size:11px;color:#374151;margin-bottom:12px">Click any driver button to toggle mapping</div>'+
+      '<div style="border:1px solid #1a2540;border-radius:12px;overflow:hidden">'+
+        // Header row
+        '<div style="display:grid;grid-template-columns:280px 1fr;background:#080d16;border-bottom:2px solid #1a2540">'+
+          '<div style="padding:10px 20px;font-size:10px;font-weight:800;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;border-right:2px solid #1a2540">Initiative</div>'+
+          '<div style="padding:10px 20px;font-size:10px;font-weight:800;color:#5a6480;letter-spacing:.1em;text-transform:uppercase">Strategic Drivers — click to map/unmap</div>'+
+        '</div>'+
+        initRowsHtml+
+      '</div>'+
     '</div>';
 }
 
-
-function mapEditDriver(btn){
-  var di=btn.getAttribute('data-di');
-  document.getElementById('drv-view-'+di).style.display='none';
-  document.getElementById('drv-edit-'+di).style.display='block';
-}
-function mapCancelDriver(btn){
-  var di=btn.getAttribute('data-di');
-  document.getElementById('drv-view-'+di).style.display='block';
-  document.getElementById('drv-edit-'+di).style.display='none';
-}
-function mapSaveDriver(btn){
-  var di=+btn.getAttribute('data-di');
-  var d=state.overview.drivers[di];
-  if(!d)return;
-  var editDiv=document.getElementById('drv-edit-'+di);
-  var inputs=editDiv.querySelectorAll('input');
-  inputs.forEach(function(inp){d[inp.getAttribute('data-field')]=inp.value;});
-  scheduleSave();
-  renderMapping();
-}
-function mapDriverField(input){
-  var di=+input.getAttribute('data-di');
-  var field=input.getAttribute('data-field');
-  if(state.overview.drivers[di])state.overview.drivers[di][field]=input.value;
-  scheduleSave();
-}
-function mapDriverUrgency(sel){
-  var di=+sel.getAttribute('data-di');
-  if(state.overview.drivers[di])state.overview.drivers[di].urgency=sel.value;
-  scheduleSave();
-  renderMapping();
-}
 function toggleMappingBtn(btn){
   var driver=btn.getAttribute('data-driver');
   var id=btn.getAttribute('data-iid');
