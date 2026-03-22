@@ -1146,6 +1146,53 @@ function applyClaudeToField(id,key,boxId){
   toast('Applied!');
 }
 function draftDesc(id){var init=state.initiatives.find(function(i){return i.id===id;});askClaude('Write a 2-sentence executive description for an initiative called "'+init.title+'". Be concise and outcome-focused.','btn-desc-'+id,'desc-box-'+id,function(t){var b=document.getElementById('desc-box-'+id);if(b){b.innerHTML='<div class="claude-label">&#9734; Click to apply</div>'+esc(t).replace(/\n/g,'<br>');b.style.display='block';}});}
+function improveDesc(id){
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  var current=init.description||'';
+  if(!current.trim()){toast('Add a description first, then use Improve.');return;}
+  var prompt='Improve and sharpen this initiative description. Make it more executive-ready, specific, and outcome-focused. Keep it to 2 sentences max. Original: "'+current+'" Initiative name: "'+init.title+'"';
+  var btn=document.getElementById('btn-improve-'+id);
+  var box=document.getElementById('desc-box-'+id);
+  if(btn)btn.disabled=true;
+  if(box){box.innerHTML='<div class="claude-label">&#10227; Improving...</div>';box.style.display='block';}
+  sb.auth.getSession().then(function(res){
+    var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+    return fetch(EDGE_FUNCTION_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
+      body:JSON.stringify({messages:[{role:'user',content:prompt}],system:'You are a strategic business advisor. Improve the description to be crisp, executive-ready, and outcome-focused. Return only the improved description, no preamble.'})
+    });
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    var blk=d.content&&d.content.find(function(b){return b.type==='text';});
+    var text=blk?blk.text:'';
+    if(box){
+      box.innerHTML='<div class="claude-label" style="display:flex;align-items:center;justify-content:space-between">'+
+        '<span>&#10227; IMPROVED — click to apply</span>'+
+        '<button onclick="acceptImprovement(''+id+'',this)" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:inherit">Apply</button>'+
+      '</div>'+
+      '<div style="font-size:13px;line-height:1.6;margin-top:8px;color:#d4c5ff" id="improved-text-'+id+'">'+esc(text)+'</div>'+
+      '<div style="font-size:10px;color:#374151;margin-top:8px">Or click anywhere on this box to apply</div>';
+      box.onclick=function(){acceptImprovement(id,null);};
+    }
+    if(btn)btn.disabled=false;
+  }).catch(function(){
+    if(box)box.innerHTML='<div class="claude-label">Error</div>Could not reach Claude.';
+    if(btn)btn.disabled=false;
+  });
+}
+function acceptImprovement(id,btn){
+  var el=document.getElementById('improved-text-'+id);
+  if(!el)return;
+  var text=el.textContent||el.innerText;
+  updateInit(id,'description',text);
+  // Update the textarea in the panel
+  var textareas=document.querySelectorAll('#side-panel textarea');
+  textareas.forEach(function(ta){if(ta.getAttribute('oninput')&&ta.getAttribute('oninput').indexOf('description')>=0)ta.value=text;});
+  var box=document.getElementById('desc-box-'+id);
+  if(box){box.innerHTML='<div class="claude-label" style="color:#4ade80">&#10003; Applied!</div>';setTimeout(function(){box.style.display='none';},1500);}
+  toast('Description improved!');
+}
 function draftWWW(id){var init=state.initiatives.find(function(i){return i.id===id;});askClaude('For "'+init.title+'": Write a brief What/Why/When breakdown. Three short bullets starting with What:, Why:, When:.','btn-www-'+id,'www-box-'+id,function(t){var b=document.getElementById('www-box-'+id);if(b){b.innerHTML='<div class="claude-label">&#9734; Click to apply</div>'+esc(t).replace(/\n/g,'<br>');b.style.display='block';}});}
 function draftRank(id){var init=state.initiatives.find(function(i){return i.id===id;});askClaude('Rate "'+init.title+'" ('+init.description+'): Impact (1-10 potential), Effort (1-10, 10=very complex), MVP Speed (1-10, 10=fast signal). Format exactly:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason','btn-rank-'+id,'rank-box-'+id);}
 
