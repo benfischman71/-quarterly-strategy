@@ -1618,11 +1618,14 @@ function panelFileUpload(input){
       if(box){
         box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:6px">&#9734; Extracted from file — click to apply to description</div>'+
           '<div style="font-size:12px;line-height:1.6;color:#d4c5ff">'+esc(text)+'</div>';
+        var capturedId=id; var capturedText=text;
         box.onclick=function(){
-          updateInit(id,'description',text);
-          var ta=document.querySelector('[data-iid="'+id+'"][data-field="description"]');
-          if(ta)ta.value=text;
-          box.style.display='none';
+          updateInit(capturedId,'description',capturedText);
+          // Find textarea - try multiple selectors
+          var ta=document.querySelector('textarea[data-iid="'+capturedId+'"]');
+          if(!ta)ta=document.querySelector('[data-iid="'+capturedId+'"][data-field="description"]');
+          if(ta){ta.value=capturedText;ta.dispatchEvent(new Event('input'));}
+          this.style.display='none';
           toast('Applied to description!');
         };
       }
