@@ -220,7 +220,7 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 .pb-low{background:#4b556322;color:#9ca3af}
 .pb-hold{background:#37415122;color:#9ca3af}
 .init-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
-.init-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+.init-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;white-space:pre-line}
 .score-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .sc{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .sc-impact{background:#fbbf2411;color:var(--amber)}
@@ -1642,11 +1642,13 @@ function panelDraftClaude(el){
   } else if(type==='short_from_long'||type==='short_from_full'){
     var long=init.description||'';
     if(!long){toast('Add a full description first');return;}
-    prompt='Write a short description for the initiative "'+init.title+'". Follow this EXACT format — no deviations:\n\n'+
-      'SENTENCE(S): Write 1 sentence (2 max). This is the executive summary. End with a period.\n\n'+
-      'BULLETS: Write 3 to 8 bullet points starting with • (bullet character). Each bullet = 1 line. Cover: what it does, why it matters, key mechanics, expected outcome, timing.\n\n'+
-      'Do NOT add headers, labels, or any other text. Just the 1-2 sentences then the bullets.\n\n'+
-      'Source material:\n'+long;
+    prompt='Write a SHORT description for "'+init.title+'". Be punchy and executive-ready. STRICT FORMAT:\n\n'+
+      '1 sentence only (max 20 words). No bold. No fluff.\n\n'+
+      '• Bullet 1 (what it does — 10 words max)\n'+
+      '• Bullet 2 (why it matters / problem solved — 10 words max)\n'+
+      '• Bullet 3 (key outcome — 10 words max)\n\n'+
+      'Rules: No headers. No bold. No sub-bullets. Exactly 3 bullets. Ultra concise.\n\n'+
+      'Source:\n'+long;
   } else if(type==='rank'){
     prompt='Rate "'+init.title+'" ('+init.description+'): Impact (1-10), Effort (1-10, 10=complex), MVP Speed (1-10).\nFormat:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason';
   }
