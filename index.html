@@ -977,11 +977,14 @@ function renderBudget(){
     '<div class="module">'+
       '<div class="mb-24"><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Budget Input</div><div style="font-size:13px;color:var(--muted)">Enter budget data directly or paste from Excel. Data auto-saves and syncs to all collaborators.</div></div>'+
       '<div class="grid-2 mb-24">'+
-        '<div style="border:2px dashed var(--border);border-radius:12px;padding:40px 24px;text-align:center;background:var(--surface2)">'+
+        '<div id="budget-drop-zone" ondragover="budgetDropOver(event)" ondragleave="budgetDropLeave(event)" ondrop="handleBudgetDrop(event)" onclick="document.getElementById(\'budget-file-input\').click()" '+
+          'style="border:2px dashed #1e2638;border-radius:12px;padding:40px 24px;text-align:center;background:var(--surface2);cursor:pointer;transition:all .2s">'+
+          '<input type="file" id="budget-file-input" accept=".pdf,.png,.jpg,.jpeg,image/*" style="display:none" onchange="handleBudgetFile(this)" />'+
           '<div style="font-size:32px;margin-bottom:12px">&#128196;</div>'+
           '<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">Drop your budget file here</div>'+
-          '<div style="font-size:12px;color:var(--muted)">PDF, Excel, CSV supported (coming soon)</div>'+
+          '<div style="font-size:12px;color:var(--muted)">PDF or screenshot — Claude will read it and fill the table</div>'+
         '</div>'+
+        '<div id="budget-extract-box" class="claude-box" style="display:none;margin-top:12px"></div>'+
         '<div class="card"><div class="card-body">'+
           '<div class="field"><label>Period</label><select class="input select" onchange="updateOvField(\'quarter\',this.value)"><option>Q2 2026 (Apr - Jun)</option><option>Q3 2026 (Jul - Sep)</option><option>Q4 2026 (Oct - Dec)</option></select></div>'+
           '<div class="grid-2"><div class="field"><label>Total Budget ($)</label><input class="input" placeholder="$0.00" /></div><div class="field"><label>vs. LY (%)</label><input class="input" placeholder="+0.0%" /></div></div>'+
@@ -1592,6 +1595,112 @@ function saveMetrics(){
   renderOverview();
 }
 function closeMetricsModal(){document.getElementById('metrics-modal').classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════════════
+// BUDGET FILE EXTRACTION
+// ═══════════════════════════════════════════════════════════════
+function budgetDropOver(e){
+  e.preventDefault();
+  var dz=document.getElementById('budget-drop-zone');
+  if(dz){dz.style.borderColor='#c9a84c';dz.style.background='rgba(201,168,76,0.05)';}
+}
+function budgetDropLeave(e){
+  var dz=document.getElementById('budget-drop-zone');
+  if(dz){dz.style.borderColor='#1e2638';dz.style.background='var(--surface2)';}
+}
+function handleBudgetDrop(e){
+  e.preventDefault();
+  budgetDropLeave(e);
+  var file=e.dataTransfer.files[0];
+  if(file)processBudgetFile(file);
+}
+function handleBudgetFile(input){
+  var file=input.files[0];
+  if(file)processBudgetFile(file);
+  input.value='';
+}
+function processBudgetFile(file){
+  var box=document.getElementById('budget-extract-box');
+  if(!box)return;
+  box.innerHTML='<div class="claude-label">&#9734; Reading budget file...</div>';
+  box.style.display='block';
+
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1];
+    var mediaType=file.type||'image/png';
+
+    // Build a prompt that asks Claude to extract all the metrics table values
+    var metricsList=[];
+    METRIC_CATS.forEach(function(cat){
+      cat.metrics.forEach(function(m){ metricsList.push(m); });
+    });
+    var promptLines=[
+      'This is a budget spreadsheet or financial document.',
+      'Extract ALL the numeric values and return ONLY valid JSON, no markdown.',
+      'The columns are: Apr Budget, May Budget, Jun Budget, Q3 total Budget, Apr LY, May LY, Jun LY, Q3 LY, Q3 Var $, Q3 Var %.',
+      'The metrics/rows are: '+metricsList.join(', ')+'.',
+      'Return format: {"rows":{"Metric Name":{"Apr Budget":"value","May Budget":"value",...},...}}',
+      'Use the exact metric names listed. Use empty string for any value not found.',
+      'For dollar values use format like $3,935,583 or ($1,670,521) for negatives.',
+      'For percentages use format like +9.7% or -20.6%.'
+    ];
+
+    var msgContent=[];
+    if(file.type.startsWith('image/')||file.type==='application/pdf'){
+      msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});
+    }
+    msgContent.push({type:'text',text:promptLines.join(' ')});
+
+    sb.auth.getSession().then(function(res){
+      var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+      return fetch(EDGE_FUNCTION_URL,{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':'Bearer '+token,
+          'apikey':SUPABASE_ANON_KEY
+        },
+        body:JSON.stringify({
+          messages:[{role:'user',content:msgContent}],
+          system:'You are a financial data extraction assistant. Extract numbers from documents and return only valid JSON.'
+        })
+      });
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      var block=d.content&&d.content.find(function(b){return b.type==='text';});
+      var text=block?block.text:'';
+      try{
+        var clean=text.replace(/```json|```/g,'').trim();
+        var jsonMatch=clean.match(/\{[\s\S]*\}/);
+        if(jsonMatch)clean=jsonMatch[0];
+        var parsed=JSON.parse(clean);
+        var rows=parsed.rows||parsed;
+        var filled=0;
+        if(!state.budget_data)state.budget_data={};
+        Object.keys(rows).forEach(function(metric){
+          if(!state.budget_data[metric])state.budget_data[metric]={};
+          var vals=rows[metric];
+          Object.keys(vals).forEach(function(col){
+            if(vals[col]&&vals[col]!==''){
+              state.budget_data[metric][col]=vals[col];
+              filled++;
+            }
+          });
+        });
+        scheduleSave();
+        renderBudget();
+        var b2=document.getElementById('budget-extract-box');
+        if(b2)b2.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells from your document!</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Scroll down to review the table. Click any cell to edit.</div>';
+      } catch(err){
+        box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div><div style="font-size:11px;white-space:pre-wrap;margin-top:6px">'+esc(text)+'</div>';
+      }
+    }).catch(function(){
+      box.innerHTML='<div class="claude-label">Error</div>Could not process file. Check edge function.';
+    });
+  };
+  reader.readAsDataURL(file);
+}
 
 // ═══════════════════════════════════════════════════════════════
 // BOOT
