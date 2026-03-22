@@ -1228,19 +1228,20 @@ function improveDesc(id){
     var blk=d.content&&d.content.find(function(b){return b.type==='text';});
     var text=blk?blk.text:'';
     if(box){
-      box.innerHTML='<div class="claude-label" style="display:flex;align-items:center;justify-content:space-between">'+
-        '<span>&#10227; IMPROVED — click to apply</span>'+
-        '<button onclick="acceptImprovement(''+id+'',this)" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:inherit">Apply</button>'+
-      '</div>'+
-      '<div style="font-size:13px;line-height:1.6;margin-top:8px;color:#d4c5ff" id="improved-text-'+id+'">'+esc(text)+'</div>'+
-      '<div style="font-size:10px;color:#374151;margin-top:8px">Or click anywhere on this box to apply</div>';
-      box.onclick=function(){acceptImprovement(id,null);};
+      var safeId=id;
+      box.setAttribute('data-improve-id',safeId);
+      box.innerHTML='<div class="claude-label" style="display:flex;align-items:center;justify-content:space-between">'+'<span>&#10227; IMPROVED - click to apply</span>'+'<button data-iid="'+safeId+'" onclick="acceptImprovementBtn(this)" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;cursor:pointer">Apply</button>'+'</div>'+'<div style="font-size:13px;line-height:1.6;margin-top:8px;color:#d4c5ff">'+esc(text)+'</div>'+'<div style="font-size:10px;color:#374151;margin-top:8px">Or click anywhere on this box to apply</div>';
+      box.onclick=function(){acceptImprovement(safeId,null);};
     }
     if(btn)btn.disabled=false;
   }).catch(function(){
     if(box)box.innerHTML='<div class="claude-label">Error</div>Could not reach Claude.';
     if(btn)btn.disabled=false;
   });
+}
+function acceptImprovementBtn(btn){
+  var id=btn.getAttribute('data-iid');
+  acceptImprovement(id,null);
 }
 function acceptImprovement(id,btn){
   var el=document.getElementById('improved-text-'+id);
