@@ -1561,40 +1561,12 @@ function openInitOverview(id){
   document.body.appendChild(overlay);
 }
 
-function panelEditField(type,id){
-  var viewEl=document.getElementById((type==='short'?'short':'full')+'-view-'+id);
-  var editEl=document.getElementById((type==='short'?'short':'full')+'-edit-'+id);
-  if(viewEl)viewEl.style.display='none';
-  if(editEl)editEl.style.display='block';
-  if(editEl){var ta=editEl.querySelector('textarea');if(ta)ta.focus();}
-}
-function panelSaveField(type,id){
-  var editEl=document.getElementById((type==='short'?'short':'full')+'-edit-'+id);
-  var viewEl=document.getElementById((type==='short'?'short':'full')+'-view-'+id);
-  var field=type==='short'?'shortDescription':'description';
-  if(editEl){
-    var ta=editEl.querySelector('textarea');
-    if(ta){
-      updateInit(id,field,ta.value);
-      if(viewEl){viewEl.innerHTML=esc(ta.value||'Click to add...')+'<span style="float:right;font-size:10px;color:#5a6480;margin-top:2px">&#9998; Edit</span>';viewEl.style.display='block';}
-      editEl.style.display='none';
-      toast('Saved!');
-    }
-  }
-}
-function panelCancelField(type,id){
-  var editEl=document.getElementById((type==='short'?'short':'full')+'-edit-'+id);
-  var viewEl=document.getElementById((type==='short'?'short':'full')+'-view-'+id);
-  if(editEl)editEl.style.display='none';
-  if(viewEl)viewEl.style.display='block';
-}
-
 function panelEditField(which, id){
   var view=document.getElementById(which+'-view-'+id);
   var edit=document.getElementById(which+'-edit-'+id);
   var btns=document.getElementById(which+'-btns-'+id);
   if(view)view.style.display='none';
-  if(edit){edit.style.display='block';edit.focus();edit.selectionStart=edit.value.length;}
+  if(edit){edit.style.display='block';var ta=edit.querySelector('textarea');if(ta){ta.focus();ta.selectionStart=ta.value.length;}}
   if(btns)btns.style.display='flex';
 }
 function panelSaveField(which, id){
