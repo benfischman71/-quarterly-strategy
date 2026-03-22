@@ -1291,6 +1291,24 @@ function gridCycleScore(ri,di){
   scheduleSave();
   setTimeout(openGridModal, 30);
 }
+
+function gridDelDriver(di){
+  var g=state.grid;
+  if(!g||!g.drivers)return;
+  if(!confirm('Remove driver "'+g.drivers[di]+'" and all its scores?'))return;
+  g.drivers.splice(di,1);
+  g.rows.forEach(function(r){r.scores.splice(di,1);});
+  scheduleSave();
+  openGridModal();
+}
+function gridClearAllScores(){
+  if(!confirm('Clear all scores? This cannot be undone.'))return;
+  var g=state.grid;
+  if(!g||!g.rows)return;
+  g.rows.forEach(function(r){r.scores=r.scores.map(function(){return 0;});});
+  scheduleSave();
+  openGridModal();
+}
 function gridUpdateDriver(input){
   var di=+input.getAttribute('data-di');
   state.grid.drivers[di]=input.value;
@@ -2775,6 +2793,24 @@ function gridUpdateName(input) {
   var ri = +input.getAttribute('data-ri');
   getGrid().rows[ri].name = input.value;
   scheduleSave();
+}
+
+function gridDelDriver(di){
+  var g=state.grid;
+  if(!g||!g.drivers)return;
+  if(!confirm('Remove driver "'+g.drivers[di]+'" and all its scores?'))return;
+  g.drivers.splice(di,1);
+  g.rows.forEach(function(r){r.scores.splice(di,1);});
+  scheduleSave();
+  openGridModal();
+}
+function gridClearAllScores(){
+  if(!confirm('Clear all scores? This cannot be undone.'))return;
+  var g=state.grid;
+  if(!g||!g.rows)return;
+  g.rows.forEach(function(r){r.scores=r.scores.map(function(){return 0;});});
+  scheduleSave();
+  openGridModal();
 }
 function gridUpdateDriver(input) {
   var di = +input.getAttribute('data-di');
