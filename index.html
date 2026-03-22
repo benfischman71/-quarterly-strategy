@@ -1347,21 +1347,21 @@ function openInitPanel(id){
       '</div></div>'+
     '<div class="field">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-        '<label class="field-label">Description</label>'+
-        '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="desc" onclick="panelDraftClaude(this)">&#9734; Draft</button></div>'+
-      '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)">'+esc(init.description)+'</textarea>'+
+        '<label class="field-label">Description — What it is, Why it matters, When it launches</label>'+
+        '<div style="display:flex;gap:6px">'+
+          '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="desc" onclick="panelDraftClaude(this)">&#9734; Draft</button>'+
+          '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="clean" onclick="panelDraftClaude(this)" style="background:#1a1040">&#9998; Clean</button>'+
+          '<label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:10px" title="Upload file, image or PDF">&#128206; <input type="file" data-iid="'+id+'" accept="image/*,.pdf,.doc,.docx,.txt" style="display:none" onchange="panelFileUpload(this)"/></label>'+
+        '</div>'+
+      '</div>'+
+      '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:160px;line-height:1.7" placeholder="Describe this initiative. Include:
+- What: what exactly are we building/changing?
+- Why: what problem does it solve or opportunity does it unlock?
+- When: key milestones or launch timing">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
       '<div id="claude-desc-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)">'+
         '<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+
       '</div>'+
-    '</div>'+
-    '<div class="field">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-        '<label class="field-label">What / Why / When</label>'+
-        '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="www" onclick="panelDraftClaude(this)">&#9734; Draft</button></div>'+
-      '<textarea class="input textarea" data-iid="'+id+'" data-field="whatWhyWhen" oninput="panelUpdateInit(this)">'+esc(init.whatWhyWhen)+'</textarea>'+
-      '<div id="claude-www-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="whatWhyWhen" onclick="panelApplyClaude(this)">'+
-        '<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+
-      '</div>'+
+      '<div id="panel-file-box-'+id+'" class="claude-box" style="display:none;margin-top:8px"></div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
       '<div class="field" style="margin:0"><label class="field-label">Launch Date</label>'+
@@ -1421,9 +1421,18 @@ function panelDraftClaude(el){
   if(!init)return;
   var boxId='claude-'+type+'-'+id;
   var prompt='';
-  if(type==='desc')prompt='Write a 2-sentence executive description for an initiative called "'+init.title+'". Be concise and outcome-focused.';
-  else if(type==='www')prompt='For "'+init.title+'": Write a brief What/Why/When breakdown. Three short bullets starting with What:, Why:, When:.';
-  else if(type==='rank')prompt='Rate "'+init.title+'" ('+init.description+'): Impact (1-10), Effort (1-10, 10=complex), MVP Speed (1-10).\nFormat:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason';
+  if(type==='desc'){
+    prompt='Write a clear initiative description for "'+init.title+'". Structure it with:\n'+
+      '**What:** (1-2 sentences on exactly what we are building or changing)\n'+
+      '**Why:** (1-2 sentences on the business problem or opportunity)\n'+
+      '**When:** (1 sentence on timing or key milestones)\n\n'+
+      'Keep it under 120 words. Be specific and outcome-focused.';
+  } else if(type==='clean'){
+    var existing=init.description||'';
+    prompt='Clean up and improve this initiative description, keeping the same meaning but making it clearer, more structured, and executive-ready. Add What/Why/When headers if missing. Keep under 150 words.\n\nCurrent description:\n'+existing;
+  } else if(type==='rank'){
+    prompt='Rate "'+init.title+'" ('+init.description+'): Impact (1-10), Effort (1-10, 10=complex), MVP Speed (1-10).\nFormat:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason';
+  }
   askClaude(prompt,el.id||'btn-draft',boxId,function(text){
     var box=document.getElementById(boxId);
     if(box){box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+esc(text).replace(/\n/g,'<br>');box.style.display='block';}
@@ -1432,6 +1441,56 @@ function panelDraftClaude(el){
   var box=document.getElementById(boxId);
   if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';}
 }
+function panelFileUpload(input){
+  var id=input.getAttribute('data-iid');
+  var file=input.files[0];
+  if(!file)return;
+  var boxId='panel-file-box-'+id;
+  var box=document.getElementById(boxId);
+  if(box){box.style.display='block';box.innerHTML='<div class="claude-label">&#9734; Reading file...</div>';}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1];
+    var mediaType=file.type||'image/png';
+    var isImage=file.type.startsWith('image/')||file.type==='application/pdf';
+    var init=state.initiatives.find(function(i){return i.id===id;});
+    var prompt='Extract and summarize the key information from this document relevant to the initiative "'+
+      (init?init.title:'this initiative')+'". '+
+      'Return a concise description structured as What/Why/When (under 150 words).';
+    var msgContent=[];
+    if(isImage){msgContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:base64}});}
+    msgContent.push({type:'text',text:prompt});
+    sb.auth.getSession().then(function(res){
+      var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+      return fetch(EDGE_FUNCTION_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
+        body:JSON.stringify({messages:[{role:'user',content:msgContent}],
+          system:'You are a business analyst. Extract key initiative details from documents.'})
+      });
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      var blk=d.content&&d.content.find(function(b){return b.type==='text';});
+      var text=blk?blk.text:'';
+      if(box){
+        box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:6px">&#9734; Extracted from file — click to apply to description</div>'+
+          '<div style="font-size:12px;line-height:1.6;color:#d4c5ff">'+esc(text)+'</div>';
+        box.onclick=function(){
+          updateInit(id,'description',text);
+          var ta=document.querySelector('[data-iid="'+id+'"][data-field="description"]');
+          if(ta)ta.value=text;
+          box.style.display='none';
+          toast('Applied to description!');
+        };
+      }
+    }).catch(function(){
+      if(box)box.innerHTML='<div class="claude-label">Error reading file</div>';
+    });
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+
 function panelApplyClaude(el){
   var id=el.getAttribute('data-iid');
   var field=el.getAttribute('data-field');
@@ -2016,6 +2075,11 @@ function applyBudgetJsonText(txt){
     var end = cl.lastIndexOf('}');
     if(start < 0 || end < 0) return false;
     cl = cl.slice(start, end+1);
+    // Fix common JSON issues from Claude output:
+    // 1. Replace em-dashes with regular minus
+    cl = cl.replace(/–/g,'-').replace(/—/g,'-');
+    // 2. Replace smart quotes with straight quotes
+    cl = cl.replace(/[‘’]/g,"'").replace(/[“”]/g,'"');
     var prs = JSON.parse(cl);
     var rws = prs.rows || prs;
     if(typeof rws !== 'object' || Array.isArray(rws)) return false;
@@ -2089,7 +2153,7 @@ function applyBudgetJson(btn){
     });
     scheduleSave();
     renderBudget();
-    toast(filled+' cells filled in the table!');
+    toast('✓ '+filled+' cells filled — scroll down to see the table');
     var bx=document.getElementById('budget-extract-box');
     if(bx)bx.innerHTML='<div class="claude-label">&#10003; Applied '+filled+' cells to the table!</div>';
   }catch(e){
@@ -2112,7 +2176,11 @@ function openBudgetPasteModal(){
   title.textContent='Paste Claude JSON Response';
   var instructions=document.createElement('p');
   instructions.style.cssText='font-size:12px;color:#5a6480;margin-bottom:14px';
-  instructions.textContent='Copy the JSON from the Claude Response box on the right and paste it here, then click Apply.';
+  instructions.innerHTML='<strong style="color:#e8e4d9">How to use:</strong> '+
+    '1. Drop your PDF onto the drop zone — Claude extracts the data as JSON. '+
+    '2. Select all the text in the Claude Response box (Cmd+A) and copy it. '+
+    '3. Paste it here and click Apply to Table. '+
+    '<br><br><em>Or paste any JSON with metric names as keys and month values as nested objects.</em>';
   var textarea=document.createElement('textarea');
   textarea.id='budget-paste-ta';
   textarea.style.cssText='width:100%;height:260px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#e8e4d9;font-size:12px;font-family:monospace;padding:12px;outline:none;resize:vertical;box-sizing:border-box';
