@@ -1352,55 +1352,28 @@ function openInitPanel(id){
         '<span data-iid="'+id+'" data-status="hold" onclick="panelSetStatus(this)" style="flex:1;padding:6px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;background:'+(init.status==='hold'?'#c9a84c':'transparent')+';color:'+(init.status==='hold'?'#0a0e1a':'#7a8499')+'">On Hold</span>'+
       '</div></div>'+
     '<div class="field">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-        '<label class="field-label" style="font-size:11px">SHORT DESCRIPTION <span style="color:#374151;font-weight:400">(2 sentences)</span></label>'+
-        '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_long" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Generate from Long</button>'+
-      '</div>'+
-      '<div id="short-view-'+id+'" style="min-height:50px;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;font-size:13px;color:#c8d4e8;line-height:1.6;margin-bottom:0;cursor:pointer" onclick="panelEditField(\'short\',\''+id+'\')" title="Click to edit">'+
-        (init.shortDescription?esc(init.shortDescription):'<span style="color:#374151">Click to add a short description...</span>')+
-      '</div>'+
-      '<textarea id="short-edit-'+id+'" class="input textarea" data-iid="'+id+'" data-field="shortDescription" oninput="panelUpdateInit(this)" style="min-height:60px;line-height:1.6;font-size:13px;display:none" placeholder="2-sentence executive summary...">'+esc(init.shortDescription||'')+'</textarea>'+
-      '<div id="short-btns-'+id+'" style="display:none;margin-top:6px;display:none;gap:6px">'+
-        '<button onclick="panelSaveField(\'short\',\''+id+'\');renderInitiatives()" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Save</button>'+
-        '<button onclick="panelCancelField(\'short\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button>'+
-      '</div>'+
-      '<div id="short-edit-'+id+'" style="'+(init.shortDescription?'display:none':'')+'">'+ 
-      '<textarea class="input textarea" data-iid="'+id+'" data-field="shortDescription" oninput="panelUpdateInit(this)" style="min-height:60px;line-height:1.6;font-size:13px" placeholder="2-sentence executive summary...">'+esc(init.shortDescription||'')+'</textarea>'+
-      '<div style="display:flex;gap:6px;margin-top:6px">'+
-        '<button onclick="panelSaveField(\'short\',\''+id+'\')" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit">Save</button>'+
-        '<button onclick="panelCancelField(\'short\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Cancel</button>'+
-      '</div>'+
+      '<label class="field-label" style="font-size:11px">SHORT DESCRIPTION <span style="color:#374151;font-weight:400">(2 sentences)</span></label>'+
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:6px">'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_long" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Generate from Long</button>'+'</div>'+
+      '<div id="short-view-'+id+'" onclick="panelEditField(\'short\',\''+id+'\')" style="min-height:44px;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;cursor:pointer;font-size:13px;color:#c8d4e8;line-height:1.6;'+(init.shortDescription?'':'display:none')+'">'+
+        (init.shortDescription?esc(init.shortDescription)+'<span style="float:right;font-size:10px;color:#5a6480">&#9998;</span>':'')+'</div>'+
+      '<div id="short-edit-'+id+'" style="'+(init.shortDescription?'display:none':'')+'">'+
+        '<textarea class="input textarea" data-iid="'+id+'" data-field="shortDescription" oninput="panelUpdateInit(this)" style="min-height:60px;font-size:13px" placeholder="2-sentence executive summary...">'+esc(init.shortDescription||'')+'</textarea>'+
+        '<div style="display:flex;gap:6px;margin-top:6px">'+'<button onclick="panelSaveField(\'short\',\''+id+'\')" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit">Save</button>'+'<button onclick="panelCancelField(\'short\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Cancel</button>'+'</div>'+
       '</div>'+
       '<div id="claude-short_from_long-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
     '</div>'+
     '<div class="field">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-      '<div id="long-view-'+id+'" style="min-height:80px;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;font-size:13px;color:#c8d4e8;line-height:1.7;white-space:pre-wrap;cursor:pointer" onclick="panelEditField(\'long\',\''+id+'\')" title="Click to edit">'+
-        (init.description?esc(init.description):'<span style="color:#374151">Click to add a full description...</span>')+
-      '</div>'+
-      '<textarea id="long-edit-'+id+'" class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:130px;line-height:1.7;display:none" placeholder="Full description: What, Why, When...">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
-      '<div id="long-btns-'+id+'" style="display:none;margin-top:6px;gap:6px">'+
-        '<button onclick="panelSaveField(\'long\',\''+id+'\');renderInitiatives()" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Save</button>'+
-        '<button onclick="panelCancelField(\'long\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">Cancel</button>'+
-      '</div>'+
-        '<div style="display:flex;gap:5px">'+
-          '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="desc" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Draft</button>'+
-          '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="clean" onclick="panelDraftClaude(this)" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+
-          '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_full" onclick="panelDraftClaude(this)" style="font-size:10px;background:#0d2010">&#8651; Short</button>'+
-        '</div>'+
-      '</div>'+
-      '<div id="full-view-'+id+'" style="'+(init.description?'':'display:none')+';background:#0d1220;border:1px solid #1e2638;border-radius:8px;padding:10px 14px;font-size:13px;color:#c8d4e8;line-height:1.7;cursor:pointer;white-space:pre-wrap;min-height:60px" onclick="panelEditField(\'full\',\''+id+'\')" title="Click to edit">'+esc(init.description||'Click to add...')+'<span style="float:right;font-size:10px;color:#5a6480;margin-top:2px">&#9998; Edit</span></div>'+
-      '<div id="full-edit-'+id+'" style="'+(init.description?'display:none':'')+'">'+ 
-      '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:130px;line-height:1.7" placeholder="Full description: What, Why, When...">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
-      '<div style="display:flex;gap:6px;margin-top:6px">'+
-        '<button onclick="panelSaveField(\'full\',\''+id+'\')" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit">Save</button>'+
-        '<button onclick="panelCancelField(\'full\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Cancel</button>'+
-      '</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+'<label class="field-label" style="font-size:11px">FULL DESCRIPTION <span style="color:#374151;font-weight:400">(What / Why / When)</span></label>'+'<div style="display:flex;gap:5px">'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="desc" onclick="panelDraftClaude(this)" style="font-size:10px">&#9734; Draft</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="clean" onclick="panelDraftClaude(this)" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+'<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="short_from_full" onclick="panelDraftClaude(this)" style="font-size:10px;background:#0d2010">&#8651; Short</button>'+'</div>'+'</div>'+
+      '<div id="full-view-'+id+'" onclick="panelEditField(\'full\',\''+id+'\')" style="min-height:60px;padding:10px 14px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;cursor:pointer;font-size:13px;color:#c8d4e8;line-height:1.7;white-space:pre-wrap;'+(init.description?'':'display:none')+'">'+
+        (init.description?esc(init.description)+'<span style="float:right;font-size:10px;color:#5a6480">&#9998;</span>':'')+'</div>'+
+      '<div id="full-edit-'+id+'" style="'+(init.description?'display:none':'')+'">'+
+        '<textarea class="input textarea" data-iid="'+id+'" data-field="description" oninput="panelUpdateInit(this)" style="min-height:130px;line-height:1.7" placeholder="Full description: What, Why, When...">'+esc(init.description||init.whatWhyWhen||'')+'</textarea>'+
+        '<div style="display:flex;gap:6px;margin-top:6px">'+'<button onclick="panelSaveField(\'full\',\''+id+'\')" style="background:#c9a84c;border:none;color:#0a0e1a;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit">Save</button>'+'<button onclick="panelCancelField(\'full\',\''+id+'\')" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">Cancel</button>'+'</div>'+
       '</div>'+
       '<div id="claude-desc-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
       '<div id="claude-clean-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="description" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div></div>'+
       '<div id="claude-short_from_full-'+id+'" class="claude-box" style="display:none;cursor:pointer" data-iid="'+id+'" data-field="shortDescription" onclick="panelApplyClaude(this)"><div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply to Short</div></div>'+
-      '<div id="desc-drop-'+id+'" onclick="document.getElementById(\'file-upload-'+id+'\').click()" ondragover="event.preventDefault()" ondrop="panelFileDrop(event,this)" style="margin-top:8px;border:1px dashed #1e2638;border-radius:8px;padding:10px 14px;font-size:11px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:8px"><span style="font-size:16px">&#128206;</span><span>Drop file or PDF — Claude extracts details</span><input type="file" id="file-upload-'+id+'" data-iid="'+id+'" accept="image/*,.pdf,.txt" style="display:none" onchange="panelFileUpload(this)"/></div>'+
+      '<div id="desc-drop-'+id+'" onclick="document.getElementById(\'file-upload-'+id+'\').click()" ondragover="event.preventDefault()" ondrop="panelFileDrop(event,this)" style="margin-top:8px;border:1px dashed #1e2638;border-radius:8px;padding:10px 14px;font-size:11px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:8px"><span>&#128206;</span><span>Drop file or PDF</span><input type="file" id="file-upload-'+id+'" data-iid="'+id+'" accept="image/*,.pdf,.txt" style="display:none" onchange="panelFileUpload(this)"/></div>'+
       '<div id="panel-file-box-'+id+'" class="claude-box" style="display:none;margin-top:8px"></div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
