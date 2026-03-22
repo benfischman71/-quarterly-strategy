@@ -2029,6 +2029,39 @@ function renderMapping(){
     '</div>';
 }
 
+
+function mapEditDriver(btn){
+  var di=btn.getAttribute('data-di');
+  document.getElementById('drv-view-'+di).style.display='none';
+  document.getElementById('drv-edit-'+di).style.display='block';
+}
+function mapCancelDriver(btn){
+  var di=btn.getAttribute('data-di');
+  document.getElementById('drv-view-'+di).style.display='block';
+  document.getElementById('drv-edit-'+di).style.display='none';
+}
+function mapSaveDriver(btn){
+  var di=+btn.getAttribute('data-di');
+  var d=state.overview.drivers[di];
+  if(!d)return;
+  var editDiv=document.getElementById('drv-edit-'+di);
+  var inputs=editDiv.querySelectorAll('input');
+  inputs.forEach(function(inp){d[inp.getAttribute('data-field')]=inp.value;});
+  scheduleSave();
+  renderMapping();
+}
+function mapDriverField(input){
+  var di=+input.getAttribute('data-di');
+  var field=input.getAttribute('data-field');
+  if(state.overview&&state.overview.drivers[di])state.overview.drivers[di][field]=input.value;
+  scheduleSave();
+}
+function mapDriverUrgency(sel){
+  var di=+sel.getAttribute('data-di');
+  if(state.overview&&state.overview.drivers[di])state.overview.drivers[di].urgency=sel.value;
+  scheduleSave();
+  renderMapping();
+}
 function toggleMappingBtn(btn){
   var driver=btn.getAttribute('data-driver');
   var id=btn.getAttribute('data-iid');
