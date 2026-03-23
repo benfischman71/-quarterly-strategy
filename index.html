@@ -763,11 +763,11 @@ function renderWsList(){
       wss.owned.forEach(function(ws){
         var isActive=currentWs&&currentWs.id===ws.id;
         var upd=ws.updated_at?(' · '+new Date(ws.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})):'';
-        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+
-          '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div>'+
-          '<div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+
-          (isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#5a6480">Owner</span>')+
-        '</div>';
+        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div><div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+(isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#5a6480">Owner</span>')+'</div>';
+
+
+
+
       });
     }
     if(wss.shared.length>0){
@@ -775,11 +775,11 @@ function renderWsList(){
       wss.shared.forEach(function(ws){
         var isActive=currentWs&&currentWs.id===ws.id;
         var upd=ws.updated_at?(' · '+new Date(ws.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})):'';
-        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+
-          '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div>'+
-          '<div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+
-          (isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#a78bfa;background:#1a1040;border:1px solid #a78bfa33;padding:2px 8px;border-radius:10px">Shared</span>')+
-        '</div>';
+        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div><div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+(isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#a78bfa;background:#1a1040;border:1px solid #a78bfa33;padding:2px 8px;border-radius:10px">Shared</span>')+'</div>';
+
+
+
+
       });
     }
     if(!html)html='<div style="text-align:center;padding:24px;color:#5a6480">No workspaces yet.</div>';
