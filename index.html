@@ -1369,22 +1369,24 @@ function openGridModal(){
   headRow.appendChild(thInit);
   g.drivers.forEach(function(d,di){
     var th=document.createElement('th');
-    th.style.cssText='padding:6px 8px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:140px;max-width:160px;position:relative;vertical-align:top';
+    th.style.cssText='padding:8px 8px 6px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:120px;max-width:160px;position:relative;vertical-align:middle';
     var wrap=document.createElement('div');
-    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px';
-    var inp=document.createElement('input');
-    inp.value=d;
-    inp.dataset.di=di;
-    inp.style.cssText='background:transparent;border:none;color:#c9a84c;font-size:10px;font-weight:700;width:120px;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase;white-space:normal;word-break:break-word;line-height:1.4';
-    inp.oninput=function(){gridUpdateDriver(this);};
+    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:5px';
+    var lbl=document.createElement('div');
+    lbl.contentEditable=true;
+    lbl.textContent=d;
+    lbl.dataset.di=di;
+    lbl.style.cssText='color:#c9a84c;font-size:10px;font-weight:700;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase;white-space:normal;word-break:break-word;line-height:1.5;min-width:80px;width:100%;cursor:text;padding:2px 4px;border-radius:3px;min-height:18px';
+    lbl.addEventListener('blur',function(){gridUpdateDriverCE(this);});
+    lbl.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();this.blur();}});
     var delBtn=document.createElement('button');
     delBtn.textContent='✕ Remove';
     delBtn.dataset.di=di;
-    delBtn.style.cssText='background:transparent;border:none;color:#374151;font-size:9px;cursor:pointer;font-family:inherit;padding:1px 4px;border-radius:3px';
+    delBtn.style.cssText='background:transparent;border:none;color:#374151;font-size:9px;cursor:pointer;font-family:inherit;padding:1px 4px;border-radius:3px;flex-shrink:0';
     delBtn.onmouseover=function(){this.style.color='#f87171';};
     delBtn.onmouseout=function(){this.style.color='#374151';};
     delBtn.onclick=function(){gridDelDriver(+this.dataset.di);};
-    wrap.appendChild(inp);
+    wrap.appendChild(lbl);
     wrap.appendChild(delBtn);
     th.appendChild(wrap);
     headRow.appendChild(th);
@@ -1477,6 +1479,7 @@ function gridClearAllScores(){
   scheduleSave();
   openGridModal();
 }
+function gridUpdateDriverCE(el){var di=+el.dataset.di;var g=getGrid();if(g.drivers[di]!==undefined){g.drivers[di]=el.textContent.trim();scheduleSave();}}
 function gridUpdateDriver(input){
   var di=+input.getAttribute('data-di');
   state.grid.drivers[di]=input.value;
