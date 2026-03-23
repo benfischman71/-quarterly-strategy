@@ -1549,12 +1549,17 @@ function renderInitiatives(){
     '<div class="module">'+
       '<div class="flex justify-between items-center mb-24">'+
         '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Initiatives</div><div style="font-size:13px;color:var(--muted)">Create and rank initiatives. All changes sync in real time.</div></div>'+
-        '<div style="display:flex;gap:10px">'+'<button class="btn btn-ghost" onclick="openGridModal()" style="font-size:13px">&#9783; Grid View</button>'+'<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+'</div>'+
+        '<div style="display:flex;gap:10px">'+'<button class="btn btn-ghost" onclick="clearAllRanks()" style="font-size:13px;color:#f87171;border-color:#f8717133">&#10005; Clear Ranks</button>'+'<button class="btn btn-ghost" onclick="openGridModal()" style="font-size:13px">&#9783; Grid View</button>'+'<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+'</div>'+
       '</div>'+
       '<div class="section-label">Active Initiatives</div>'+
       '<div class="grid-3">'+activeHtml+'</div>'+
       (hold.length?'<div class="section-label mt-24">On Hold</div><div class="grid-3">'+holdHtml+'</div>':'')+
     '</div>';
+}
+function clearAllRanks(){
+  if(!confirm('Reset all Impact, Effort, and MVP scores to 5? This cannot be undone.'))return;
+  state.initiatives.forEach(function(i){i.impactScore=5;i.effortScore=5;i.mvpScore=5;});
+  scheduleSave();renderInitiatives();toast('All ranks cleared.');
 }
 function createInitiative(){
   var n={id:uid(),title:'New Initiative',status:'active',description:'',whatWhyWhen:'',impactScore:5,effortScore:5,mvpScore:5,expectedImpact:'',monthlyRunRate:'',launchDate:'',rampWeeks:0,launchStatus:'planning'};
