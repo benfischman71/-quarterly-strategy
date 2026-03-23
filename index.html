@@ -2340,6 +2340,24 @@ function ovAddBullet(btn){
   state.overview.drivers[di].bullets.push('');
   scheduleSave();renderOverview();
 }
+function ovClaudeAnalysis(){
+  var btn=document.getElementById('btn-ov-claude');
+  var box=document.getElementById('ov-claude-box');
+  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px;font-weight:600">&#9734; Analyzing risks...</div>';box.style.display='block';}
+  if(btn)btn.disabled=true;
+  var ov=state.overview;
+  var stats=(ov.stats||[]).map(function(s){return s.label+': '+s.val+(s.delta?' ('+s.delta+' YoY)':'')+(s.qoq?' ('+s.qoq+' QoQ)':'');}).join(', ');
+  var drivers=(ov.drivers||[]).map(function(d){return d.urgency.toUpperCase()+' - '+d.label+': target '+d.target;}).join('; ');
+  var mustDos=(ov.must_dos||[]).join('; ');
+  var prompt='You are a strategy advisor reviewing a quarterly business overview for '+ov.quarter+'. Key metrics: '+stats+'. Strategic drivers: '+drivers+'. Must-dos: '+(mustDos||'none listed')+'. Write a concise risk analysis with three sections: **Top Risks** (3 bullets max, specific to the data shown), **Watch Closely** (1-2 items that could tip either way), **Recommended Actions** (2-3 concrete moves to mitigate the biggest risks). Be specific to the numbers. No generic advice.';
+  askClaude(prompt,'btn-ov-claude','ov-claude-box',function(text){
+    if(btn)btn.disabled=false;
+    if(box){
+      var html=esc(text).replace(/\*\*([^*]+)\*\*/g,'<strong style="color:#e8e4d9">$1</strong>').replace(/\n/g,'<br>');
+      box.innerHTML=html;
+    }
+  });
+}
 function loadDriverTemplate(){
   if(!confirm('Load the Q2 2026 template? This will replace any existing drivers.'))return;
   state.overview.drivers=JSON.parse(JSON.stringify(OV_DRIVERS_DEFAULT));
@@ -3004,15 +3022,11 @@ function handleSession(session){
       });
     }
     if(urlWsId){
-      sb.from('workspaces').select('id,data').eq('id',urlWsId).single().then(function(r){
-        if(!r.data){doWorkspaceLoad();return;}
-        var pending=(r.data.data&&r.data.data.pending_invites)||[];
-        if(pending.indexOf(userEmail)>=0){
-          sb.from('profiles').select('id').eq('email',userEmail).single().then(function(pr){
-            if(pr.data){sb.from('workspace_members').upsert({workspace_id:urlWsId,user_id:pr.data.id,role:'editor'}).then(doWorkspaceLoad);}
-            else{doWorkspaceLoad();}
-          });
-        } else {doWorkspaceLoad();}
+      sb.from('workspace_members').upsert([{workspace_id:urlWsId,user_id:session.user.id,role:'editor'}]).then(function(r){
+        if(r.error){
+          toast('Opening workspace...','info');
+        }
+        doWorkspaceLoad();
       });
     } else {doWorkspaceLoad();}
   } else {
