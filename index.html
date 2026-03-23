@@ -843,15 +843,82 @@ function openWorkspace(wsId){
 }
 function shareWorkspace(){
   if(!currentWs){toast('No workspace open','error');return;}
-  var email=prompt('Enter the email of the person to share with:');
-  if(!email)return;
-  sb.from('profiles').select('id').eq('email',email).single().then(function(r){
-    if(r.error||!r.data){toast('User not found: '+email,'error');return;}
-    sb.from('workspace_members').insert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(r2){
-      if(r2.error)toast('Error: '+r2.error.message,'error');
-      else toast('Shared with '+email);
+
+  // Build a nice modal instead of browser prompt
+  var old=document.getElementById('share-modal');
+  if(old)old.remove();
+  var overlay=document.createElement('div');
+  overlay.id='share-modal';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.8);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+  var box=document.createElement('div');
+  box.style.cssText='background:#111827;border:1px solid #1e2638;border-radius:14px;padding:28px;width:460px;max-width:95vw';
+  box.innerHTML=
+    '<div style="font-family:Georgia,serif;font-size:18px;color:#e8e4d9;margin-bottom:6px">Share Workspace</div>'+
+    '<div style="font-size:12px;color:#5a6480;margin-bottom:20px">Invite a collaborator to "'+esc(currentWs.name)+'"</div>'+
+    '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Email Address</label>'+
+    '<input id="share-email-input" type="email" placeholder="colleague@company.com" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;margin-bottom:8px">'+
+    '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px;margin-top:12px">Personal Message (optional)</label>'+
+    '<textarea id="share-message-input" placeholder="Hey, I'd love your input on our Q2 strategy..." style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;min-height:72px;resize:none;margin-bottom:20px;line-height:1.5"></textarea>'+
+    '<div style="display:flex;gap:10px">'+
+      '<button id="share-send-btn" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">Share & Send Email</button>'+
+      '<button onclick="document.getElementById('share-modal').remove()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
+    '</div>'+
+    '<div id="share-status" style="margin-top:12px;font-size:12px;color:#5a6480"></div>';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.getElementById('share-email-input').focus();
+
+  document.getElementById('share-send-btn').onclick=function(){
+    var email=document.getElementById('share-email-input').value.trim();
+    var message=document.getElementById('share-message-input').value.trim();
+    var statusEl=document.getElementById('share-status');
+    if(!email){statusEl.textContent='Please enter an email address.';statusEl.style.color='#f87171';return;}
+    statusEl.textContent='Adding collaborator...';statusEl.style.color='#5a6480';
+    document.getElementById('share-send-btn').disabled=true;
+
+    sb.from('profiles').select('id').eq('email',email).single().then(function(r){
+      if(r.error||!r.data){
+        // User not in system yet - still send email invite
+        sendShareEmail(email, message, false);
+        statusEl.textContent='User not yet registered — invite email opened in your mail app.';
+        statusEl.style.color='#c9a84c';
+        setTimeout(function(){var m=document.getElementById('share-modal');if(m)m.remove();},2500);
+        return;
+      }
+      sb.from('workspace_members').upsert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(r2){
+        if(r2.error){
+          statusEl.textContent='Error: '+r2.error.message;
+          statusEl.style.color='#f87171';
+          document.getElementById('share-send-btn').disabled=false;
+        } else {
+          sendShareEmail(email, message, true);
+          statusEl.textContent='✓ Access granted — invite email opened in your mail app.';
+          statusEl.style.color='#4ade80';
+          setTimeout(function(){var m=document.getElementById('share-modal');if(m)m.remove();},2500);
+        }
+      });
     });
-  });
+  };
+
+  // Allow Enter to submit
+  document.getElementById('share-email-input').onkeydown=function(e){
+    if(e.key==='Enter')document.getElementById('share-send-btn').click();
+  };
+}
+
+function sendShareEmail(toEmail, personalMessage, hasAccess){
+  var wsName=currentWs?currentWs.name:'Quarterly Strategy';
+  var appUrl='https://benfischman71.github.io/-quarterly-strategy/';
+  var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
+  var subject=encodeURIComponent(senderName+' shared a strategy workspace with you: '+wsName);
+  var body='Hi,\n\n'+senderName+' has '+(hasAccess?'given you access to':'invited you to join')+' the "'+wsName+'" workspace on the Quarterly Strategy Platform.\n\n';
+  if(personalMessage)body+=personalMessage+'\n\n';
+  body+=(hasAccess?'You can access it here:':'Sign up and you\'ll be added here:')+' '+appUrl+'\n\n';
+  body+='— Sent via Quarterly Strategy Platform';
+  var mailtoLink='mailto:'+encodeURIComponent(toEmail)+'?subject='+subject+'&body='+encodeURIComponent(body);
+  window.location.href=mailtoLink;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1154,7 +1221,7 @@ function openGridModal(){
   clearBtn.className='btn btn-ghost btn-sm';
   clearBtn.textContent='✕ Clear Scores';
   clearBtn.onclick=gridClearAllScores;
-  headerRight.appendChild(clearBtn);
+  hdrRight.appendChild(clearBtn);
   var claudeBtn=document.createElement('button');
   claudeBtn.className='btn btn-claude btn-sm';
   claudeBtn.id='btn-grid-claude';
@@ -2136,82 +2203,54 @@ function unmapInit(btn){
 function renderOutput(){
   var inits=state.initiatives;
   var active=inits.filter(function(i){return i.status==='active';});
-  var onHold=inits.filter(function(i){return i.status!=='active';});
   var sorted=inits.slice().sort(function(a,b){return(b.impactScore*2-b.effortScore+b.mvpScore)-(a.impactScore*2-a.effortScore+a.mvpScore);});
-  var highPri=sorted.filter(function(i){return getPriority(i.impactScore,i.effortScore,i.mvpScore)==='HIGH';});
   var totalImpact=active.reduce(function(s,i){return s+parseMoney(i.expectedImpact);},0);
-  var totalMRR=active.reduce(function(s,i){return s+parseMoney(i.monthlyRunRate);},0);
-  var allDrivers=state.grid&&state.grid.drivers&&state.grid.drivers.length?state.grid.drivers:BUDGET_DRIVERS;
-  var driversCov=allDrivers.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
-  var avgImpact=active.length?Math.round(active.reduce(function(s,i){return s+(i.impactScore||0);},0)/active.length*10)/10:0;
-  var statCards=[
-    {val:active.length,sub:'Active Initiatives',color:'#c9a84c',icon:'◆'},
-    {val:'$'+(totalImpact>=1000000?(totalImpact/1000000).toFixed(1)+'M':totalImpact>=1000?Math.round(totalImpact/1000)+'K':totalImpact||'--'),sub:'Total Expected Impact',color:'#4ade80',icon:'▲'},
-    {val:highPri.length+' HIGH',sub:'High-Priority Initiatives',color:'#fbbf24',icon:'★'},
-    {val:driversCov+' / '+allDrivers.length,sub:'Strategic Drivers Covered',color:'#a78bfa',icon:'◉'}
+  var driversCov=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
+  var sumStats=[
+    ['Active',active.length,'var(--gold)'],
+    ['On Hold',inits.length-active.length,'var(--muted)'],
+    ['Total Impact','$'+(totalImpact/1000000).toFixed(1)+'M','var(--green)'],
+    ['Drivers Covered',driversCov+'/'+BUDGET_DRIVERS.length,'var(--purple)']
   ];
   var rows=sorted.map(function(init,idx){
     var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
-    var pBg=p==='HIGH'?'#c9a84c22':p==='MED'?'#60a5fa22':'#5a648022';
-    var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
-    var drivers=allDrivers.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
-    var score=(init.impactScore*2-init.effortScore+init.mvpScore);
-    var shortPreview=init.shortDescription?init.shortDescription.split('\n')[0]:'';
-    return '<tr>'+
-      '<td style="color:#5a6480;font-weight:700;font-size:12px">'+(idx+1)+'</td>'+
-      '<td style="min-width:180px"><div style="font-weight:600;color:#e8e4d9;font-size:13px;margin-bottom:2px">'+esc(init.title)+'</div>'+(shortPreview?'<div style="font-size:11px;color:#5a6480;line-height:1.4;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(shortPreview)+'</div>':'')+' </td>'+
-      '<td><span style="padding:3px 9px;border-radius:12px;font-size:10px;font-weight:800;letter-spacing:.06em;background:'+pBg+';color:'+pColor+'">'+p+'</span></td>'+
-      '<td style="text-align:center"><span style="font-weight:700;color:#fbbf24">'+init.impactScore+'</span><span style="color:#374151;font-size:10px">/10</span></td>'+
-      '<td style="text-align:center"><span style="font-weight:700;color:#60a5fa">'+init.effortScore+'</span><span style="color:#374151;font-size:10px">/10</span></td>'+
-      '<td style="text-align:center"><span style="font-weight:700;color:#a78bfa">'+init.mvpScore+'</span><span style="color:#374151;font-size:10px">/10</span></td>'+
-      '<td style="text-align:center;font-size:11px;font-weight:700;color:#4ade80">'+(init.expectedImpact||'--')+'</td>'+
-      '<td style="text-align:center;font-size:11px;color:#c9a84c">'+(init.launchDate||'--')+'</td>'+
-      '<td style="text-align:center;font-size:11px;color:#7a8499">'+(init.rampWeeks?init.rampWeeks+'w':'--')+'</td>'+
-      '<td>'+(drivers.length?drivers.map(function(d){return'<span style="display:inline-block;margin:1px 2px;padding:2px 6px;background:#1e2638;border-radius:4px;font-size:10px;color:#7a8499">'+esc(d)+'</span>';}).join(''):'<span style="color:#374151;font-size:11px">--</span>')+'</td>'+
+    var pColor=p==='HIGH'?'var(--gold)':p==='MED'?'var(--blue)':'var(--dim)';
+    var drivers=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
+    return'<tr>'+
+      '<td style="color:var(--dim);font-weight:700">'+(idx+1)+'</td>'+
+      '<td style="font-weight:600;color:var(--text)">'+esc(init.title)+'</td>'+
+      '<td><span style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:'+pColor+'22;color:'+pColor+'">'+p+'</span></td>'+
+      '<td style="color:var(--amber);font-weight:600">'+init.impactScore+'/10</td>'+
+      '<td style="color:var(--blue);font-weight:600">'+init.effortScore+'/10</td>'+
+      '<td style="color:var(--purple);font-weight:600">'+init.mvpScore+'/10</td>'+
+      '<td style="color:var(--green);font-weight:600">'+(init.expectedImpact||'--')+'</td>'+
+      '<td style="color:var(--gold);font-size:11px">'+(init.launchDate||'--')+'</td>'+
+      '<td style="color:var(--muted);font-size:11px">'+(init.rampWeeks?init.rampWeeks+'w':'--')+'</td>'+
+      '<td><span class="tag tag-'+(init.status==='active'?'active':'hold')+'">'+init.status+'</span></td>'+
+      '<td style="color:var(--dim);font-size:11px">'+(drivers.join(', ')||'--')+'</td>'+
     '</tr>';
   }).join('');
   document.getElementById('tab-4').innerHTML=
     '<div class="module">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">'+
-        '<div><div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">Q'+state.overview.quarter.replace('Q','').split(' ')[0]+' '+state.overview.quarter.split(' ')[1]+' Output</div><div style="font-size:13px;color:#7a8499">Prioritized roadmap · impact summary · driver coverage</div></div>'+
-        '<button class="btn btn-claude" id="btn-ex-claude" onclick="execSummaryClaude()" style="gap:6px">&#9734; Generate Executive Summary</button>'+
+      '<div class="flex justify-between items-center mb-24">'+
+        '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Output</div><div style="font-size:13px;color:var(--muted)">Prioritized roadmap, impact summary, and driver coverage.</div></div>'+
+        '<button class="btn btn-claude btn-sm" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
       '</div>'+
-      '<div id="ex-claude-box" style="display:none;margin-bottom:28px;background:#0d1220;border:1px solid #a78bfa33;border-radius:14px;padding:24px"></div>'+
-      '<div class="grid-4" style="margin-bottom:28px">'+
-        statCards.map(function(s){return'<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;padding:20px 22px"><div style="font-size:11px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">'+s.icon+' '+s.sub+'</div><div style="font-family:var(--font-serif);font-size:28px;font-weight:700;color:'+s.color+'">'+s.val+'</div></div>';}).join('')+
+      '<div id="ex-claude-box" class="claude-box" style="display:none;margin-bottom:24px"></div>'+
+      '<div class="grid-4 mb-24">'+
+        sumStats.map(function(s){return'<div class="gap-stat"><div style="font-family:var(--font-serif);font-size:30px;color:'+s[2]+'">'+s[1]+'</div><div class="gap-stat-sub">'+s[0]+'</div></div>';}).join('')+
       '</div>'+
-      '<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;overflow:hidden">'+
-        '<div style="padding:16px 22px;border-bottom:1px solid #1e2638;display:flex;justify-content:space-between;align-items:center">'+
-          '<span style="font-size:12px;font-weight:700;color:#e8e4d9;letter-spacing:.06em;text-transform:uppercase">Prioritized Roadmap</span>'+
-          '<span style="font-size:11px;color:#5a6480">'+sorted.length+' initiatives · sorted by score</span>'+
-        '</div>'+
-        '<div style="overflow-x:auto"><table class="out-table"><thead><tr style="background:#0d1220">'+
-          ['#','Initiative','Priority','Impact','Effort','MVP','Expected $','Launch','Ramp','Drivers'].map(function(h){return'<th style="white-space:nowrap">'+h+'</th>';}).join('')+
+      '<div class="card">'+
+        '<div class="card-head"><span class="card-title">Prioritized Roadmap</span></div>'+
+        '<div style="overflow-x:auto"><table class="out-table"><thead><tr>'+
+          ['#','Initiative','Priority','Impact','Effort','MVP','Expected $','Launch','Ramp','Status','Budget Drivers'].map(function(h){return'<th>'+h+'</th>';}).join('')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '</div>'+
     '</div>';
 }
 function execSummaryClaude(){
-  var btn=document.getElementById('btn-ex-claude');
-  var box=document.getElementById('ex-claude-box');
-  if(btn)btn.disabled=true;
-  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px;font-weight:600">&#9734; Generating executive summary…</div>';box.style.display='block';}
-  var active=state.initiatives.filter(function(i){return i.status==='active';});
-  var sorted=active.slice().sort(function(a,b){return(b.impactScore*2-b.effortScore+b.mvpScore)-(a.impactScore*2-a.effortScore+a.mvpScore);});
-  var topInits=sorted.slice(0,5).map(function(i){return'- '+i.title+(i.shortDescription?': '+i.shortDescription.split('\n')[0]:'')+(i.expectedImpact?' (Expected: '+i.expectedImpact+')':'')+(i.launchDate?' [Launch: '+i.launchDate+']':'');}).join('\n');
-  var allDrivers=state.grid&&state.grid.drivers&&state.grid.drivers.length?state.grid.drivers:BUDGET_DRIVERS;
-  var covDrivers=allDrivers.filter(function(d){return(state.mappings[d]||[]).length>0;});
-  var mustDos=(state.overview.must_dos||[]).slice(0,4).join('; ');
-  var quarter=state.overview.quarter||'Q2 2026';
-  var totalImpact=active.reduce(function(s,i){return s+parseMoney(i.expectedImpact);},0);
-  var prompt='Write a polished '+quarter+' executive strategy summary for a leadership team. Use the data below. Structure it as:\n\n**Strategic Context** (2-3 sentences: what quarter we are in, our focus, and the business opportunity)\n\n**Top Priorities** (3-5 bullet points: each initiative name, what it does, and expected outcome)\n\n**Expected Impact** (1-2 sentences: total projected impact and key financial outcomes)\n\n**Strategic Coverage** (1-2 sentences: which drivers are addressed and any gaps)\n\nTone: confident, specific, exec-ready. No fluff. Use actual numbers.\n\n---\nQuarter: '+quarter+'\nActive initiatives: '+active.length+' | High priority: '+sorted.filter(function(i){return getPriority(i.impactScore,i.effortScore,i.mvpScore)==='HIGH';}).length+'\nTotal projected impact: $'+(totalImpact>=1000000?(totalImpact/1000000).toFixed(1)+'M':totalImpact>=1000?Math.round(totalImpact/1000)+'K':totalImpact)+' \nStrategic drivers covered: '+covDrivers.length+'/'+allDrivers.length+(covDrivers.length?' ('+covDrivers.join(', ')+')':'')+'\nMust-dos: '+(mustDos||'none listed')+'\n\nTop initiatives:\n'+topInits;
-  askClaude(prompt,'btn-ex-claude','ex-claude-box',function(text){
-    if(btn)btn.disabled=false;
-    if(box){
-      var html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong style="color:#e8e4d9">$1</strong>').replace(/^- (.+)$/gm,'<div style="display:flex;gap:8px;margin:4px 0"><span style="color:#c9a84c;flex-shrink:0">&#9670;</span><span>$1</span></div>').replace(/\n/g,'<br>');
-      box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#a78bfa;text-transform:uppercase">&#9734; Executive Summary · '+quarter+'</div><button onclick="execSummaryClaude()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px;font-family:inherit">&#8635; Regenerate</button></div>'+html;
-    }
-  });
+  var summ=state.initiatives.map(function(i){return i.title+' ('+i.status+'): Impact='+i.impactScore+', Launch='+(i.launchDate||'TBD')+', Expected='+(i.expectedImpact||'TBD');}).join('\n');
+  askClaude('Write a 3-4 sentence Q2 2026 executive strategy summary:\n'+summ+'\nHighlight focus, top priorities, timing, and expected business impact.','btn-ex-claude','ex-claude-box');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2279,24 +2318,6 @@ function ovAddBullet(btn){
   var di=+btn.getAttribute('data-did');
   state.overview.drivers[di].bullets.push('');
   scheduleSave();renderOverview();
-}
-function ovClaudeAnalysis(){
-  var btn=document.getElementById('btn-ov-claude');
-  var box=document.getElementById('ov-claude-box');
-  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px;font-weight:600">&#9734; Analyzing risks...</div>';box.style.display='block';}
-  if(btn)btn.disabled=true;
-  var ov=state.overview;
-  var stats=(ov.stats||[]).map(function(s){return s.label+': '+s.val+(s.delta?' ('+s.delta+' YoY)':'')+(s.qoq?' ('+s.qoq+' QoQ)':'');}).join(', ');
-  var drivers=(ov.drivers||[]).map(function(d){return d.urgency.toUpperCase()+' — '+d.label+': target '+d.target;}).join('\n');
-  var mustDos=(ov.must_dos||[]).join('; ');
-  var prompt='You are a strategy advisor reviewing a quarterly business overview for '+ov.quarter+'.\n\nKey metrics: '+stats+'\n\nStrategic drivers:\n'+drivers+'\n\nMust-dos: '+(mustDos||'none listed')+'\n\nWrite a concise risk analysis. Format:\n\n**Top Risks** (3 bullet points max — specific risks based on the data above, not generic)\n\n**Watch Closely** (1-2 items that could tip either way)\n\n**Recommended Actions** (2-3 concrete moves to mitigate the biggest risks)\n\nBe specific to the numbers and drivers shown. No fluff.';
-  askClaude(prompt,'btn-ov-claude','ov-claude-box',function(text){
-    if(btn)btn.disabled=false;
-    if(box){
-      var html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong style="color:#e8e4d9">$1</strong>').replace(/^[-•] (.+)$/gm,'<div style="display:flex;gap:8px;margin:4px 0"><span style="color:#f87171;flex-shrink:0">&#9656;</span><span>$1</span></div>').replace(/\n/g,'<br>');
-      box.innerHTML=html;
-    }
-  });
 }
 function loadDriverTemplate(){
   if(!confirm('Load the Q2 2026 template? This will replace any existing drivers.'))return;
