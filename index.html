@@ -515,7 +515,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         <button class="btn btn-ghost btn-sm" onclick="openWsSelector()">&#9776; Workspaces</button>
       </div>
       <div style="display:flex;align-items:center;gap:5px">
-        <a href="https://claude.ai/chat/4588ff43-6159-4a71-b217-cdfb8ab1b24a" target="_blank" class="hdr-link">
+        <a href="https://claude.ai/chat/59724a4b-4b9e-42ad-badf-9855f97c5241" target="_blank" class="hdr-link">
           <span class="hdr-link-icon" style="background:#d97706">✦</span>Claude
         </a>
         <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" class="hdr-link">
@@ -3001,44 +3001,31 @@ function handleSession(session){
     document.getElementById('user-name-label').textContent=name;
     var urlWsId=new URLSearchParams(window.location.search).get('ws');
     var userEmail=session.user.email.toLowerCase();
-
-    // Check pending invites: find any workspace where this email was invited
-    // We do this by loading all workspaces (owned+shared) and checking pending_invites in data
-    var autoGrantPromise=urlWsId?
-      sb.from('workspaces').select('id,data,owner_id').eq('id',urlWsId).single().then(function(r){
-        if(!r.data)return null;
-        var wsData=r.data.data||{};
-        var pending=wsData.pending_invites||[];
-        if(pending.indexOf(userEmail)>=0){
-          // Auto-grant: add to workspace_members
-          return sb.from('profiles').select('id').eq('email',userEmail).single().then(function(pr){
-            if(!pr.data)return null;
-            return sb.from('workspace_members').upsert({workspace_id:urlWsId,user_id:pr.data.id,role:'editor'}).then(function(){
-              return urlWsId;
-            });
-          });
-        }
-        return null;
-      }):Promise.resolve(null);
-
-    autoGrantPromise.then(function(){
+    function doWorkspaceLoad(){
       loadWorkspaces().then(function(wss){
         var all=wss.owned.concat(wss.shared);
         if(urlWsId){
           var linked=all.find(function(w){return w.id===urlWsId;});
-          if(linked){
-            window.history.replaceState({},'',window.location.pathname);
-            openWorkspace(linked.id);
-            return;
-          } else {
-            toast('Workspace not found or access pending — contact the owner.','error');
-          }
+          if(linked){window.history.replaceState({},'',window.location.pathname);openWorkspace(linked.id);return;}
+          else{toast('Workspace not found or access pending.','error');}
         }
         if(all.length===1){openWorkspace(all[0].id);}
         else if(all.length===0){createWorkspace();}
         else{openWsSelector();}
       });
-    });
+    }
+    if(urlWsId){
+      sb.from('workspaces').select('id,data').eq('id',urlWsId).single().then(function(r){
+        if(!r.data){doWorkspaceLoad();return;}
+        var pending=(r.data.data&&r.data.data.pending_invites)||[];
+        if(pending.indexOf(userEmail)>=0){
+          sb.from('profiles').select('id').eq('email',userEmail).single().then(function(pr){
+            if(pr.data){sb.from('workspace_members').upsert({workspace_id:urlWsId,user_id:pr.data.id,role:'editor'}).then(doWorkspaceLoad);}
+            else{doWorkspaceLoad();}
+          });
+        } else {doWorkspaceLoad();}
+      });
+    } else {doWorkspaceLoad();}
   } else {
     document.getElementById('auth-overlay').style.display='flex';
     document.getElementById('app').style.display='none';
