@@ -714,6 +714,7 @@ function switchAuthTab(mode){
   document.getElementById('remember-row').style.display=mode==='login'?'flex':'none';
   document.getElementById('auth-error').style.display='none';
 }
+function closeShareModal(){var m=document.getElementById('share-modal');if(m)m.remove();}
 function doAuth(){
   var email=document.getElementById('auth-email').value.trim();
   var pass=document.getElementById('auth-pass').value;
@@ -879,10 +880,10 @@ function shareWorkspace(){
     '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Email Address</label>'+
     '<input id="share-email-input" type="email" placeholder="colleague@company.com" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;margin-bottom:8px">'+
     '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px;margin-top:12px">Personal Message (optional)</label>'+
-    '<textarea id="share-message-input" placeholder="Hey, I'd love your input on our Q2 strategy..." style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;min-height:72px;resize:none;margin-bottom:20px;line-height:1.5"></textarea>'+
+    '<textarea id="share-message-input" placeholder="Hey, I would love your input on our Q2 strategy..." style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;min-height:72px;resize:none;margin-bottom:20px;line-height:1.5"></textarea>'+
     '<div style="display:flex;gap:10px">'+
       '<button id="share-send-btn" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">Share & Send Email</button>'+
-      '<button onclick="document.getElementById('share-modal').remove()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
+      '<button onclick="closeShareModal()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
     '</div>'+
     '<div id="share-status" style="margin-top:12px;font-size:12px;color:#5a6480"></div>';
 
@@ -2338,6 +2339,24 @@ function ovAddBullet(btn){
   var di=+btn.getAttribute('data-did');
   state.overview.drivers[di].bullets.push('');
   scheduleSave();renderOverview();
+}
+function ovClaudeAnalysis(){
+  var btn=document.getElementById('btn-ov-claude');
+  var box=document.getElementById('ov-claude-box');
+  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px;font-weight:600">&#9734; Analyzing risks...</div>';box.style.display='block';}
+  if(btn)btn.disabled=true;
+  var ov=state.overview;
+  var stats=(ov.stats||[]).map(function(s){return s.label+': '+s.val+(s.delta?' ('+s.delta+' YoY)':'')+(s.qoq?' ('+s.qoq+' QoQ)':'');}).join(', ');
+  var drivers=(ov.drivers||[]).map(function(d){return d.urgency.toUpperCase()+' - '+d.label+': target '+d.target;}).join('; ');
+  var mustDos=(ov.must_dos||[]).join('; ');
+  var prompt='You are a strategy advisor reviewing a quarterly business overview for '+ov.quarter+'. Key metrics: '+stats+'. Strategic drivers: '+drivers+'. Must-dos: '+(mustDos||'none listed')+'. Write a concise risk analysis with three sections: **Top Risks** (3 bullets max, specific to data shown), **Watch Closely** (1-2 items), **Recommended Actions** (2-3 concrete moves). Be specific to the numbers. No generic advice.';
+  askClaude(prompt,'btn-ov-claude','ov-claude-box',function(text){
+    if(btn)btn.disabled=false;
+    if(box){
+      var html=esc(text).replace(/\*\*([^*]+)\*\*/g,'<strong style="color:#e8e4d9">$1</strong>').replace(/\n/g,'<br>');
+      box.innerHTML=html;
+    }
+  });
 }
 function loadDriverTemplate(){
   if(!confirm('Load the Q2 2026 template? This will replace any existing drivers.'))return;
