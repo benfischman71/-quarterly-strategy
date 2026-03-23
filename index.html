@@ -861,6 +861,7 @@ function openWorkspace(wsId){
     toast('Workspace opened: '+r.data.name);
   });
 }
+function closeShareModal(){var m=document.getElementById('share-modal');if(m)m.remove();}
 function shareWorkspace(){
   if(!currentWs){toast('No workspace open','error');return;}
 
@@ -877,10 +878,10 @@ function shareWorkspace(){
     '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Email Address</label>'+
     '<input id="share-email-input" type="email" placeholder="colleague@company.com" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;margin-bottom:12px">'+
     '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Personal Message (optional)</label>'+
-    '<textarea id="share-message-input" placeholder="Hey, I'd love your input on our Q2 strategy..." style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;min-height:72px;resize:none;margin-bottom:20px;line-height:1.5"></textarea>'+
+    '<textarea id="share-message-input" placeholder="Hey - I would love your input on our Q2 strategy..." style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;min-height:72px;resize:none;margin-bottom:20px;line-height:1.5"></textarea>'+
     '<div style="display:flex;gap:10px">'+
       '<button id="share-send-btn" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">Share & Send Invite</button>'+
-      '<button onclick="document.getElementById('share-modal').remove()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
+      '<button onclick="closeShareModal()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
     '</div>'+
     '<div id="share-status" style="margin-top:12px;font-size:12px;color:#5a6480"></div>';
   overlay.appendChild(box);
@@ -926,7 +927,7 @@ function shareWorkspace(){
         if(res.existed){
           statusEl.textContent='✓ Access granted + invite email opened!';
         } else {
-          statusEl.textContent='✓ Invite saved — they'll get access when they sign up. Email opened!';
+          statusEl.textContent='✓ Invite saved — they will get access when they sign up. Email opened!';
         }
         statusEl.style.color='#4ade80';
         setTimeout(function(){var m=document.getElementById('share-modal');if(m)m.remove();},2500);
