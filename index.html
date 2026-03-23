@@ -1618,7 +1618,12 @@ function openInitPanel(id){
       '<div id="panel-file-box-'+id+'" class="claude-box" style="display:none;margin-top:8px"></div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
-      '<div class="field" style="margin:0">'+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+'<label class="field-label" style="margin:0">Launch Date</label>'+'<button data-iid="'+id+'" onclick="clearLaunchDate(this.dataset.iid)" style="background:none;border:none;color:#c9a84c;font-size:10px;cursor:pointer;font-family:inherit;padding:0" id="clear-date-'+id+'">&#10005; clear</button>'+'</div>'+'<input type="date" class="input" data-iid="'+id+'" data-field="launchDate" value="'+(init.launchDate||'')+'" onchange="panelUpdateInit(this);toggleClearDate(this)" /></div>'+
+      '<div class="field" style="margin:0">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+      '<label class="field-label" style="margin:0">Launch Date</label>'+
+      '<button data-lid="'+id+'" onclick="clearLaunchDate(this.dataset.lid)" style="background:none;border:none;color:#c9a84c;font-size:10px;cursor:pointer;font-family:inherit;padding:0">&#10005; clear</button>'+
+      '</div>'+
+      '<input type="date" class="input" data-iid="'+id+'" data-field="launchDate" value="'+(init.launchDate||'')+'" onchange="panelUpdateInit(this)" /></div>'+
       '<div class="field" style="margin:0"><label class="field-label">Ramp Weeks</label>'+
         '<input type="number" class="input" min="0" max="12" data-iid="'+id+'" data-field="rampWeeks" value="'+(init.rampWeeks||0)+'" onchange="panelUpdateInitNum(this)" /></div>'+
     '</div>'+
@@ -1810,7 +1815,7 @@ function panelCancelField(which, id){
   if(btns)btns.style.display='none';
 }
 function toggleClearDate(inp){var btn=document.getElementById("clear-date-"+inp.dataset.iid);if(btn)btn.style.display=inp.value?"inline":"none";}
-function clearLaunchDate(id){var init=state.initiatives.find(function(i){return i.id===id;});if(!init)return;init.launchDate="";scheduleSave();var inp=document.querySelector('[data-iid="'+id+'"][data-field="launchDate"]');if(inp){inp.value="";inp.valueAsDate=null;}}
+function clearLaunchDate(id){var init=state.initiatives.find(function(i){return i.id===id;});if(!init)return;init.launchDate="";scheduleSave();var inp=document.querySelector('[data-iid="'+id+'"][data-field="launchDate"]');if(inp)inp.valueAsDate=null;}
 function panelUpdateInit(el){
   var id=el.getAttribute('data-iid');
   var field=el.getAttribute('data-field');
