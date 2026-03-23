@@ -1118,7 +1118,7 @@ function renderOverview(){
       '<div id="ovd-view-'+di+'" style="padding:16px 18px 14px">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
           '<span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;background:'+pillBg+';color:'+pillColor+'">'+urgLabel+'</span>'+
-          '<button data-did="'+di+'" onclick="ovEditDriver(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit;border-radius:4px;border:1px solid #1e2638">&#9998; Edit</button>'+
+          '<div style="display:flex;gap:5px">'+'<button data-did="'+di+'" onclick="ovEditDriver(this)" style="background:none;border:1px solid #1e2638;color:#5a6480;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit;border-radius:4px">&#9998; Edit</button>'+'<button data-did="'+di+'" onclick="ovDelDriver(this)" style="background:none;border:1px solid #1e2638;color:#5a6480;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit;border-radius:4px" onmouseover="this.style.color=\'#f87171\';this.style.borderColor=\'#f8717144\'" onmouseout="this.style.color=\'#5a6480\';this.style.borderColor=\'#1e2638\'">&#10005;</button>'+'</div>'+
         '</div>'+
         '<div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:10px;line-height:1.3">'+esc(d.label)+'</div>'+
         bulletsView+
@@ -2378,6 +2378,8 @@ function ovCancelDriver(btn){
 }
 function ovDelDriver(btn){
   var di=+btn.getAttribute('data-did');
+  var d=state.overview.drivers[di];
+  if(!confirm('Delete driver "'+((d&&d.label)||'this driver')+'"?'))return;
   state.overview.drivers.splice(di,1);
   scheduleSave();renderOverview();
 }
