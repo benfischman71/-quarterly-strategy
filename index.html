@@ -906,7 +906,7 @@ function shareWorkspace(){
   overlay.id='share-modal';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.85);z-index:9999;display:flex;align-items:center;justify-content:center';
   var wsName=esc(currentWs.name);
-  var appUrl='https://benfischman71.github.io/-quarterly-strategy/';
+  var appUrl='https://benfischman71.github.io/-quarterly-strategy/?ws='+(currentWs?currentWs.id:'');
   var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
   var defaultMsg=senderName+' shared the "'+currentWs.name+'" strategy workspace with you.\n\nOpen it here: '+appUrl;
   var box=document.createElement('div');
@@ -948,7 +948,7 @@ function shareWorkspace(){
 function shareVia(channel){
   window._shareChannel=channel;
   var wsName=currentWs?currentWs.name:'Quarterly Strategy';
-  var appUrl='https://benfischman71.github.io/-quarterly-strategy/';
+  var appUrl='https://benfischman71.github.io/-quarterly-strategy/?ws='+(currentWs?currentWs.id:'');
   var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
   var msg=senderName+' shared the "'+wsName+'" strategy workspace with you. Open it here: '+appUrl;
   var form=document.getElementById('share-channel-form');
@@ -1014,7 +1014,7 @@ function copyShareMessage(){
 }
 function sendShareEmail(toEmail, personalMessage, hasAccess){
   var wsName=currentWs?currentWs.name:'Quarterly Strategy';
-  var appUrl='https://benfischman71.github.io/-quarterly-strategy/';
+  var appUrl='https://benfischman71.github.io/-quarterly-strategy/?ws='+(currentWs?currentWs.id:'');
   var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
   var subject=senderName+' shared a strategy workspace with you: '+wsName;
   var body=personalMessage||('Check out the '+wsName+' workspace: '+appUrl);
@@ -3088,8 +3088,13 @@ function handleSession(session){
     document.getElementById('app').style.display='flex';
     var name=(session.user.user_metadata&&session.user.user_metadata.name)||session.user.email.split('@')[0];
     document.getElementById('user-name-label').textContent=name;
+    var wsParam=new URLSearchParams(window.location.search).get('ws');
     loadWorkspaces().then(function(wss){
       var all=wss.owned.concat(wss.shared);
+      if(wsParam){
+        var target=all.find(function(w){return w.id===wsParam;});
+        if(target){openWorkspace(target.id);return;}
+      }
       if(all.length===1){openWorkspace(all[0].id);}
       else if(all.length===0){createWorkspace();}
       else{openWsSelector();}
