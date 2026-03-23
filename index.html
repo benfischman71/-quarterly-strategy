@@ -65,15 +65,16 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 /* ── workspace selector ── */
 #ws-overlay{position:fixed;inset:0;background:rgba(10,14,26,.92);z-index:9998;
   display:none;align-items:center;justify-content:center}
-.ws-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
-  padding:36px;width:520px}
+.ws-card{background:#0d1220;border:1px solid #1e2638;border-radius:16px;
+  padding:32px;width:560px;max-width:96vw}
 .ws-card h2{font-family:var(--font-serif);font-size:22px;color:var(--text);margin-bottom:6px}
 .ws-card p{font-size:13px;color:var(--muted);margin-bottom:24px}
 .ws-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;max-height:300px;overflow-y:auto}
 .ws-item{display:flex;align-items:center;justify-content:space-between;
-  padding:14px 16px;background:var(--surface2);border:1px solid var(--border);
-  border-radius:10px;cursor:pointer;transition:all .15s}
-.ws-item:hover{border-color:#c9a84c44}
+  padding:16px 18px;background:#111827;border:1px solid #1e2638;
+  border-radius:12px;cursor:pointer;transition:all .15s;gap:12px}
+.ws-item-active{border-color:#4ade8033!important;background:#0d1e14!important}
+.ws-item:hover{border-color:#c9a84c44;background:#161e30}
 .ws-item .ws-name{font-size:14px;font-weight:600;color:var(--text)}
 .ws-item .ws-meta{font-size:11px;color:var(--muted);margin-top:2px}
 .ws-item .ws-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700}
@@ -754,18 +755,37 @@ function openWsSelector(){
 }
 function renderWsList(){
   loadWorkspaces().then(function(wss){
+    var listEl=document.getElementById('ws-list');
+    if(!listEl)return;
     var html='';
-    wss.owned.forEach(function(ws){
-      html+='<div class="ws-item" onclick="openWorkspace(\''+ws.id+'\')"><div><div class="ws-name">'+esc(ws.name)+'</div><div class="ws-meta">Created by you &middot; '+ws.quarter+'</div></div><span class="ws-badge ws-owner">Owner</span></div>';
-    });
-    wss.shared.forEach(function(ws){
-      html+='<div class="ws-item" onclick="openWorkspace(\''+ws.id+'\')"><div><div class="ws-name">'+esc(ws.name)+'</div><div class="ws-meta">Shared workspace &middot; '+ws.quarter+'</div></div><span class="ws-badge ws-shared">Shared</span></div>';
-    });
-    if(!html)html='<div style="color:var(--dim);font-size:13px;text-align:center;padding:20px">No workspaces yet. Create one to get started.</div>';
-    document.getElementById('ws-list').innerHTML=html;
+    if(wss.owned.length>0){
+      html+='<div style="font-size:10px;font-weight:800;color:#374151;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">YOUR WORKSPACES</div>';
+      wss.owned.forEach(function(ws){
+        var isActive=currentWs&&currentWs.id===ws.id;
+        var upd=ws.updated_at?(' · '+new Date(ws.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})):'';
+        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+
+          '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div>'+
+          '<div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+
+          (isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#5a6480">Owner</span>')+
+        '</div>';
+      });
+    }
+    if(wss.shared.length>0){
+      html+='<div style="font-size:10px;font-weight:800;color:#374151;letter-spacing:.12em;text-transform:uppercase;margin:'+(wss.owned.length?'16px':'0')+' 0 8px">SHARED WITH YOU</div>';
+      wss.shared.forEach(function(ws){
+        var isActive=currentWs&&currentWs.id===ws.id;
+        var upd=ws.updated_at?(' · '+new Date(ws.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})):'';
+        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+
+          '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div>'+
+          '<div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+
+          (isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#a78bfa;background:#1a1040;border:1px solid #a78bfa33;padding:2px 8px;border-radius:10px">Shared</span>')+
+        '</div>';
+      });
+    }
+    if(!html)html='<div style="text-align:center;padding:24px;color:#5a6480">No workspaces yet.</div>';
+    listEl.innerHTML=html;
   });
 }
-var _nwsQuarter='Q2 2026';
 function createWorkspace(){
   _nwsQuarter='Q2 2026';
   document.getElementById('nws-name').value='';
