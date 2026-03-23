@@ -960,42 +960,42 @@ function shareVia(channel){
   if(phoneRow)phoneRow.style.display=(channel==='text')?'block':'none';
   if(msgTA)msgTA.value=msg;
   if(sendBtn){
-    sendBtn.textContent=channel==='email'?'Open Mail App':channel==='slack'?'Copy for Slack':'Open Messages';
+    sendBtn.textContent=channel==='email'?'Open Mail App':channel==='slack'?'Open Slack':'Open Messages';
     sendBtn.onclick=function(){
       var message=document.getElementById('share-message-input').value.trim();
       if(channel==='email'){
         var email=document.getElementById('share-email-input').value.trim();
         var subject=senderName+' shared a strategy workspace: '+wsName;
+        var mailtoLink='mailto:'+(email?encodeURIComponent(email):'')+('?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(message));
+        window.open(mailtoLink,'_blank');
         if(email){
           sb.from('profiles').select('id').eq('email',email).maybeSingle().then(function(r){
-            if(!r.error&&r.data){
-              sb.from('workspace_members').upsert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(){});
-            }
+            if(!r.error&&r.data){sb.from('workspace_members').upsert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(){});}
           });
         }
-        var mailtoLink='mailto:'+(email?encodeURIComponent(email):'')+('?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(message));
-        window.open(mailtoLink);
-        showShareConfirm('Mail app opened with pre-filled message.');
+        showShareConfirm('Mail opened in a new window.');
       } else if(channel==='slack'){
+        var slackLink='slack://open';
+        window.open(slackLink,'_blank');
         copyToClipboard(message);
-        showShareConfirm('Copied! Paste into any Slack channel or DM.');
+        showShareConfirm('Slack opened + message copied to clipboard. Paste to send.');
       } else if(channel==='text'){
         var phone=document.getElementById('share-phone-input').value.trim();
-        var smsLink='sms:'+(phone||'')+'&body='+encodeURIComponent(message);
-        window.open(smsLink);
-        showShareConfirm('Messages app opened with pre-filled text.');
+        var smsLink='sms:'+(phone?encodeURIComponent(phone):'')+(phone?'&':'?')+'body='+encodeURIComponent(message);
+        window.open(smsLink,'_blank');
+        showShareConfirm('Messages opened in a new window.');
       }
     };
   }
-  if(channel==='slack'){
-    var msg2=document.getElementById('share-message-input');
-    if(msg2)msg2.focus();
-  } else if(channel==='email'){
+  if(channel==='email'){
     var ei=document.getElementById('share-email-input');
     if(ei)ei.focus();
-  } else {
+  } else if(channel==='text'){
     var pi=document.getElementById('share-phone-input');
     if(pi)pi.focus();
+  } else {
+    var mi=document.getElementById('share-message-input');
+    if(mi)mi.focus();
   }
 }
 function showShareConfirm(msg){
