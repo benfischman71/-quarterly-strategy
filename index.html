@@ -523,16 +523,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         <button class="btn btn-ghost btn-sm" onclick="shareWorkspace()" title="Share workspace">&#128279; Share</button>
         <button class="btn btn-ghost btn-sm" onclick="openWsSelector()">&#9776; Workspaces</button>
       </div>
-      <div style="display:flex;align-items:center;gap:5px">
-        <a href="https://claude.ai/chat/4588ff43-6159-4a71-b217-cdfb8ab1b24a" target="_blank" class="hdr-link">
-          <span class="hdr-link-icon" style="background:#d97706">✦</span>Claude
-        </a>
-        <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" class="hdr-link">
-          <span class="hdr-link-icon" style="background:#3ecf8e">⚡</span>Supabase
-        </a>
-        <a href="https://github.com/benfischman71/-quarterly-strategy/blob/main/index.html" target="_blank" class="hdr-link">
-          <span class="hdr-link-icon" style="background:#24292e">&#128025;</span>GitHub
-        </a>
+      <div style="position:relative">
+        <button onclick="toggleDevTools()" style="background:transparent;border:1px solid #1e2638;border-radius:6px;color:#5a6480;font-size:10px;font-weight:600;font-family:inherit;padding:4px 9px;cursor:pointer;letter-spacing:.05em" onmouseover="this.style.color='#c8d4e8'" onmouseout="this.style.color='#5a6480'">Dev Tools &#9660;</button>
+        <div id="dev-tools-dd" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#111827;border:1px solid #1e2638;border-radius:10px;padding:6px;min-width:150px;z-index:999;box-shadow:0 8px 24px #00000066">
+          <a href="https://claude.ai/chat/4588ff43-6159-4a71-b217-cdfb8ab1b24a" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;color:#c8d4e8;font-size:12px" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="width:18px;height:18px;border-radius:4px;background:#d97706;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">✦</span>Claude Chat</a>
+          <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;color:#c8d4e8;font-size:12px" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="width:18px;height:18px;border-radius:4px;background:#3ecf8e;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">⚡</span>Supabase</a>
+          <a href="https://github.com/benfischman71/-quarterly-strategy/blob/main/index.html" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;color:#c8d4e8;font-size:12px" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="width:18px;height:18px;border-radius:4px;background:#24292e;border:1px solid #444;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">&#128025;</span>GitHub</a>
+        </div>
       </div>
       <div id="user-pill" class="user-pill" onclick="toggleUserDropdown()">
         <div class="dot"></div>
@@ -753,6 +750,7 @@ function doAuth(){
   });
 }
 function signOut(){sb.auth.signOut().then(function(){location.reload();});}
+function toggleDevTools(){var dd=document.getElementById('dev-tools-dd');if(!dd)return;var open=dd.style.display==='block';dd.style.display=open?'none':'block';if(!open)setTimeout(function(){document.addEventListener('click',function h(){dd.style.display='none';document.removeEventListener('click',h);},{once:true});},0);}
 function toggleUserDropdown(){
   var dd=document.getElementById('user-dropdown');
   if(!dd)return;
