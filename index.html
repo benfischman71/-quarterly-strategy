@@ -1810,7 +1810,7 @@ function panelCancelField(which, id){
   if(btns)btns.style.display='none';
 }
 function toggleClearDate(inp){var btn=document.getElementById("clear-date-"+inp.dataset.iid);if(btn)btn.style.display=inp.value?"inline":"none";}
-function clearLaunchDate(id){var init=state.initiatives.find(function(i){return i.id===id;});if(!init)return;init.launchDate="";scheduleSave();var inp=document.querySelector('input[data-iid="'+id+'"][data-field="launchDate"]');if(inp)inp.value="";var btn=document.getElementById("clear-date-"+id);if(btn)btn.style.display="none";}
+function clearLaunchDate(id){var init=state.initiatives.find(function(i){return i.id===id;});if(!init)return;init.launchDate="";scheduleSave();document.querySelectorAll("input[data-field]").forEach(function(inp){if(inp.dataset.iid===id&&inp.dataset.field==="launchDate")inp.value="";});var btn=document.getElementById("clear-date-"+id);if(btn)btn.style.display="none";}
 function panelUpdateInit(el){
   var id=el.getAttribute('data-iid');
   var field=el.getAttribute('data-field');
