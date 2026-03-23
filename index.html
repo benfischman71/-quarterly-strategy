@@ -899,71 +899,110 @@ function openWorkspace(wsId){
 }
 function shareWorkspace(){
   if(!currentWs){toast('No workspace open','error');return;}
-
-  // Build a nice modal instead of browser prompt
   var old=document.getElementById('share-modal');
   if(old)old.remove();
   var overlay=document.createElement('div');
   overlay.id='share-modal';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.8);z-index:9999;display:flex;align-items:center;justify-content:center';
-
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.85);z-index:9999;display:flex;align-items:center;justify-content:center';
+  var wsName=esc(currentWs.name);
+  var appUrl='https://benfischman71.github.io/-quarterly-strategy/';
+  var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
+  var defaultMsg=senderName+' shared the "'+currentWs.name+'" strategy workspace with you.\n\nOpen it here: '+appUrl;
   var box=document.createElement('div');
-  box.style.cssText='background:#111827;border:1px solid #1e2638;border-radius:14px;padding:28px;width:460px;max-width:95vw';
+  box.style.cssText='background:#111827;border:1px solid #1e2638;border-radius:16px;padding:28px 28px 24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto';
   box.innerHTML=
-    '<div style="font-family:Georgia,serif;font-size:18px;color:#e8e4d9;margin-bottom:6px">Share Workspace</div>'+
-    '<div style="font-size:12px;color:#5a6480;margin-bottom:20px">Invite a collaborator to "'+esc(currentWs.name)+'"</div>'+
-    '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Email Address</label>'+
-    '<input id="share-email-input" type="email" placeholder="colleague@company.com" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;margin-bottom:8px">'+
-    '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px;margin-top:12px">Personal Message (optional)</label>'+
-    '<textarea id="share-message-input" placeholder="Hey, I would love your input on our Q2 strategy..." style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;min-height:72px;resize:none;margin-bottom:20px;line-height:1.5"></textarea>'+
-    '<div style="display:flex;gap:10px">'+
-      '<button id="share-send-btn" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">Share & Send Email</button>'+
-      '<button onclick="closeShareModal()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+      '<div style="font-family:Georgia,serif;font-size:18px;color:#e8e4d9">Share Workspace</div>'+
+      '<button onclick="closeShareModal()" style="background:none;border:none;color:#5a6480;font-size:20px;cursor:pointer;line-height:1;padding:0 4px">&times;</button>'+
     '</div>'+
-    '<div id="share-status" style="margin-top:12px;font-size:12px;color:#5a6480"></div>';
-
+    '<div style="font-size:12px;color:#5a6480;margin-bottom:22px">'+wsName+'</div>'+
+    '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">Send via</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:22px">'+
+      '<button data-ch="email" onclick="shareVia(this.dataset.ch)" style="background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 8px;cursor:pointer;font-family:inherit;color:#c8d4e8;font-size:12px;font-weight:600;text-align:center;transition:border-color .15s"><div style="font-size:22px;margin-bottom:6px">&#9993;</div>Email</button>'+
+      '<button data-ch="slack" onclick="shareVia(this.dataset.ch)" style="background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 8px;cursor:pointer;font-family:inherit;color:#c8d4e8;font-size:12px;font-weight:600;text-align:center"><div style="font-size:22px;margin-bottom:6px">&#128172;</div>Slack</button>'+
+      '<button data-ch="text" onclick="shareVia(this.dataset.ch)" style="background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 8px;cursor:pointer;font-family:inherit;color:#c8d4e8;font-size:12px;font-weight:600;text-align:center"><div style="font-size:22px;margin-bottom:6px">&#128247;</div>Text</button>'+
+    '</div>'+
+    '<div id="share-channel-form" style="display:none">'+
+      '<div id="share-email-row" style="display:none;margin-bottom:12px">'+
+        '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Recipient Email</label>'+
+        '<input id="share-email-input" type="email" placeholder="colleague@company.com" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box">'+
+      '</div>'+
+      '<div id="share-phone-row" style="display:none;margin-bottom:12px">'+
+        '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Phone Number</label>'+
+        '<input id="share-phone-input" type="tel" placeholder="+1 555 000 0000" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box">'+
+      '</div>'+
+      '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Message</label>'+
+      '<textarea id="share-message-input" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;height:80px;resize:none;line-height:1.5;margin-bottom:14px"></textarea>'+
+      '<div style="display:flex;gap:10px">'+
+        '<button id="share-send-btn" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">Send</button>'+
+        '<button onclick="closeShareModal()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
+      '</div>'+
+      '<div id="share-status" style="margin-top:12px;font-size:12px;color:#5a6480"></div>'+
+    '</div>';
   overlay.appendChild(box);
   document.body.appendChild(overlay);
-  document.getElementById('share-email-input').focus();
-
-  document.getElementById('share-send-btn').onclick=function(){
-    var email=document.getElementById('share-email-input').value.trim();
-    var message=document.getElementById('share-message-input').value.trim();
-    var statusEl=document.getElementById('share-status');
-    if(!email){statusEl.textContent='Please enter an email address.';statusEl.style.color='#f87171';return;}
-    statusEl.textContent='Adding collaborator...';statusEl.style.color='#5a6480';
-    document.getElementById('share-send-btn').disabled=true;
-
-    sb.from('profiles').select('id').eq('email',email).maybeSingle().then(function(r){
-      if(r.error||!r.data){
-        // User not in system yet - still send email invite
-        sendShareEmail(email, message, false);
-        statusEl.textContent='User not yet registered — copy the message below to invite them.';
-        statusEl.style.color='#c9a84c';
-        setTimeout(function(){var m=document.getElementById('share-modal');if(m)m.remove();},2500);
-        return;
-      }
-      sb.from('workspace_members').upsert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(r2){
-        if(r2.error){
-          statusEl.textContent='Error: '+r2.error.message;
-          statusEl.style.color='#f87171';
-          document.getElementById('share-send-btn').disabled=false;
-        } else {
-          sendShareEmail(email, message, true);
-          statusEl.textContent='✓ Access granted — copy the message below to send.';
-          statusEl.style.color='#4ade80';
-          setTimeout(function(){var m=document.getElementById('share-modal');if(m)m.remove();},2500);
-        }
-      });
-    });
-  };
-
-  // Allow Enter to submit
-  document.getElementById('share-email-input').onkeydown=function(e){
-    if(e.key==='Enter')document.getElementById('share-send-btn').click();
-  };
+  window._shareChannel=null;
+  window._shareMsg=defaultMsg;
 }
-
+function shareVia(channel){
+  window._shareChannel=channel;
+  var wsName=currentWs?currentWs.name:'Quarterly Strategy';
+  var appUrl='https://benfischman71.github.io/-quarterly-strategy/';
+  var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
+  var msg=senderName+' shared the "'+wsName+'" strategy workspace with you. Open it here: '+appUrl;
+  var form=document.getElementById('share-channel-form');
+  var emailRow=document.getElementById('share-email-row');
+  var phoneRow=document.getElementById('share-phone-row');
+  var msgTA=document.getElementById('share-message-input');
+  var sendBtn=document.getElementById('share-send-btn');
+  if(form)form.style.display='block';
+  if(emailRow)emailRow.style.display=(channel==='email')?'block':'none';
+  if(phoneRow)phoneRow.style.display=(channel==='text')?'block':'none';
+  if(msgTA)msgTA.value=msg;
+  if(sendBtn){
+    sendBtn.textContent=channel==='email'?'Open Mail App':channel==='slack'?'Copy for Slack':'Open Messages';
+    sendBtn.onclick=function(){
+      var message=document.getElementById('share-message-input').value.trim();
+      if(channel==='email'){
+        var email=document.getElementById('share-email-input').value.trim();
+        var subject=senderName+' shared a strategy workspace: '+wsName;
+        if(email){
+          sb.from('profiles').select('id').eq('email',email).maybeSingle().then(function(r){
+            if(!r.error&&r.data){
+              sb.from('workspace_members').upsert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(){});
+            }
+          });
+        }
+        var mailtoLink='mailto:'+(email?encodeURIComponent(email):'')+('?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(message));
+        window.open(mailtoLink);
+        showShareConfirm('Mail app opened with pre-filled message.');
+      } else if(channel==='slack'){
+        copyToClipboard(message);
+        showShareConfirm('Copied! Paste into any Slack channel or DM.');
+      } else if(channel==='text'){
+        var phone=document.getElementById('share-phone-input').value.trim();
+        var smsLink='sms:'+(phone||'')+'&body='+encodeURIComponent(message);
+        window.open(smsLink);
+        showShareConfirm('Messages app opened with pre-filled text.');
+      }
+    };
+  }
+  if(channel==='slack'){
+    var msg2=document.getElementById('share-message-input');
+    if(msg2)msg2.focus();
+  } else if(channel==='email'){
+    var ei=document.getElementById('share-email-input');
+    if(ei)ei.focus();
+  } else {
+    var pi=document.getElementById('share-phone-input');
+    if(pi)pi.focus();
+  }
+}
+function showShareConfirm(msg){
+  var statusEl=document.getElementById('share-status');
+  if(statusEl){statusEl.textContent='✓ '+msg;statusEl.style.color='#4ade80';}
+  setTimeout(function(){closeShareModal();},3000);
+}
 function copyShareMessage(){
   var t=document.getElementById('share-copy-body');
   if(!t)return;
@@ -977,19 +1016,9 @@ function sendShareEmail(toEmail, personalMessage, hasAccess){
   var appUrl='https://benfischman71.github.io/-quarterly-strategy/';
   var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
   var subject=senderName+' shared a strategy workspace with you: '+wsName;
-  var body='Hi,\n\n'+senderName+' has '+(hasAccess?'given you access to':'invited you to join')+' the "'+wsName+'" workspace on the Quarterly Strategy Platform.\n\n';
-  if(personalMessage)body+=personalMessage+'\n\n';
-  body+=(hasAccess?'You can access it here:':'Sign up and you will be added here:')+' '+appUrl+'\n\n';
-  body+='— Sent via Quarterly Strategy Platform';
+  var body=personalMessage||('Check out the '+wsName+' workspace: '+appUrl);
   var mailtoLink='mailto:'+encodeURIComponent(toEmail)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   window.open(mailtoLink);
-  var statusEl=document.getElementById('share-status');
-  var copyBox='<div style="margin-top:12px;background:#0a0e1a;border:1px solid #1e2638;border-radius:8px;padding:12px">'+
-    '<div style="font-size:10px;color:#5a6480;margin-bottom:6px">If Mail did not open, copy manually:</div>'+
-    '<textarea id="share-copy-body" readonly style="width:100%;background:transparent;border:none;color:#8a9ab8;font-size:12px;font-family:inherit;resize:none;outline:none;line-height:1.6;height:80px;box-sizing:border-box">To: '+toEmail+'\nSubject: '+subject+'\n\n'+body+'</textarea>'+
-    '<button id="share-copy-btn" onclick="copyShareMessage()" style="margin-top:6px;background:#1e2638;border:none;color:#c8d4e8;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit">Copy to Clipboard</button>'+
-    '</div>';
-  if(statusEl)statusEl.innerHTML='<div style="color:#4ade80;font-size:12px;margin-bottom:4px">&#10003; '+(hasAccess?'Access granted — ':'Invite ready — ')+'opening Mail app...</div>'+copyBox;
 }
 
 // ═══════════════════════════════════════════════════════════════
