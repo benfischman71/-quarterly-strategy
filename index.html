@@ -229,7 +229,7 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 .pb-hold{background:#37415122;color:#9ca3af}
 .init-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
 .init-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;white-space:pre-line;max-height:100px;overflow-y:auto}
-.score-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.score-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;align-items:center}.clear-rank-btn{margin-left:auto;background:transparent;border:1px solid #1e2638;color:#5a6480;font-size:9px;padding:2px 7px;border-radius:4px;cursor:pointer;font-family:inherit}.clear-rank-btn:hover{color:#f87171;border-color:#f8717144}
 .sc{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .sc-impact{background:#fbbf2411;color:var(--amber)}
 .sc-effort{background:#60a5fa11;color:var(--blue)}
@@ -1534,10 +1534,11 @@ function renderInitiatives(){
       '<button data-iid="'+init.id+'" onclick="event.stopPropagation();deleteInit(this.getAttribute(\'data-iid\'))" style="position:absolute;top:8px;right:8px;background:#1e2638;border:1px solid #2a3450;color:#5a6480;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2;font-family:inherit" onmouseover="this.style.background=\'#2a1020\';this.style.color=\'#f87171\';this.style.borderColor=\'#f8717144\'" onmouseout="this.style.background=\'#1e2638\';this.style.color=\'#5a6480\';this.style.borderColor=\'#2a3450\'">&#10005;</button>'+
       '<div class="init-title">'+esc(init.title)+'</div>'+
       '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
-      '<div class="score-chips">'+
+      '<div class="score-chips" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'+
         '<span class="sc sc-impact">Impact '+init.impactScore+'</span>'+
         '<span class="sc sc-effort">Effort '+init.effortScore+'</span>'+
         '<span class="sc sc-mvp">MVP '+init.mvpScore+'</span>'+
+        '<button data-iid="'+init.id+'" onclick="event.stopPropagation();clearInitRanks(this.dataset.iid)" class="clear-rank-btn">&#8635; Reset</button>'+
       '</div>'+
       '<div class="init-meta">'+
         (init.expectedImpact?'<span style="color:var(--green)">&#128176; '+esc(init.expectedImpact)+'</span>':'')+
@@ -1552,16 +1553,17 @@ function renderInitiatives(){
     '<div class="module">'+
       '<div class="flex justify-between items-center mb-24">'+
         '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Initiatives</div><div style="font-size:13px;color:var(--muted)">Create and rank initiatives. All changes sync in real time.</div></div>'+
-        '<div style="display:flex;gap:10px">'+'<button class="btn btn-ghost" onclick="clearAllRanks()" style="font-size:13px;color:#f87171;border-color:#f8717133">&#10005; Clear Ranks</button>'+'<button class="btn btn-ghost" onclick="openGridModal()" style="font-size:13px">&#9783; Grid View</button>'+'<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+'</div>'+
+        '<div style="display:flex;gap:10px">'+'<button class="btn btn-ghost" onclick="openGridModal()" style="font-size:13px">&#9783; Grid View</button>'+'<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+'</div>'+
       '</div>'+
       '<div class="section-label">Active Initiatives</div>'+
       '<div class="grid-3">'+activeHtml+'</div>'+
       (hold.length?'<div class="section-label mt-24">On Hold</div><div class="grid-3">'+holdHtml+'</div>':'')+
     '</div>';
 }
+function clearInitRanks(id){var init=state.initiatives.find(function(i){return i.id===id;});if(!init)return;init.impactScore=0;init.effortScore=0;init.mvpScore=0;scheduleSave();renderInitiatives();}
 function clearAllRanks(){
   if(!confirm('Reset all Impact, Effort, and MVP scores to 5? This cannot be undone.'))return;
-  state.initiatives.forEach(function(i){i.impactScore=5;i.effortScore=5;i.mvpScore=5;});
+  state.initiatives.forEach(function(i){i.impactScore=0;i.effortScore=0;i.mvpScore=0;});
   scheduleSave();renderInitiatives();toast('All ranks cleared.');
 }
 function createInitiative(){
