@@ -514,16 +514,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         <button class="btn btn-ghost btn-sm" onclick="shareWorkspace()" title="Share workspace">&#128279; Share</button>
         <button class="btn btn-ghost btn-sm" onclick="openWsSelector()">&#9776; Workspaces</button>
       </div>
-      <div style="display:flex;align-items:center;gap:5px">
-        <a href="https://claude.ai/chat/59724a4b-4b9e-42ad-badf-9855f97c5241" target="_blank" class="hdr-link">
-          <span class="hdr-link-icon" style="background:#d97706">✦</span>Claude
-        </a>
-        <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" class="hdr-link">
-          <span class="hdr-link-icon" style="background:#3ecf8e">⚡</span>Supabase
-        </a>
-        <a href="https://github.com/benfischman71/-quarterly-strategy/blob/main/index.html" target="_blank" class="hdr-link">
-          <span class="hdr-link-icon" style="background:#24292e">&#128025;</span>GitHub
-        </a>
+      <div style="position:relative" id="dev-dropdown-wrap">
+        <button onclick="document.getElementById('dev-menu').style.display=document.getElementById('dev-menu').style.display==='block'?'none':'block'" style="background:#111827;border:1px solid #1e2638;color:#5a6480;padding:5px 10px;border-radius:7px;cursor:pointer;font-size:11px;font-family:inherit;display:flex;align-items:center;gap:5px">⚙ Dev ▾</button>
+        <div id="dev-menu" style="display:none;position:absolute;right:0;top:32px;background:#111827;border:1px solid #1e2638;border-radius:10px;padding:6px;z-index:999;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+          <a href="https://claude.ai/chat/59724a4b-4b9e-42ad-badf-9855f97c5241" target="_blank" class="hdr-link" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;color:#e8e4d9;font-size:12px;text-decoration:none;white-space:nowrap" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="background:#d97706;width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">✦</span>Claude Chat</a>
+          <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" class="hdr-link" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;color:#e8e4d9;font-size:12px;text-decoration:none;white-space:nowrap" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="background:#3ecf8e;width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">⚡</span>Supabase</a>
+          <a href="https://github.com/benfischman71/-quarterly-strategy/blob/main/index.html" target="_blank" class="hdr-link" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;color:#e8e4d9;font-size:12px;text-decoration:none;white-space:nowrap" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="background:#24292e;width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">🐙</span>GitHub</a>
+          <div style="border-top:1px solid #1e2638;margin:4px 0"></div>
+          <button onclick="location.reload()" style="width:100%;background:transparent;border:none;color:#e8e4d9;font-size:12px;padding:7px 10px;border-radius:7px;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="background:#374151;width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">↻</span>Refresh</button>
+        </div>
       </div>
       <div id="user-pill" class="user-pill">
         <div class="dot"></div>
@@ -3083,5 +3082,11 @@ sb.auth.onAuthStateChange(function(event,session){
 
 <!-- Quick Links moved to header -->
 <div style="position:fixed;bottom:8px;left:12px;font-size:10px;color:#374151;font-family:monospace;z-index:9999;background:#0d1220;padding:2px 6px;border-radius:4px;border:1px solid #1e2638">v2026.03.22.1802</div>
-</body>
+<script>
+document.addEventListener('click',function(e){
+  var wrap=document.getElementById('dev-dropdown-wrap');
+  var menu=document.getElementById('dev-menu');
+  if(wrap&&menu&&!wrap.contains(e.target))menu.style.display='none';
+});
+</script></body>
 </html>
