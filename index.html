@@ -28,15 +28,6 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 #header .title{font-family:var(--font-serif);font-size:20px;color:var(--text)}
 #header .sub{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
 #header .right{margin-left:auto;display:flex;align-items:center;gap:12px}
-#user-pill{background:var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;user-select:none;position:relative;}
-#user-pill:hover{background:#2a3450;}
-#user-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#111827;border:1px solid #1e2638;border-radius:12px;padding:8px;min-width:200px;z-index:999;box-shadow:0 8px 32px #00000066;display:none;}
-#user-dropdown.open{display:block;}
-.ud-email{font-size:11px;color:#5a6480;padding:8px 10px 4px;word-break:break-all;}
-.ud-divider{height:1px;background:#1e2638;margin:6px 0;}
-.ud-btn{display:block;width:100%;text-align:left;background:transparent;border:none;color:#c8d4e8;font-size:13px;padding:8px 10px;border-radius:7px;cursor:pointer;font-family:inherit;}
-.ud-btn:hover{background:#1e2638;}
-.ud-btn.danger{color:#f87171;}
 #user-pill{background:var(--border);border-radius:20px;padding:4px 12px;font-size:12px;
   color:var(--muted);display:flex;align-items:center;gap:8px}
 #user-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
@@ -229,7 +220,7 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 .pb-hold{background:#37415122;color:#9ca3af}
 .init-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
 .init-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;white-space:pre-line;max-height:100px;overflow-y:auto}
-.score-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;align-items:center}.clear-rank-btn{margin-left:auto;background:transparent;border:1px solid #1e2638;color:#5a6480;font-size:9px;padding:2px 7px;border-radius:4px;cursor:pointer;font-family:inherit}.clear-rank-btn:hover{color:#f87171;border-color:#f8717144}
+.score-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .sc{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .sc-impact{background:#fbbf2411;color:var(--amber)}
 .sc-effort{background:#60a5fa11;color:var(--blue)}
@@ -381,7 +372,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 .hdr-link:hover{border-color:#c9a84c44;color:#c9a84c}
 .ig-wrap{overflow-x:auto;padding-bottom:20px}
 .ig-table{border-collapse:collapse;min-width:100%;font-size:12px;table-layout:fixed}
-.ig-table th{background:#0a0d14;color:#5a6480;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 12px;border:1px solid #1e2638;white-space:normal;word-break:break-word;position:sticky;top:0;z-index:2;vertical-align:top}
+.ig-table th{background:#0a0d14;color:#5a6480;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 12px;border:1px solid #1e2638;white-space:nowrap;position:sticky;top:0;z-index:2}
 .ig-table th:first-child{position:sticky;left:0;z-index:3;background:#0a0d14;min-width:180px;max-width:180px}
 .ig-table td{border:1px solid #1e2638;padding:0;vertical-align:middle}
 .ig-table td:first-child{position:sticky;left:0;background:#111827;z-index:1;min-width:180px;max-width:180px}
@@ -412,7 +403,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 /* Initiative Grid */
 .ig-wrap{overflow-x:auto;border:1px solid #1e2638;border-radius:12px;background:#111827}
 .ig-table{border-collapse:collapse;min-width:100%;font-size:12px}
-.ig-table th{background:#0d1220;color:#5a6480;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 8px;border:1px solid #1e2638;white-space:normal;word-break:break-word;vertical-align:top}
+.ig-table th{background:#0d1220;color:#5a6480;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:10px 8px;border:1px solid #1e2638;white-space:nowrap}
 .ig-table th:first-child{min-width:180px;text-align:left;background:#0a0d14}
 .ig-table td{border:1px solid #1e2638;padding:0;vertical-align:middle}
 .ig-table td:first-child{min-width:180px;background:#111827}
@@ -523,27 +514,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         <button class="btn btn-ghost btn-sm" onclick="shareWorkspace()" title="Share workspace">&#128279; Share</button>
         <button class="btn btn-ghost btn-sm" onclick="openWsSelector()">&#9776; Workspaces</button>
       </div>
-      <div style="position:relative">
-        <button onclick="toggleDevTools()" style="background:transparent;border:1px solid #1e2638;border-radius:6px;color:#5a6480;font-size:10px;font-weight:600;font-family:inherit;padding:4px 9px;cursor:pointer;letter-spacing:.05em" onmouseover="this.style.color='#c8d4e8'" onmouseout="this.style.color='#5a6480'">Dev Tools &#9660;</button>
-        <div id="dev-tools-dd" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#111827;border:1px solid #1e2638;border-radius:10px;padding:6px;min-width:150px;z-index:999;box-shadow:0 8px 24px #00000066">
-          <a href="https://claude.ai/chat/4588ff43-6159-4a71-b217-cdfb8ab1b24a" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;color:#c8d4e8;font-size:12px" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="width:18px;height:18px;border-radius:4px;background:#d97706;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">✦</span>Claude Chat</a>
-          <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;color:#c8d4e8;font-size:12px" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="width:18px;height:18px;border-radius:4px;background:#3ecf8e;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">⚡</span>Supabase</a>
-          <a href="https://github.com/benfischman71/-quarterly-strategy/blob/main/index.html" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;text-decoration:none;color:#c8d4e8;font-size:12px" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="width:18px;height:18px;border-radius:4px;background:#24292e;border:1px solid #444;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">&#128025;</span>GitHub</a>
-          <div style="height:1px;background:#1e2638;margin:4px 0"></div>
-          <button onclick="hardRefresh()" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;width:100%;background:transparent;border:none;color:#f87171;font-size:12px;font-family:inherit;cursor:pointer;text-align:left" onmouseover="this.style.background='#1e2638'" onmouseout="this.style.background='transparent'"><span style="width:18px;height:18px;border-radius:4px;background:#7f1d1d;display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">&#8635;</span>Clear Cache &amp; Refresh</button>
-        </div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <a href="https://claude.ai/chat/4588ff43-6159-4a71-b217-cdfb8ab1b24a" target="_blank" class="hdr-link">
+          <span class="hdr-link-icon" style="background:#d97706">✦</span>Claude
+        </a>
+        <a href="https://supabase.com/dashboard/project/epwicrjyjaugpjsxzzho/functions/secrets" target="_blank" class="hdr-link">
+          <span class="hdr-link-icon" style="background:#3ecf8e">⚡</span>Supabase
+        </a>
+        <a href="https://github.com/benfischman71/-quarterly-strategy/blob/main/index.html" target="_blank" class="hdr-link">
+          <span class="hdr-link-icon" style="background:#24292e">&#128025;</span>GitHub
+        </a>
       </div>
-      <div id="user-pill" class="user-pill" onclick="toggleUserDropdown()">
+      <div id="user-pill" class="user-pill">
         <div class="dot"></div>
         <span id="user-name-label">Loading...</span>
-        <span style="font-size:9px;color:#5a6480;margin-left:4px">&#9660;</span>
-        <div id="user-dropdown">
-          <div class="ud-email" id="ud-email-label"></div>
-          <div class="ud-divider"></div>
-          <button class="ud-btn" onclick="event.stopPropagation();copyToClipboard(currentUser&&currentUser.email||'')">Copy email</button>
-          <div class="ud-divider"></div>
-          <button class="ud-btn danger" onclick="event.stopPropagation();signOut()">Sign out</button>
-        </div>
       </div>
     </div>
   </div>
@@ -730,7 +714,6 @@ function switchAuthTab(mode){
   document.getElementById('remember-row').style.display=mode==='login'?'flex':'none';
   document.getElementById('auth-error').style.display='none';
 }
-function closeShareModal(){var m=document.getElementById('share-modal');if(m)m.remove();}
 function doAuth(){
   var email=document.getElementById('auth-email').value.trim();
   var pass=document.getElementById('auth-pass').value;
@@ -752,26 +735,6 @@ function doAuth(){
   });
 }
 function signOut(){sb.auth.signOut().then(function(){location.reload();});}
-function hardRefresh(){if(window.caches){window.caches.keys().then(function(names){Promise.all(names.map(function(n){return window.caches.delete(n);})).then(function(){location.reload(true);});});}else{location.reload(true);}}
-function toggleDevTools(){var dd=document.getElementById('dev-tools-dd');if(!dd)return;var open=dd.style.display==='block';dd.style.display=open?'none':'block';if(!open)setTimeout(function(){document.addEventListener('click',function h(){dd.style.display='none';document.removeEventListener('click',h);},{once:true});},0);}
-function toggleUserDropdown(){
-  var dd=document.getElementById('user-dropdown');
-  if(!dd)return;
-  dd.classList.toggle('open');
-  if(dd.classList.contains('open')){
-    var el=document.getElementById('ud-email-label');
-    if(el&&currentUser)el.textContent=currentUser.email||'';
-    setTimeout(function(){document.addEventListener('click',closeUserDropdown,{once:true});},0);
-  }
-}
-function closeUserDropdown(){
-  var dd=document.getElementById('user-dropdown');
-  if(dd)dd.classList.remove('open');
-}
-function copyToClipboard(text){
-  if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){toast('Copied!');});}
-  else{var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Copied!');}
-}
 
 // ═══════════════════════════════════════════════════════════════
 // WORKSPACE MANAGEMENT
@@ -900,126 +863,94 @@ function openWorkspace(wsId){
 }
 function shareWorkspace(){
   if(!currentWs){toast('No workspace open','error');return;}
+
   var old=document.getElementById('share-modal');
   if(old)old.remove();
   var overlay=document.createElement('div');
   overlay.id='share-modal';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.85);z-index:9999;display:flex;align-items:center;justify-content:center';
-  var wsName=esc(currentWs.name);
-  var appUrl='https://benfischman71.github.io/-quarterly-strategy/?ws='+(currentWs?currentWs.id:'');
-  var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
-  var defaultMsg=senderName+' shared the "'+currentWs.name+'" strategy workspace with you.\n\nOpen it here: '+appUrl;
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(8,13,22,.8);z-index:9999;display:flex;align-items:center;justify-content:center';
   var box=document.createElement('div');
-  box.style.cssText='background:#111827;border:1px solid #1e2638;border-radius:16px;padding:28px 28px 24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto';
+  box.style.cssText='background:#111827;border:1px solid #1e2638;border-radius:14px;padding:28px;width:460px;max-width:95vw';
   box.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
-      '<div style="font-family:Georgia,serif;font-size:18px;color:#e8e4d9">Share Workspace</div>'+
-      '<button onclick="closeShareModal()" style="background:none;border:none;color:#5a6480;font-size:20px;cursor:pointer;line-height:1;padding:0 4px">&times;</button>'+
+    '<div style="font-family:Georgia,serif;font-size:18px;color:#e8e4d9;margin-bottom:6px">Share Workspace</div>'+
+    '<div style="font-size:12px;color:#5a6480;margin-bottom:20px">Invite a collaborator to "'+esc(currentWs.name)+'"</div>'+
+    '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Email Address</label>'+
+    '<input id="share-email-input" type="email" placeholder="colleague@company.com" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;margin-bottom:12px">'+
+    '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Personal Message (optional)</label>'+
+    '<textarea id="share-message-input" placeholder="Hey, I'd love your input on our Q2 strategy..." style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;min-height:72px;resize:none;margin-bottom:20px;line-height:1.5"></textarea>'+
+    '<div style="display:flex;gap:10px">'+
+      '<button id="share-send-btn" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">Share & Send Invite</button>'+
+      '<button onclick="document.getElementById('share-modal').remove()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
     '</div>'+
-    '<div style="font-size:12px;color:#5a6480;margin-bottom:22px">'+wsName+'</div>'+
-    '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">Send via</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:22px">'+
-      '<button data-ch="email" onclick="shareVia(this.dataset.ch)" style="background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 8px;cursor:pointer;font-family:inherit;color:#c8d4e8;font-size:12px;font-weight:600;text-align:center;transition:border-color .15s"><div style="font-size:22px;margin-bottom:6px">&#9993;</div>Email</button>'+
-      '<button data-ch="slack" onclick="shareVia(this.dataset.ch)" style="background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 8px;cursor:pointer;font-family:inherit;color:#c8d4e8;font-size:12px;font-weight:600;text-align:center"><div style="font-size:22px;margin-bottom:6px">&#128172;</div>Slack</button>'+
-      '<button data-ch="text" onclick="shareVia(this.dataset.ch)" style="background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 8px;cursor:pointer;font-family:inherit;color:#c8d4e8;font-size:12px;font-weight:600;text-align:center"><div style="font-size:22px;margin-bottom:6px">&#128247;</div>Text</button>'+
-    '</div>'+
-    '<div id="share-channel-form" style="display:none">'+
-      '<div id="share-email-row" style="display:none;margin-bottom:12px">'+
-        '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Recipient Email</label>'+
-        '<input id="share-email-input" type="email" placeholder="colleague@company.com" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box">'+
-      '</div>'+
-      '<div id="share-phone-row" style="display:none;margin-bottom:12px">'+
-        '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Phone Number</label>'+
-        '<input id="share-phone-input" type="tel" placeholder="+1 555 000 0000" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:14px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box">'+
-      '</div>'+
-      '<label style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px">Message</label>'+
-      '<textarea id="share-message-input" style="width:100%;background:#0d1220;border:1px solid #2a3450;border-radius:8px;color:#e8e4d9;font-size:13px;padding:10px 14px;outline:none;font-family:inherit;box-sizing:border-box;height:80px;resize:none;line-height:1.5;margin-bottom:14px"></textarea>'+
-      '<div style="display:flex;gap:10px">'+
-        '<button id="share-send-btn" style="flex:1;background:#c9a84c;border:none;color:#0a0e1a;padding:10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">Send</button>'+
-        '<button onclick="closeShareModal()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Cancel</button>'+
-      '</div>'+
-      '<div id="share-status" style="margin-top:12px;font-size:12px;color:#5a6480"></div>'+
-    '</div>';
+    '<div id="share-status" style="margin-top:12px;font-size:12px;color:#5a6480"></div>';
   overlay.appendChild(box);
   document.body.appendChild(overlay);
-  window._shareChannel=null;
-  window._shareMsg=defaultMsg;
-}
-function shareVia(channel){
-  window._shareChannel=channel;
-  var wsName=currentWs?currentWs.name:'Quarterly Strategy';
-  var appUrl='https://benfischman71.github.io/-quarterly-strategy/?ws='+(currentWs?currentWs.id:'');
-  var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
-  var msg=senderName+' shared the "'+wsName+'" strategy workspace with you. Open it here: '+appUrl;
-  var form=document.getElementById('share-channel-form');
-  var emailRow=document.getElementById('share-email-row');
-  var phoneRow=document.getElementById('share-phone-row');
-  var msgTA=document.getElementById('share-message-input');
-  var sendBtn=document.getElementById('share-send-btn');
-  if(form)form.style.display='block';
-  if(emailRow)emailRow.style.display=(channel==='email')?'block':'none';
-  if(phoneRow)phoneRow.style.display=(channel==='text')?'block':'none';
-  if(msgTA)msgTA.value=msg;
-  if(sendBtn){
-    sendBtn.textContent=channel==='email'?'Open Mail App':channel==='slack'?'Open Slack':'Open Messages';
-    sendBtn.onclick=function(){
-      var message=document.getElementById('share-message-input').value.trim();
-      if(channel==='email'){
-        var email=document.getElementById('share-email-input').value.trim();
-        var subject=senderName+' shared a strategy workspace: '+wsName;
-        var mailtoLink='mailto:'+(email?encodeURIComponent(email):'')+('?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(message));
-        window.open(mailtoLink,'_blank');
-        if(email){
-          sb.from('profiles').select('id').eq('email',email).maybeSingle().then(function(r){
-            if(!r.error&&r.data){sb.from('workspace_members').upsert({workspace_id:currentWs.id,user_id:r.data.id}).then(function(){});}
-          });
-        }
-        showShareConfirm('Mail opened in a new window.');
-      } else if(channel==='slack'){
-        var slackLink='slack://open';
-        window.open(slackLink,'_blank');
-        copyToClipboard(message);
-        showShareConfirm('Slack opened + message copied to clipboard. Paste to send.');
-      } else if(channel==='text'){
-        var phone=document.getElementById('share-phone-input').value.trim();
-        var smsLink='sms:'+(phone?encodeURIComponent(phone):'')+(phone?'&':'?')+'body='+encodeURIComponent(message);
-        window.open(smsLink,'_blank');
-        showShareConfirm('Messages opened in a new window.');
+  document.getElementById('share-email-input').focus();
+
+  document.getElementById('share-send-btn').onclick=function(){
+    var email=document.getElementById('share-email-input').value.trim().toLowerCase();
+    var message=document.getElementById('share-message-input').value.trim();
+    var statusEl=document.getElementById('share-status');
+    if(!email){statusEl.textContent='Please enter an email address.';statusEl.style.color='#f87171';return;}
+    statusEl.textContent='Adding access...';statusEl.style.color='#5a6480';
+    document.getElementById('share-send-btn').disabled=true;
+
+    // Step 1: Try to find existing user and add to workspace_members immediately
+    sb.from('profiles').select('id').eq('email',email).single().then(function(r){
+      var addMemberPromise;
+      if(r.data&&r.data.id){
+        // User exists - add directly
+        addMemberPromise=sb.from('workspace_members').upsert({workspace_id:currentWs.id,user_id:r.data.id,role:'editor'}).then(function(r2){
+          return {existed:true,error:r2.error};
+        });
+      } else {
+        addMemberPromise=Promise.resolve({existed:false,error:null});
       }
-    };
-  }
-  if(channel==='email'){
-    var ei=document.getElementById('share-email-input');
-    if(ei)ei.focus();
-  } else if(channel==='text'){
-    var pi=document.getElementById('share-phone-input');
-    if(pi)pi.focus();
-  } else {
-    var mi=document.getElementById('share-message-input');
-    if(mi)mi.focus();
-  }
+
+      // Step 2: Always store email in pending_invites in workspace data
+      if(!state.pending_invites)state.pending_invites=[];
+      if(state.pending_invites.indexOf(email)<0){
+        state.pending_invites.push(email);
+        scheduleSave();
+      }
+
+      addMemberPromise.then(function(res){
+        if(res.error){
+          statusEl.textContent='Error granting access: '+res.error.message;
+          statusEl.style.color='#f87171';
+          document.getElementById('share-send-btn').disabled=false;
+          return;
+        }
+        // Step 3: Send email invite
+        sendShareEmail(email, message);
+        if(res.existed){
+          statusEl.textContent='✓ Access granted + invite email opened!';
+        } else {
+          statusEl.textContent='✓ Invite saved — they'll get access when they sign up. Email opened!';
+        }
+        statusEl.style.color='#4ade80';
+        setTimeout(function(){var m=document.getElementById('share-modal');if(m)m.remove();},2500);
+      });
+    });
+  };
+
+  document.getElementById('share-email-input').onkeydown=function(e){
+    if(e.key==='Enter')document.getElementById('share-send-btn').click();
+  };
 }
-function showShareConfirm(msg){
-  var statusEl=document.getElementById('share-status');
-  if(statusEl){statusEl.textContent='✓ '+msg;statusEl.style.color='#4ade80';}
-  setTimeout(function(){closeShareModal();},3000);
-}
-function copyShareMessage(){
-  var t=document.getElementById('share-copy-body');
-  if(!t)return;
-  t.select();
-  document.execCommand('copy');
-  var btn=document.getElementById('share-copy-btn');
-  if(btn)btn.textContent='Copied!';
-}
+
+
 function sendShareEmail(toEmail, personalMessage, hasAccess){
   var wsName=currentWs?currentWs.name:'Quarterly Strategy';
-  var appUrl='https://benfischman71.github.io/-quarterly-strategy/?ws='+(currentWs?currentWs.id:'');
+  var wsId=currentWs?currentWs.id:''; var appUrl='https://benfischman71.github.io/-quarterly-strategy/'+(wsId?'?ws='+wsId:'');
   var senderName=(currentUser&&currentUser.email)?currentUser.email.split('@')[0]:'Your colleague';
-  var subject=senderName+' shared a strategy workspace with you: '+wsName;
-  var body=personalMessage||('Check out the '+wsName+' workspace: '+appUrl);
-  var mailtoLink='mailto:'+encodeURIComponent(toEmail)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
-  window.open(mailtoLink);
+  var subject=encodeURIComponent(senderName+' shared a strategy workspace with you: '+wsName);
+  var body='Hi,\n\n'+senderName+' has '+(hasAccess?'given you access to':'invited you to join')+' the "'+wsName+'" workspace on the Quarterly Strategy Platform.\n\n';
+  if(personalMessage)body+=personalMessage+'\n\n';
+  body+=(hasAccess?'You can access it here:':'Sign up and you\'ll be added here:')+' '+appUrl+'\n\n';
+  body+='— Sent via Quarterly Strategy Platform';
+  var mailtoLink='mailto:'+encodeURIComponent(toEmail)+'?subject='+subject+'&body='+encodeURIComponent(body);
+  window.location.href=mailtoLink;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1121,7 +1052,7 @@ function renderOverview(){
       '<div id="ovd-view-'+di+'" style="padding:16px 18px 14px">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
           '<span style="font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px;background:'+pillBg+';color:'+pillColor+'">'+urgLabel+'</span>'+
-          '<div style="display:flex;gap:5px">'+'<button data-did="'+di+'" onclick="ovEditDriver(this)" style="background:none;border:1px solid #1e2638;color:#5a6480;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit;border-radius:4px">&#9998; Edit</button>'+'<button data-did="'+di+'" onclick="ovDelDriver(this)" style="background:none;border:1px solid #1e2638;color:#5a6480;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit;border-radius:4px" onmouseover="this.style.color=\'#f87171\';this.style.borderColor=\'#f8717144\'" onmouseout="this.style.color=\'#5a6480\';this.style.borderColor=\'#1e2638\'">&#10005;</button>'+'</div>'+
+          '<button data-did="'+di+'" onclick="ovEditDriver(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:11px;padding:2px 8px;font-family:inherit;border-radius:4px;border:1px solid #1e2638">&#9998; Edit</button>'+
         '</div>'+
         '<div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:10px;line-height:1.3">'+esc(d.label)+'</div>'+
         bulletsView+
@@ -1369,24 +1300,22 @@ function openGridModal(){
   headRow.appendChild(thInit);
   g.drivers.forEach(function(d,di){
     var th=document.createElement('th');
-    th.style.cssText='padding:8px 8px 6px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:120px;max-width:160px;position:relative;vertical-align:middle';
+    th.style.cssText='padding:6px 8px;background:#0a0d14;border:1px solid #1e2638;text-align:center;min-width:160px;position:relative';
     var wrap=document.createElement('div');
-    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:5px';
-    var lbl=document.createElement('div');
-    lbl.contentEditable=true;
-    lbl.textContent=d;
-    lbl.dataset.di=di;
-    lbl.style.cssText='color:#c9a84c;font-size:10px;font-weight:700;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase;white-space:normal;word-break:break-word;line-height:1.5;min-width:80px;width:100%;cursor:text;padding:2px 4px;border-radius:3px;min-height:18px';
-    lbl.addEventListener('blur',function(){gridUpdateDriverCE(this);});
-    lbl.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();this.blur();}});
+    wrap.style.cssText='display:flex;flex-direction:column;align-items:center;gap:4px';
+    var inp=document.createElement('input');
+    inp.value=d;
+    inp.dataset.di=di;
+    inp.style.cssText='background:transparent;border:none;color:#c9a84c;font-size:10px;font-weight:700;width:130px;outline:none;font-family:inherit;text-align:center;letter-spacing:.06em;text-transform:uppercase;white-space:normal;word-break:break-word';
+    inp.oninput=function(){gridUpdateDriver(this);};
     var delBtn=document.createElement('button');
     delBtn.textContent='✕ Remove';
     delBtn.dataset.di=di;
-    delBtn.style.cssText='background:transparent;border:none;color:#374151;font-size:9px;cursor:pointer;font-family:inherit;padding:1px 4px;border-radius:3px;flex-shrink:0';
+    delBtn.style.cssText='background:transparent;border:none;color:#374151;font-size:9px;cursor:pointer;font-family:inherit;padding:1px 4px;border-radius:3px';
     delBtn.onmouseover=function(){this.style.color='#f87171';};
     delBtn.onmouseout=function(){this.style.color='#374151';};
     delBtn.onclick=function(){gridDelDriver(+this.dataset.di);};
-    wrap.appendChild(lbl);
+    wrap.appendChild(inp);
     wrap.appendChild(delBtn);
     th.appendChild(wrap);
     headRow.appendChild(th);
@@ -1479,7 +1408,6 @@ function gridClearAllScores(){
   scheduleSave();
   openGridModal();
 }
-function gridUpdateDriverCE(el){var di=+el.dataset.di;var g=getGrid();if(g.drivers[di]!==undefined){g.drivers[di]=el.textContent.trim();scheduleSave();}}
 function gridUpdateDriver(input){
   var di=+input.getAttribute('data-di');
   state.grid.drivers[di]=input.value;
@@ -1534,11 +1462,10 @@ function renderInitiatives(){
       '<button data-iid="'+init.id+'" onclick="event.stopPropagation();deleteInit(this.getAttribute(\'data-iid\'))" style="position:absolute;top:8px;right:8px;background:#1e2638;border:1px solid #2a3450;color:#5a6480;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2;font-family:inherit" onmouseover="this.style.background=\'#2a1020\';this.style.color=\'#f87171\';this.style.borderColor=\'#f8717144\'" onmouseout="this.style.background=\'#1e2638\';this.style.color=\'#5a6480\';this.style.borderColor=\'#2a3450\'">&#10005;</button>'+
       '<div class="init-title">'+esc(init.title)+'</div>'+
       '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
-      '<div class="score-chips" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">'+
+      '<div class="score-chips">'+
         '<span class="sc sc-impact">Impact '+init.impactScore+'</span>'+
         '<span class="sc sc-effort">Effort '+init.effortScore+'</span>'+
         '<span class="sc sc-mvp">MVP '+init.mvpScore+'</span>'+
-        '<button data-iid="'+init.id+'" onclick="event.stopPropagation();clearInitRanks(this.dataset.iid)" class="clear-rank-btn">&#8635; Reset</button>'+
       '</div>'+
       '<div class="init-meta">'+
         (init.expectedImpact?'<span style="color:var(--green)">&#128176; '+esc(init.expectedImpact)+'</span>':'')+
@@ -1559,12 +1486,6 @@ function renderInitiatives(){
       '<div class="grid-3">'+activeHtml+'</div>'+
       (hold.length?'<div class="section-label mt-24">On Hold</div><div class="grid-3">'+holdHtml+'</div>':'')+
     '</div>';
-}
-function clearInitRanks(id){var init=state.initiatives.find(function(i){return i.id===id;});if(!init)return;init.impactScore=0;init.effortScore=0;init.mvpScore=0;scheduleSave();renderInitiatives();}
-function clearAllRanks(){
-  if(!confirm('Reset all Impact, Effort, and MVP scores to 5? This cannot be undone.'))return;
-  state.initiatives.forEach(function(i){i.impactScore=0;i.effortScore=0;i.mvpScore=0;});
-  scheduleSave();renderInitiatives();toast('All ranks cleared.');
 }
 function createInitiative(){
   var n={id:uid(),title:'New Initiative',status:'active',description:'',whatWhyWhen:'',impactScore:5,effortScore:5,mvpScore:5,expectedImpact:'',monthlyRunRate:'',launchDate:'',rampWeeks:0,launchStatus:'planning'};
@@ -1618,12 +1539,8 @@ function openInitPanel(id){
       '<div id="panel-file-box-'+id+'" class="claude-box" style="display:none;margin-top:8px"></div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
-      '<div class="field" style="margin:0">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
-      '<label class="field-label" style="margin:0">Launch Date</label>'+
-      '<button data-lid="'+id+'" onclick="clearLaunchDate(this.dataset.lid)" style="background:none;border:none;color:#c9a84c;font-size:10px;cursor:pointer;font-family:inherit;padding:0">&#10005; clear</button>'+
-      '</div>'+
-      '<input type="date" class="input" data-iid="'+id+'" data-field="launchDate" value="'+(init.launchDate||'')+'" onchange="panelUpdateInit(this)" /></div>'+
+      '<div class="field" style="margin:0"><label class="field-label">Launch Date</label>'+
+        '<input type="date" class="input" data-iid="'+id+'" data-field="launchDate" value="'+(init.launchDate||'')+'" onchange="panelUpdateInit(this)" /></div>'+
       '<div class="field" style="margin:0"><label class="field-label">Ramp Weeks</label>'+
         '<input type="number" class="input" min="0" max="12" data-iid="'+id+'" data-field="rampWeeks" value="'+(init.rampWeeks||0)+'" onchange="panelUpdateInitNum(this)" /></div>'+
     '</div>'+
@@ -1814,8 +1731,6 @@ function panelCancelField(which, id){
   if(edit)edit.style.display='none';
   if(btns)btns.style.display='none';
 }
-function toggleClearDate(inp){var btn=document.getElementById("clear-date-"+inp.dataset.iid);if(btn)btn.style.display=inp.value?"inline":"none";}
-function clearLaunchDate(id){var init=state.initiatives.find(function(i){return i.id===id;});if(!init)return;init.launchDate="";scheduleSave();var inp=document.querySelector('[data-iid="'+id+'"][data-field="launchDate"]');if(inp)inp.valueAsDate=null;}
 function panelUpdateInit(el){
   var id=el.getAttribute('data-iid');
   var field=el.getAttribute('data-field');
@@ -2397,8 +2312,6 @@ function ovCancelDriver(btn){
 }
 function ovDelDriver(btn){
   var di=+btn.getAttribute('data-did');
-  var d=state.overview.drivers[di];
-  if(!confirm('Delete driver "'+((d&&d.label)||'this driver')+'"?'))return;
   state.overview.drivers.splice(di,1);
   scheduleSave();renderOverview();
 }
@@ -2437,24 +2350,6 @@ function ovAddBullet(btn){
   var di=+btn.getAttribute('data-did');
   state.overview.drivers[di].bullets.push('');
   scheduleSave();renderOverview();
-}
-function ovClaudeAnalysis(){
-  var btn=document.getElementById('btn-ov-claude');
-  var box=document.getElementById('ov-claude-box');
-  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px;font-weight:600">&#9734; Analyzing risks...</div>';box.style.display='block';}
-  if(btn)btn.disabled=true;
-  var ov=state.overview;
-  var stats=(ov.stats||[]).map(function(s){return s.label+': '+s.val+(s.delta?' ('+s.delta+' YoY)':'')+(s.qoq?' ('+s.qoq+' QoQ)':'');}).join(', ');
-  var drivers=(ov.drivers||[]).map(function(d){return d.urgency.toUpperCase()+' - '+d.label+': target '+d.target;}).join('; ');
-  var mustDos=(ov.must_dos||[]).join('; ');
-  var prompt='You are a strategy advisor reviewing a quarterly business overview for '+ov.quarter+'. Key metrics: '+stats+'. Strategic drivers: '+drivers+'. Must-dos: '+(mustDos||'none listed')+'. Write a concise risk analysis with three sections: **Top Risks** (3 bullets max, specific to data shown), **Watch Closely** (1-2 items), **Recommended Actions** (2-3 concrete moves). Be specific to the numbers. No generic advice.';
-  askClaude(prompt,'btn-ov-claude','ov-claude-box',function(text){
-    if(btn)btn.disabled=false;
-    if(box){
-      var html=esc(text).replace(/\*\*([^*]+)\*\*/g,'<strong style="color:#e8e4d9">$1</strong>').replace(/\n/g,'<br>');
-      box.innerHTML=html;
-    }
-  });
 }
 function loadDriverTemplate(){
   if(!confirm('Load the Q2 2026 template? This will replace any existing drivers.'))return;
@@ -3104,16 +2999,45 @@ function handleSession(session){
     document.getElementById('app').style.display='flex';
     var name=(session.user.user_metadata&&session.user.user_metadata.name)||session.user.email.split('@')[0];
     document.getElementById('user-name-label').textContent=name;
-    var wsParam=new URLSearchParams(window.location.search).get('ws');
-    loadWorkspaces().then(function(wss){
-      var all=wss.owned.concat(wss.shared);
-      if(wsParam){
-        var target=all.find(function(w){return w.id===wsParam;});
-        if(target){openWorkspace(target.id);return;}
-      }
-      if(all.length===1){openWorkspace(all[0].id);}
-      else if(all.length===0){createWorkspace();}
-      else{openWsSelector();}
+    var urlWsId=new URLSearchParams(window.location.search).get('ws');
+    var userEmail=session.user.email.toLowerCase();
+
+    // Check pending invites: find any workspace where this email was invited
+    // We do this by loading all workspaces (owned+shared) and checking pending_invites in data
+    var autoGrantPromise=urlWsId?
+      sb.from('workspaces').select('id,data,owner_id').eq('id',urlWsId).single().then(function(r){
+        if(!r.data)return null;
+        var wsData=r.data.data||{};
+        var pending=wsData.pending_invites||[];
+        if(pending.indexOf(userEmail)>=0){
+          // Auto-grant: add to workspace_members
+          return sb.from('profiles').select('id').eq('email',userEmail).single().then(function(pr){
+            if(!pr.data)return null;
+            return sb.from('workspace_members').upsert({workspace_id:urlWsId,user_id:pr.data.id,role:'editor'}).then(function(){
+              return urlWsId;
+            });
+          });
+        }
+        return null;
+      }):Promise.resolve(null);
+
+    autoGrantPromise.then(function(){
+      loadWorkspaces().then(function(wss){
+        var all=wss.owned.concat(wss.shared);
+        if(urlWsId){
+          var linked=all.find(function(w){return w.id===urlWsId;});
+          if(linked){
+            window.history.replaceState({},'',window.location.pathname);
+            openWorkspace(linked.id);
+            return;
+          } else {
+            toast('Workspace not found or access pending — contact the owner.','error');
+          }
+        }
+        if(all.length===1){openWorkspace(all[0].id);}
+        else if(all.length===0){createWorkspace();}
+        else{openWsSelector();}
+      });
     });
   } else {
     document.getElementById('auth-overlay').style.display='flex';
