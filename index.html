@@ -28,6 +28,15 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 #header .title{font-family:var(--font-serif);font-size:20px;color:var(--text)}
 #header .sub{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
 #header .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+#user-pill{background:var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;user-select:none;position:relative;}
+#user-pill:hover{background:#2a3450;}
+#user-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:#111827;border:1px solid #1e2638;border-radius:12px;padding:8px;min-width:200px;z-index:999;box-shadow:0 8px 32px #00000066;display:none;}
+#user-dropdown.open{display:block;}
+.ud-email{font-size:11px;color:#5a6480;padding:8px 10px 4px;word-break:break-all;}
+.ud-divider{height:1px;background:#1e2638;margin:6px 0;}
+.ud-btn{display:block;width:100%;text-align:left;background:transparent;border:none;color:#c8d4e8;font-size:13px;padding:8px 10px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.ud-btn:hover{background:#1e2638;}
+.ud-btn.danger{color:#f87171;}
 #user-pill{background:var(--border);border-radius:20px;padding:4px 12px;font-size:12px;
   color:var(--muted);display:flex;align-items:center;gap:8px}
 #user-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
@@ -525,9 +534,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
           <span class="hdr-link-icon" style="background:#24292e">&#128025;</span>GitHub
         </a>
       </div>
-      <div id="user-pill" class="user-pill">
+      <div id="user-pill" class="user-pill" onclick="toggleUserDropdown()">
         <div class="dot"></div>
         <span id="user-name-label">Loading...</span>
+        <span style="font-size:9px;color:#5a6480;margin-left:4px">&#9660;</span>
+        <div id="user-dropdown">
+          <div class="ud-email" id="ud-email-label"></div>
+          <div class="ud-divider"></div>
+          <button class="ud-btn" onclick="event.stopPropagation();copyToClipboard(currentUser&&currentUser.email||'')">Copy email</button>
+          <div class="ud-divider"></div>
+          <button class="ud-btn danger" onclick="event.stopPropagation();signOut()">Sign out</button>
+        </div>
       </div>
     </div>
   </div>
@@ -736,6 +753,24 @@ function doAuth(){
   });
 }
 function signOut(){sb.auth.signOut().then(function(){location.reload();});}
+function toggleUserDropdown(){
+  var dd=document.getElementById('user-dropdown');
+  if(!dd)return;
+  dd.classList.toggle('open');
+  if(dd.classList.contains('open')){
+    var el=document.getElementById('ud-email-label');
+    if(el&&currentUser)el.textContent=currentUser.email||'';
+    setTimeout(function(){document.addEventListener('click',closeUserDropdown,{once:true});},0);
+  }
+}
+function closeUserDropdown(){
+  var dd=document.getElementById('user-dropdown');
+  if(dd)dd.classList.remove('open');
+}
+function copyToClipboard(text){
+  if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){toast('Copied!');});}
+  else{var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('Copied!');}
+}
 
 // ═══════════════════════════════════════════════════════════════
 // WORKSPACE MANAGEMENT
