@@ -654,7 +654,7 @@ var state = blankState('Q2 2026');
 // ═══════════════════════════════════════════════════════════════
 function fmt$(n){var a=Math.abs(n);if(a>=1000000)return'$'+(n/1000000).toFixed(2)+'M';if(a>=1000)return'$'+Math.round(n/1000)+'K';return'$'+Math.round(n);}
 function fmtN(n,u){if(u==='$')return fmt$(n);if(u==='%')return n+'%';if(Math.abs(n)>=1000)return(n/1000).toFixed(1)+'K';return String(Math.round(n));}
-function getPriority(i,e,m){var s=i*2-e+m;if(s>=15)return'HIGH';if(s>=8)return'MED';return'LOW';}
+function getPriority(i,e,m){var s=i*2-e;if(s>=10)return'HIGH';if(s>=4)return'MED';return'LOW';}
 function uid(){return'i'+Date.now().toString(36)+Math.random().toString(36).slice(2);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='error'?'#f8717133':'var(--border)';t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
@@ -2237,51 +2237,88 @@ function unmapInit(btn){
   renderMapping();
 }
 
+var _scoreWeights={impact:50,ease:35,drivers:15};
+function claudePowerScore(init, allDrivers){
+  var w=_scoreWeights;
+  var impact=init.impactScore||0;
+  var effort=init.effortScore||0;
+  var impactNorm=impact/9;
+  var easenorm=(9-effort)/9;
+  var driverCount=allDrivers.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;}).length;
+  var driverNorm=allDrivers.length>0?driverCount/allDrivers.length:0;
+  var total=w.impact+w.ease+w.drivers;
+  var score=Math.round((impactNorm*(w.impact/total) + easenorm*(w.ease/total) + driverNorm*(w.drivers/total))*100);
+  return score;
+}
+function updateScoreWeight(key,val){
+  _scoreWeights[key]=Math.max(0,Math.min(100,+val));
+  var total=_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers;
+  document.getElementById('sw-pct-impact').textContent=Math.round(_scoreWeights.impact/total*100)+'%';
+  document.getElementById('sw-pct-ease').textContent=Math.round(_scoreWeights.ease/total*100)+'%';
+  document.getElementById('sw-pct-drivers').textContent=Math.round(_scoreWeights.drivers/total*100)+'%';
+  renderOutput();
+}
+function setManualPriority(sel){
+  var id=sel.getAttribute('data-iid');
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  if(!init)return;
+  init.manualPriority=sel.value;
+  scheduleSave();
+}
 function renderOutput(){
   var inits=state.initiatives;
   var active=inits.filter(function(i){return i.status==='active';});
-  var sorted=inits.slice().sort(function(a,b){return(b.impactScore*2-b.effortScore+b.mvpScore)-(a.impactScore*2-a.effortScore+a.mvpScore);});
+  var allDrivers=state.grid&&state.grid.drivers&&state.grid.drivers.length?state.grid.drivers:BUDGET_DRIVERS;
   var totalImpact=active.reduce(function(s,i){return s+parseMoney(i.expectedImpact);},0);
-  var driversCov=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
-  var sumStats=[
-    ['Active',active.length,'var(--gold)'],
-    ['On Hold',inits.length-active.length,'var(--muted)'],
-    ['Total Impact','$'+(totalImpact/1000000).toFixed(1)+'M','var(--green)'],
-    ['Drivers Covered',driversCov+'/'+BUDGET_DRIVERS.length,'var(--purple)']
-  ];
-  var rows=sorted.map(function(init,idx){
-    var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
-    var pColor=p==='HIGH'?'var(--gold)':p==='MED'?'var(--blue)':'var(--dim)';
-    var drivers=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
-    return'<tr>'+
-      '<td style="color:var(--dim);font-weight:700">'+(idx+1)+'</td>'+
-      '<td style="font-weight:600;color:var(--text)">'+esc(init.title)+'</td>'+
-      '<td><span style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:'+pColor+'22;color:'+pColor+'">'+p+'</span></td>'+
-      '<td style="text-align:center"><span style="font-weight:700;color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+( init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</span></td>'+
-      '<td style="text-align:center"><span style="font-weight:700;color:'+(init.effortScore<=3?'#60a5fa':init.effortScore<=6?'#fbbf24':'#4ade80')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span></td>'+
-
-      '<td style="color:var(--green);font-weight:600">'+(init.expectedImpact||'--')+'</td>'+
-      '<td style="color:var(--gold);font-size:11px">'+(init.launchDate||'--')+'</td>'+
-      '<td style="color:var(--muted);font-size:11px">'+(init.rampWeeks?init.rampWeeks+'w':'--')+'</td>'+
-      '<td><span class="tag tag-'+(init.status==='active'?'active':'hold')+'">'+init.status+'</span></td>'+
-      '<td style="color:var(--dim);font-size:11px">'+(drivers.join(', ')||'--')+'</td>'+
+  var highCount=active.filter(function(i){return getPriority(i.impactScore,i.effortScore,0)==='HIGH';}).length;
+  var driversCov=allDrivers.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
+  var sorted=active.slice().sort(function(a,b){return claudePowerScore(b,allDrivers)-claudePowerScore(a,allDrivers);});
+  var mpOpts=['','1 - Must Do','2 - High Priority','3 - Important','4 - Nice to Have','5 - Defer'];
+  var rows=sorted.map(function(init){
+    var impact=init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High';
+    var effort=init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High';
+    var iColor=init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80';
+    var eColor=init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171';
+    var drivers=allDrivers.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
+    var ps=claudePowerScore(init,allDrivers);
+    var psColor=ps>=70?'#4ade80':ps>=40?'#fbbf24':'#f87171';
+    var mp=init.manualPriority||'';
+    var mpOpts_html=mpOpts.map(function(o){return'<option value="'+o+'"'+(mp===o?' selected':'')+'>'+( o||'— Set priority —')+'</option>';}).join('');
+    return '<tr>'+
+      '<td style="font-weight:600;color:#e8e4d9;min-width:160px">'+esc(init.title)+'</td>'+
+      '<td style="text-align:center"><span style="padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;background:'+iColor+'22;color:'+iColor+'">'+impact+'</span></td>'+
+      '<td style="text-align:center"><span style="padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;background:'+eColor+'22;color:'+eColor+'">'+effort+'</span></td>'+
+      '<td style="color:#c9a84c;font-size:12px;text-align:center">'+(init.launchDate||'—')+'</td>'+
+      '<td style="min-width:180px">'+(drivers.length?drivers.map(function(d){return'<span style="display:inline-block;margin:1px 2px;padding:2px 7px;background:#1e2638;border-radius:4px;font-size:10px;color:#7a8499">'+esc(d)+'</span>';}).join(''):'<span style="color:#374151;font-size:11px">—</span>')+'</td>'+
+      '<td style="text-align:center">'+
+        '<div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:'+psColor+'">'+ps+'</div>'+
+        '<div style="font-size:9px;color:#5a6480;margin-top:1px">/ 100</div>'+
+      '</td>'+
+      '<td style="min-width:160px"><select data-iid="'+init.id+'" onchange="setManualPriority(this)" style="background:#0d1220;border:1px solid #1e2638;border-radius:6px;color:#c8d4e8;font-size:11px;padding:5px 8px;width:100%;font-family:inherit;outline:none;cursor:pointer">'+mpOpts_html+'</select></td>'+
     '</tr>';
   }).join('');
   document.getElementById('tab-4').innerHTML=
     '<div class="module">'+
-      '<div class="flex justify-between items-center mb-24">'+
-        '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Output</div><div style="font-size:13px;color:var(--muted)">Prioritized roadmap, impact summary, and driver coverage.</div></div>'+
-        '<button class="btn btn-claude btn-sm" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">'+
+        '<div><div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">'+state.overview.quarter+' Output</div>'+
+        '<div style="font-size:13px;color:#7a8499">Initiative roadmap · Claude scoring · manual prioritization</div></div>'+
+        '<button class="btn btn-claude" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
       '</div>'+
-      '<div id="ex-claude-box" class="claude-box" style="display:none;margin-bottom:24px"></div>'+
-      '<div class="grid-4 mb-24">'+
-        sumStats.map(function(s){return'<div class="gap-stat"><div style="font-family:var(--font-serif);font-size:30px;color:'+s[2]+'">'+s[1]+'</div><div class="gap-stat-sub">'+s[0]+'</div></div>';}).join('')+
+      '<div id="ex-claude-box" style="display:none;margin-bottom:28px;background:#0d1220;border:1px solid #a78bfa33;border-radius:14px;padding:24px"></div>'+
+      '<div class="grid-4" style="margin-bottom:28px">'+
+        [['Active Initiatives',active.length,'#c9a84c'],['Total Expected Impact','$'+(totalImpact>=1000000?(totalImpact/1000000).toFixed(1)+'M':totalImpact>=1000?Math.round(totalImpact/1000)+'K':'--'),'#4ade80'],['High Priority',highCount,'#fbbf24'],['Drivers Covered',driversCov+' / '+allDrivers.length,'#a78bfa']].map(function(s){return'<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;padding:18px 20px"><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">'+s[0]+'</div><div style="font-family:var(--font-serif);font-size:28px;font-weight:700;color:'+s[2]+'">'+s[1]+'</div></div>';}).join('')+
       '</div>'+
-      '<div class="card">'+
-        '<div class="card-head"><span class="card-title">Prioritized Roadmap</span></div>'+
-        '<div style="overflow-x:auto"><table class="out-table"><thead><tr>'+
-          ['#','Initiative','Priority','Impact','Effort','Expected $','Desired Launch','Ramp','Status','Budget Drivers'].map(function(h){return'<th>'+h+'</th>';}).join('')+
+      '<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;overflow:hidden">'+
+        '<div style="padding:16px 22px;border-bottom:1px solid #1e2638;display:flex;justify-content:space-between;align-items:center">'+
+          '<span style="font-size:12px;font-weight:700;color:#e8e4d9;letter-spacing:.06em;text-transform:uppercase">Initiative Roadmap</span>'+
+          '<span style="font-size:11px;color:#5a6480">Sorted by Claude Power Score</span>'+
+        '</div>'+
+        '<div style="overflow-x:auto"><table class="out-table"><thead><tr style="background:#0d1220">'+
+          ['Initiative','Impact','Effort','Launch Date','Key Drivers','Claude Score','My Priority'].map(function(h){return'<th style="white-space:nowrap;padding:10px 14px">'+h+'</th>';}).join('')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+        '<div style="padding:14px 22px;border-top:1px solid #1e2638;background:#0a0d14">'+
+          '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Score Weights</div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#4ade80;width:52px">Impact</span><input type="range" min="0" max="100" value="'+_scoreWeights.impact+'" oninput="updateScoreWeight(\'impact\',this.value)" style="width:100px"><span id="sw-pct-impact" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.impact/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#fbbf24;width:52px">Ease</span><input type="range" min="0" max="100" value="'+_scoreWeights.ease+'" oninput="updateScoreWeight(\'ease\',this.value)" style="width:100px"><span id="sw-pct-ease" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.ease/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#a78bfa;width:52px">Drivers</span><input type="range" min="0" max="100" value="'+_scoreWeights.drivers+'" oninput="updateScoreWeight(\'drivers\',this.value)" style="width:100px"><span id="sw-pct-drivers" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.drivers/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="font-size:10px;color:#374151">Scores update live as you adjust</div>'+'</div>'+
+        '</div>'+
       '</div>'+
     '</div>';
 }
@@ -2776,145 +2813,115 @@ function openBudgetPasteModal(){
 function processBudgetFile(file){
   var box=document.getElementById('budget-extract-box');
   if(!box)return;
-  box.innerHTML='<div class="claude-label">&#9734; Reading budget file...</div>';
+  box.innerHTML='<div class="claude-label">&#9734; Reading file...</div>';
   box.style.display='block';
-
+  var allMetrics=[];
+  METRIC_CATS.forEach(function(cat){cat.metrics.forEach(function(m){allMetrics.push(m);});});
+  var colList=BUDGET_COLS.join(' | ');
+  var metricList=allMetrics.join(', ');
+  var prompt='Extract the budget numbers from this financial document.\nReturn ONLY pipe-delimited CSV. No JSON, no markdown, no explanations.\nExact format - first line is header:\nMetric|'+BUDGET_COLS.join('|')+'\nThen one row per metric. Use these exact metric names: '+metricList+'.\nFor any missing value use empty string. Dollar values like $1,234,567 or ($500,000) for negatives. Percentages like +9.7% or -20.6%.';
   var reader=new FileReader();
   reader.onload=function(e){
     var base64=e.target.result.split(',')[1];
     var mediaType=file.type||'image/png';
-
-    // Build a prompt that asks Claude to extract all the metrics table values
-    var metricsList=[];
-    METRIC_CATS.forEach(function(cat){
-      cat.metrics.forEach(function(m){ metricsList.push(m); });
-    });
-    var promptLines=[
-      'This is a budget spreadsheet or financial document.',
-      'Extract ALL the numeric values and return ONLY valid JSON, no markdown.',
-      'The columns are: Apr Budget, May Budget, Jun Budget, Q3 total Budget, Apr LY, May LY, Jun LY, Q3 LY, Q3 Var $, Q3 Var %.',
-      'The metrics/rows are: '+metricsList.join(', ')+'.',
-      'Return format: {"rows":{"Metric Name":{"Apr Budget":"value","May Budget":"value",...},...}}',
-      'Use the exact metric names listed. Use empty string for any value not found.',
-      'For dollar values use format like $3,935,583 or ($1,670,521) for negatives.',
-      'For percentages use format like +9.7% or -20.6%.'
-    ];
-
     var msgContent=[];
     if(file.type==='application/pdf'){
       msgContent.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}});
-    } else if(file.type.startsWith('image/')){
-      var safeType2=['image/jpeg','image/png','image/gif','image/webp'];
-      var mt2=safeType2.indexOf(file.type)>=0?file.type:'image/png';
-      msgContent.push({type:'image',source:{type:'base64',media_type:mt2,data:base64}});
+    } else {
+      var safeTypes=['image/jpeg','image/png','image/gif','image/webp'];
+      var mt=safeTypes.indexOf(mediaType)>=0?mediaType:'image/png';
+      msgContent.push({type:'image',source:{type:'base64',media_type:mt,data:base64}});
     }
-    msgContent.push({type:'text',text:promptLines.join(' ')});
-
+    msgContent.push({type:'text',text:prompt});
     sb.auth.getSession().then(function(res){
       var token=(res.data&&res.data.session)?res.data.session.access_token:'';
       return fetch(EDGE_FUNCTION_URL,{
         method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization':'Bearer '+token,
-          'apikey':SUPABASE_ANON_KEY
-        },
-        body:JSON.stringify({
-          messages:[{role:'user',content:msgContent}],
-          system:'You are a financial data extraction assistant. Extract numbers from documents and return only valid JSON.'
-        })
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
+        body:JSON.stringify({messages:[{role:'user',content:msgContent}],system:'You are a financial data extractor. Return ONLY pipe-delimited CSV with no extra text.'})
       });
     }).then(function(r){return r.json();})
     .then(function(d){
       var block=d.content&&d.content.find(function(b){return b.type==='text';});
-      var text=block?block.text:'';
-      try{
-        var clean=text.replace(/```json|```/g,'').trim();
-        var jsonMatch=clean.match(/\{[\s\S]*\}/);
-        if(jsonMatch)clean=jsonMatch[0];
-        var parsed=JSON.parse(clean);
-        var rows=parsed.rows||parsed;
-        var filled=0;
-        if(!state.budget_data)state.budget_data={};
-        Object.keys(rows).forEach(function(metric){
-          if(!state.budget_data[metric])state.budget_data[metric]={};
-          var vals=rows[metric];
-          Object.keys(vals).forEach(function(col){
-            if(vals[col]&&vals[col]!==''){
-              state.budget_data[metric][col]=vals[col];
-              filled++;
-            }
-          });
-        });
-        scheduleSave();
-        renderBudget();
-        var b2=document.getElementById('budget-extract-box');
-        if(b2)b2.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells from your document!</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Scroll down to review the table. Click any cell to edit.</div>';
-      } catch(err){
-        box.innerHTML='<div class="claude-label">&#9734; CLAUDE RESPONSE</div><div style="font-size:11px;white-space:pre-wrap;margin-top:6px">'+esc(text)+'</div>';
+      var text=block?block.text.trim():'';
+      if(!text){box.innerHTML='<div class="claude-label">No response from Claude</div>';return;}
+      var filled=applyBudgetCsv(text);
+      if(filled>0){
+        box.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' cells from your document!</div><div style="font-size:11px;color:#5a6480;margin-top:4px">Scroll down to review. Click any cell to edit.</div>';
+      } else {
+        box.innerHTML='<div class="claude-label">&#9734; Claude Response</div><div style="font-size:11px;white-space:pre-wrap;margin-top:6px;max-height:200px;overflow-y:auto">'+esc(text)+'</div><div style="font-size:11px;color:#f87171;margin-top:6px">Could not auto-fill. Use the Paste CSV button below to enter manually.</div>';
       }
-    }).catch(function(){
-      box.innerHTML='<div class="claude-label">Error</div>Could not process file. Check edge function.';
+    }).catch(function(err){
+      box.innerHTML='<div class="claude-label">Error</div>Could not reach edge function. Check your connection.';
     });
   };
-  if(file.type==='application/pdf'){
-    // For PDFs, extract as text and send as text content
-    var txtReader=new FileReader();
-    txtReader.onload=function(ev){
-      var pdfText=ev.target.result||'';
-      var bx=document.getElementById('budget-extract-box');
-      if(!bx)return;
-      if(!pdfText||pdfText.length<20){
-        // PDF text empty, try image approach
-        reader.readAsDataURL(file);
-        return;
+  reader.readAsDataURL(file);
+}
+function applyBudgetCsv(text){
+  if(!state.budget_data)state.budget_data={};
+  var lines=text.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  if(lines.length<2)return 0;
+  var headers=lines[0].split('|').map(function(h){return h.trim();});
+  var colIdx={};
+  BUDGET_COLS.forEach(function(col){
+    var best=-1,bestScore=0;
+    headers.forEach(function(h,i){
+      var score=fuzzyColMatch(h,col);
+      if(score>bestScore){bestScore=score;best=i;}
+    });
+    if(bestScore>0.5)colIdx[col]=best;
+  });
+  var allMetrics=[];
+  METRIC_CATS.forEach(function(cat){cat.metrics.forEach(function(m){allMetrics.push(m);});});
+  var filled=0;
+  for(var r=1;r<lines.length;r++){
+    var parts=lines[r].split('|').map(function(p){return p.trim();});
+    var rowMetric=parts[0]||'';
+    if(!rowMetric)continue;
+    var matched=fuzzyMetricMatch(rowMetric,allMetrics);
+    if(!matched)continue;
+    if(!state.budget_data[matched])state.budget_data[matched]={};
+    BUDGET_COLS.forEach(function(col){
+      var ci=colIdx[col];
+      if(ci===undefined)return;
+      var val=parts[ci]||'';
+      if(val&&val!=='-'&&val!=='N/A'&&val!==''){
+        state.budget_data[matched][col]=val;
+        filled++;
       }
-      bx.innerHTML='<div class="claude-label">&#9734; Reading PDF text...</div>';
-      bx.style.display='block';
-      var metricsList2=[];
-      METRIC_CATS.forEach(function(cat){cat.metrics.forEach(function(m){metricsList2.push(m);});});
-      sb.auth.getSession().then(function(res){
-        var token=(res.data&&res.data.session)?res.data.session.access_token:'';
-        return fetch(EDGE_FUNCTION_URL,{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},
-          body:JSON.stringify({
-            messages:[{role:'user',content:'Extract the budget table from this document as CSV. Header row: Metric|Apr Budget|May Budget|Jun Budget|Q2 Budget|Apr LY|May LY|Jun LY|Q2 LY|Q2 Var $|Q2 Var %. One metric per line separated by |. Document: '+pdfText.slice(0,6000)}],
-            system:'You are a data extractor. Return ONLY pipe-delimited CSV rows, no JSON, no markdown, no explanations. First line must be the header.'
-          })
-        });
-      }).then(function(r){return r.json();})
-      .then(function(d){
-        var blk=d.content&&d.content.find(function(b){return b.type==='text';});
-        var txt=blk?blk.text:'';
-        if(!txt){
-          if(bx)bx.innerHTML='<div class="claude-label">No response from Claude</div>';
-          return;
-        }
-        // Store response globally so applyBudgetJson can access it
-        window._lastBudgetResponse = txt;
-        // Try to auto-apply immediately
-        var applied = applyBudgetJsonText(txt);
-        if(!applied){
-          // Show raw with apply button if auto-apply failed
-          if(bx){
-            bx.style.display='block';
-            bx.innerHTML='<div class="claude-label" style="display:flex;align-items:center;justify-content:space-between">'+
-              '<span>&#9734; CLAUDE RESPONSE — could not auto-fill</span>'+
-              '<button onclick="applyBudgetJsonText(window._lastBudgetResponse)" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:11px;font-weight:700;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit">Apply Now</button>'+
-              '</div>'+
-              '<div style="font-size:11px;color:#5a6480;margin-top:8px;max-height:300px;overflow:auto;white-space:pre-wrap">'+esc(txt)+'</div>';
-          }
-        }
-      }).catch(function(){if(bx)bx.innerHTML='<div class="claude-label">Error</div>Try a screenshot instead.';});
-    };
-    txtReader.readAsText(file);
-  } else {
-    reader.readAsDataURL(file);
+    });
   }
+  if(filled>0){scheduleSave();renderBudget();}
+  return filled;
+}
+function fuzzyColMatch(a,b){
+  a=a.toLowerCase().replace(/[^a-z0-9]/g,'');
+  b=b.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(a===b)return 1;
+  if(a.indexOf(b)>=0||b.indexOf(a)>=0)return 0.8;
+  var common=0;
+  for(var i=0;i<Math.min(a.length,b.length);i++){if(a[i]===b[i])common++;}
+  return common/Math.max(a.length,b.length);
+}
+function fuzzyMetricMatch(input,metrics){
+  var inp=input.toLowerCase().replace(/[^a-z0-9]/g,'');
+  var best=null,bestScore=0;
+  metrics.forEach(function(m){
+    var mc=m.toLowerCase().replace(/[^a-z0-9]/g,'');
+    var score=0;
+    if(mc===inp)score=1;
+    else if(mc.indexOf(inp)>=0||inp.indexOf(mc)>=0)score=0.8;
+    else{
+      var words=inp.split(' ');
+      var matched=words.filter(function(w){return w.length>2&&mc.indexOf(w)>=0;}).length;
+      score=matched/Math.max(words.length,1)*0.7;
+    }
+    if(score>bestScore){bestScore=score;best=m;}
+  });
+  return bestScore>0.4?best:null;
 }
 
-// ═══════════════════════════════════════════════════════════════
+
 // MODULE 5: INITIATIVE GRID
 // ═══════════════════════════════════════════════════════════════
 
