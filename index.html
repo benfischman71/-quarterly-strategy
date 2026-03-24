@@ -3392,10 +3392,17 @@ function renderAIPriorities(){
       '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Owner</div>'+
       '<input value="'+esc(item.owner||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="owner" oninput="aiUpdateField(this,this.dataset.field)" '+
       'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#c9a84c;font-size:12px;width:100%;outline:none;font-family:inherit;padding-bottom:3px;margin-bottom:12px;display:block" placeholder="Owner or team..." />'+
-      '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Description & Use Case</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+        '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Description & Use Case</div>'+
+        '<div style="display:flex;gap:5px">'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="aiDraftClaude(this,\'draft\')" class="btn btn-claude btn-sm" style="font-size:10px">&#9734; Draft</button>'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="aiDraftClaude(this,\'clean\')" class="btn btn-claude btn-sm" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+
+        '</div>'+
+      '</div>'+
       '<textarea data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="description" oninput="aiUpdateField(this,this.dataset.field)" '+
-      'style="background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#c8d4e8;font-size:13px;width:100%;outline:none;font-family:inherit;padding:10px 12px;resize:none;line-height:1.6;min-height:72px;box-sizing:border-box;margin-bottom:12px" '+
+      'style="background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#c8d4e8;font-size:13px;width:100%;outline:none;font-family:inherit;padding:10px 12px;resize:none;line-height:1.6;min-height:72px;box-sizing:border-box;margin-bottom:6px" '+
       'placeholder="What AI capability, tool, or workflow is this? Why is it a priority?">'+esc(item.description||'')+'</textarea>'+
+      '<div id="ai-claude-'+idx+'-'+esc(activeDept)+'" class="claude-box" style="display:none;margin-bottom:8px"></div>'+
       '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Expected Impact</div>'+
       '<input value="'+esc(item.impact||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="impact" oninput="aiUpdateField(this,this.dataset.field)" '+
       'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#4ade80;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px;display:block" placeholder="e.g. Save 10hrs/week, improve conversion 15%..." />'+
@@ -3410,14 +3417,94 @@ function renderAIPriorities(){
           '<div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">AI Priorities</div>'+
           '<div style="font-size:13px;color:#7a8499">Track where AI creates the most leverage — company-wide and by department.</div>'+
         '</div>'+
-        '<div style="display:flex;gap:8px">'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+          '<button onclick="aiFileClick()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">&#128206; Upload File</button>'+
+          '<input type="file" id="ai-file-input" accept=".pdf,.png,.jpg,.jpeg,.csv,.txt" style="display:none" onchange="handleAIFile(this)" />'+
           '<button onclick="aiAddItem()" style="background:#c9a84c;border:none;color:#0a0e1a;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">+ Add Priority</button>'+
           '<button onclick="aiAddDept()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">+ Department</button>'+
         '</div>'+
       '</div>'+
+      '<div id="ai-file-box" style="display:none;margin-bottom:16px"></div>'+
+      '<div ondragover="event.preventDefault();this.style.borderColor=\'#c9a84c\'" ondragleave="this.style.borderColor=\'#1e2638\'" ondrop="aiHandleDrop(event,this)" style="border:1px dashed #1e2638;border-radius:10px;padding:12px 18px;font-size:12px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:20px" onclick="aiFileClick()">'+
+        '<span style="font-size:18px">&#129302;</span>'+
+        '<span>Drag &amp; drop a file or PDF — Claude will extract AI priorities automatically</span>'+
+      '</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #1e2638">'+deptTabs+'</div>'+
       '<div style="display:flex;flex-direction:column;gap:16px">'+cards+'</div>'+
     '</div>';
+}
+
+function aiFileClick(){document.getElementById('ai-file-input').click();}
+function aiHandleDrop(event,el){
+  event.preventDefault();
+  el.style.borderColor='#1e2638';
+  var file=event.dataTransfer.files[0];
+  if(file)handleAIFile({files:[file]});
+}
+function handleAIFile(input){
+  var file=input.files[0];
+  if(!file)return;
+  var box=document.getElementById('ai-file-box');
+  if(box){box.innerHTML='<div class="claude-label">&#9734; Reading file...</div>';box.style.display='block';}
+  var dept=state._aiDept||'Company';
+  var prompt='Extract AI initiative priorities from this document for the '+dept+' department. Return ONLY JSON array: [{"title":"...","owner":"...","description":"...","impact":"...","status":"Planning"}]. Status must be Planning, In Progress, or Live. No markdown.';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1];
+    var msgContent=[];
+    if(file.type==='application/pdf'){msgContent.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}});}
+    else if(file.type.startsWith('image/')){var mt=['image/jpeg','image/png','image/gif','image/webp'].indexOf(file.type)>=0?file.type:'image/png';msgContent.push({type:'image',source:{type:'base64',media_type:mt,data:base64}});}
+    else{msgContent.push({type:'text',text:'File contents:\n'+atob(base64).slice(0,4000)});}
+    msgContent.push({type:'text',text:prompt});
+    sb.auth.getSession().then(function(res){
+      var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+      return fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify({messages:[{role:'user',content:msgContent}],system:'Return ONLY valid JSON array, no markdown.'})});
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      var blk=d.content&&d.content.find(function(b){return b.type==='text';});
+      var text=blk?blk.text.trim():'';
+      try{
+        var clean=text.replace(/```json|```/g,'').trim();
+        var arr=JSON.parse(clean);
+        var aiData=getAIData();
+        arr.forEach(function(item){
+          aiData.items.push({id:uid(),dept:dept,title:item.title||'',owner:item.owner||'',description:item.description||'',impact:item.impact||'',status:item.status||'Planning'});
+        });
+        scheduleSave();renderAIPriorities();
+        if(box)box.innerHTML='<div class="claude-label">&#10003; Added '+arr.length+' priorities from your file!</div>';
+      } catch(err){
+        if(box)box.innerHTML='<div class="claude-label">&#9734; Claude Response</div><div style="font-size:11px;white-space:pre-wrap;margin-top:6px">'+esc(text)+'</div>';
+      }
+    }).catch(function(){if(box)box.innerHTML='<div class="claude-label">Error reading file</div>';});
+  };
+  reader.readAsDataURL(file);
+}
+function aiDraftClaude(btn,type){
+  var idx=+btn.getAttribute('data-idx');
+  var dept=btn.getAttribute('data-dept');
+  var boxId='ai-claude-'+idx+'-'+dept;
+  var d=getAIData();
+  var deptItems=d.items.filter(function(i){return i.dept===dept;});
+  var item=deptItems[idx];
+  if(!item)return;
+  var box=document.getElementById(boxId);
+  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';}
+  btn.disabled=true;
+  var prompt=type==='draft'?
+    'Write a clear, compelling description for this AI initiative called "'+item.title+'" for the '+dept+' department. Include: what AI capability or tool is involved, the specific use case, why it is a priority, and expected business impact. 3-4 sentences max. No fluff.':
+    'Clean up and improve this AI initiative description. Make it more specific, outcome-focused, and executive-ready. Keep under 100 words.\n\nCurrent text:\n'+item.description;
+  askClaude(prompt,null,boxId,function(text){
+    btn.disabled=false;
+    if(box){
+      box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:6px">&#9734; Click to apply</div>'+esc(text).replace(/\n/g,'<br>');
+      box.style.cursor='pointer';
+      box.onclick=function(){
+        item.description=text;
+        scheduleSave();
+        renderAIPriorities();
+      };
+    }
+  });
 }
 function switchAIDept(dept){
   state._aiDept=dept;
