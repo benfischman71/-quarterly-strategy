@@ -2143,11 +2143,12 @@ function renderMapping(){
       return '<div style="display:grid;grid-template-columns:280px 1fr;border-bottom:2px solid #1a2540;background:'+rowBg+'">'+
         // Left: initiative card
         '<div style="padding:16px 20px;border-right:2px solid #1a2540">'+
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
             '<span style="font-size:9px;font-weight:800;padding:3px 8px;border-radius:12px;background:'+pColor+'22;color:'+pColor+';letter-spacing:.06em;flex-shrink:0">'+p+'</span>'+
-            '<span style="font-size:14px;font-weight:700;color:#e8e4d9;line-height:1.2">'+esc(init.title)+'</span>'+
+            '<span data-iid="'+init.id+'" onclick="event.stopPropagation();openInitPanel(this.dataset.iid)" style="font-size:14px;font-weight:700;color:#e8e4d9;line-height:1.2;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#374151">'+esc(init.title)+'</span>'+
           '</div>'+
-          (init.shortDescription?'<div style="font-size:11px;color:#7a8499;line-height:1.5;margin-bottom:8px">'+esc(init.shortDescription.slice(0,90)+(init.shortDescription.length>90?'...':''))+'</div>':'')+
+          ''+
+
           '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
             '<span style="font-size:10px;color:#374151">Impact <strong style="color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+(init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</strong></span>'+
             '<span style="font-size:10px;color:#374151">Effort <strong style="color:'+(init.effortScore<=3?'#60a5fa':init.effortScore<=6?'#fbbf24':'#4ade80')+'">'+(init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</strong></span>'+
