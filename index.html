@@ -2147,18 +2147,29 @@ function renderMapping(){
       return '<div style="display:grid;grid-template-columns:280px 1fr;border-bottom:2px solid #1a2540;background:'+rowBg+'">'+
         // Left: initiative card
         '<div style="padding:16px 20px;border-right:2px solid #1a2540">'+
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
             '<span style="font-size:9px;font-weight:800;padding:3px 8px;border-radius:12px;background:'+pColor+'22;color:'+pColor+';letter-spacing:.06em;flex-shrink:0">'+p+'</span>'+
-            '<span data-iid="'+init.id+'" onclick="event.stopPropagation();openInitPanel(this.dataset.iid)" style="font-size:14px;font-weight:700;color:#e8e4d9;line-height:1.2;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#374151">'+esc(init.title)+'</span>'+
+            '<button data-iid="'+init.id+'" onclick="openInitPanel(this.dataset.iid)" style="background:none;border:none;padding:0;font-size:14px;font-weight:700;color:#e8e4d9;line-height:1.2;cursor:pointer;font-family:inherit;text-align:left;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#374151">'+esc(init.title)+'</button>'+
           '</div>'+
-          ''+
-
-          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
-            '<span style="font-size:10px;color:#374151">Impact <strong style="color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+(init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</strong></span>'+
-            '<span style="font-size:10px;color:#374151">Effort <strong style="color:'+(init.effortScore<=3?'#60a5fa':init.effortScore<=6?'#fbbf24':'#4ade80')+'">'+(init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</strong></span>'+
-            
-            (mappedCount>0?'<span style="font-size:10px;color:#4ade80;font-weight:600">&#10003; '+mappedCount+' driver'+(mappedCount>1?'s':'')+'</span>':'<span style="font-size:10px;color:#374151;font-style:italic">Not yet mapped</span>')+
+          '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'+
+            '<div style="display:flex;align-items:center;gap:6px">'+
+              '<span style="font-size:10px;color:#5a6480;width:44px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Impact</span>'+
+              '<div style="display:flex;gap:3px">'+
+                '<button data-iid="'+init.id+'" data-field="impactScore" data-val="3" onclick="mapSetScore(this)" style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(init.impactScore<=3?'#60a5fa':'#1e2638')+';background:'+(init.impactScore<=3?'#60a5fa22':'transparent')+';color:'+(init.impactScore<=3?'#60a5fa':'#5a6480')+'">Low</button>'+
+                '<button data-iid="'+init.id+'" data-field="impactScore" data-val="6" onclick="mapSetScore(this)" style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(init.impactScore>3&&init.impactScore<=6?'#fbbf24':'#1e2638')+';background:'+(init.impactScore>3&&init.impactScore<=6?'#fbbf2422':'transparent')+';color:'+(init.impactScore>3&&init.impactScore<=6?'#fbbf24':'#5a6480')+'">Med</button>'+
+                '<button data-iid="'+init.id+'" data-field="impactScore" data-val="9" onclick="mapSetScore(this)" style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(init.impactScore>6?'#4ade80':'#1e2638')+';background:'+(init.impactScore>6?'#4ade8022':'transparent')+';color:'+(init.impactScore>6?'#4ade80':'#5a6480')+'">High</button>'+
+              '</div>'+
+            '</div>'+
+            '<div style="display:flex;align-items:center;gap:6px">'+
+              '<span style="font-size:10px;color:#5a6480;width:44px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Effort</span>'+
+              '<div style="display:flex;gap:3px">'+
+                '<button data-iid="'+init.id+'" data-field="effortScore" data-val="3" onclick="mapSetScore(this)" style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(init.effortScore<=3?'#4ade80':'#1e2638')+';background:'+(init.effortScore<=3?'#4ade8022':'transparent')+';color:'+(init.effortScore<=3?'#4ade80':'#5a6480')+'">Low</button>'+
+                '<button data-iid="'+init.id+'" data-field="effortScore" data-val="6" onclick="mapSetScore(this)" style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(init.effortScore>3&&init.effortScore<=6?'#fbbf24':'#1e2638')+';background:'+(init.effortScore>3&&init.effortScore<=6?'#fbbf2422':'transparent')+';color:'+(init.effortScore>3&&init.effortScore<=6?'#fbbf24':'#5a6480')+'">Med</button>'+
+                '<button data-iid="'+init.id+'" data-field="effortScore" data-val="9" onclick="mapSetScore(this)" style="padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(init.effortScore>6?'#f87171':'#1e2638')+';background:'+(init.effortScore>6?'#f8717122':'transparent')+';color:'+(init.effortScore>6?'#f87171':'#5a6480')+'">High</button>'+
+              '</div>'+
+            '</div>'+
           '</div>'+
+          (mappedCount>0?'<span style="font-size:10px;color:#4ade80;font-weight:600">&#10003; '+mappedCount+' driver'+(mappedCount>1?'s':'')+'</span>':'<span style="font-size:10px;color:#374151;font-style:italic">Not yet mapped</span>')+
         '</div>'+
         // Right: driver buttons
         '<div style="padding:14px 20px;display:flex;flex-wrap:wrap;gap:8px;align-content:center">'+
@@ -2240,6 +2251,17 @@ function setMappingLevel(driver,id,level){
   var idx=state.mappings[driver].indexOf(id);
   if(level==='none'){if(idx>=0)state.mappings[driver].splice(idx,1);}
   else{if(idx<0)state.mappings[driver].push(id);}
+}
+function mapSetScore(btn){
+  var id=btn.dataset.iid;
+  var field=btn.dataset.field;
+  var val=+btn.dataset.val;
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  if(!init)return;
+  init[field]=val;
+  scheduleSave();
+  renderMapping();
+  renderInitiatives();
 }
 function toggleMappingBtn(btn){
   var driver=btn.getAttribute('data-driver');
