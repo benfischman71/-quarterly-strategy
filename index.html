@@ -537,6 +537,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="tab" data-tab="2" onclick="switchTab(2)"><span class="tab-num">2</span>Initiatives</div>
     <div class="tab" data-tab="3" onclick="switchTab(3)"><span class="tab-num">3</span>Mapping & Timeline</div>
     <div class="tab" data-tab="4" onclick="switchTab(4)"><span class="tab-num">4</span>Output</div>
+    <div class="tab" data-tab="6" onclick="switchTab(6)"><span class="tab-num">5</span>AI Priorities</div>
     <div style="flex:1"></div>
     <div class="tab" data-tab="5" onclick="switchTab(5)" style="font-size:11px;color:#374151;opacity:0.6" title="Finance use only"><span class="tab-num" style="background:#1e2638;color:#374151">B</span>Budget</div>
 
@@ -549,6 +550,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div id="tab-3" style="display:none"></div>
     <div id="tab-4" style="display:none"></div>
     <div id="tab-5" style="display:none"></div>
+    <div id="tab-6" style="display:none"></div>
   </div>
 </div>
 
@@ -985,11 +987,11 @@ function setupRealtime(wsId){
 function switchTab(n){
   currentTab=n;
   document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',+t.dataset.tab===n);});
-  for(var i=0;i<=5;i++){var el=document.getElementById('tab-'+i);if(el)el.style.display=i===n?'block':'none';}
+  for(var i=0;i<=6;i++){var el=document.getElementById('tab-'+i);if(el)el.style.display=i===n?'block':'none';}
   renderCurrentTab();
 }
 function renderCurrentTab(){
-  var fns=[renderOverview,renderMonthly,renderInitiatives,renderMapping,renderOutput,renderBudget];
+  var fns=[renderOverview,renderMonthly,renderInitiatives,renderMapping,renderOutput,renderBudget,renderAIPriorities];
   if(fns[currentTab])fns[currentTab]();
 }
 
@@ -3281,6 +3283,122 @@ function gridClaudeScore() {
   }).catch(function(){
     box.innerHTML='<div class="claude-label">Error</div>Could not reach Claude.';
   });
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 6: AI PRIORITIES
+// ═══════════════════════════════════════════════════════════════
+function getAIData(){
+  if(!state.ai_priorities)state.ai_priorities={departments:['Company','Marketing','Product','Engineering','Finance','Operations'],items:[]};
+  if(!state.ai_priorities.departments)state.ai_priorities.departments=['Company','Marketing','Product','Engineering','Finance','Operations'];
+  if(!state.ai_priorities.items)state.ai_priorities.items=[];
+  return state.ai_priorities;
+}
+function renderAIPriorities(){
+  var d=getAIData();
+  var activeDept=state._aiDept||d.departments[0];
+  state._aiDept=activeDept;
+  var deptItems=d.items.filter(function(item){return item.dept===activeDept;});
+  var statusColors={Planning:'#60a5fa','In Progress':'#fbbf24',Live:'#4ade80'};
+  var deptTabs=d.departments.map(function(dept){
+    var count=d.items.filter(function(i){return i.dept===dept;}).length;
+    var isActive=dept===activeDept;
+    return '<button data-dept="'+esc(dept)+'" onclick="switchAIDept(this.dataset.dept)" '+
+      'style="padding:8px 16px;border-radius:8px;font-size:12px;font-weight:'+(isActive?'700':'500')+';cursor:pointer;font-family:inherit;'+
+      'border:1px solid '+(isActive?'#c9a84c44':'#1e2638')+';'+
+      'background:'+(isActive?'#c9a84c18':'transparent')+';'+
+      'color:'+(isActive?'#c9a84c':'#7a8499')+'">'+
+      esc(dept)+(count?'<span style="font-size:10px;background:#1e2638;border-radius:8px;padding:1px 6px;margin-left:6px;color:#5a6480">'+ count+'</span>':'')+
+    '</button>';
+  }).join('');
+
+  var cards=deptItems.length?deptItems.map(function(item,idx){
+    var sColor=statusColors[item.status]||'#5a6480';
+    return '<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;padding:22px 24px;position:relative">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">'+
+        '<div style="flex:1;min-width:0;margin-right:12px">'+
+          '<input value="'+esc(item.title||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="title" oninput="aiUpdateField(this,this.dataset.field)" '+
+          'style="background:transparent;border:none;border-bottom:1px solid #1e2638;color:#e8e4d9;font-size:16px;font-weight:700;width:100%;outline:none;font-family:inherit;padding-bottom:4px" placeholder="Initiative title..." />'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'+
+          '<select data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="status" onchange="aiUpdateField(this,this.dataset.field)" '+
+          'style="background:#0d1220;border:1px solid '+sColor+'44;border-radius:6px;color:'+sColor+';font-size:11px;font-weight:700;font-family:inherit;padding:4px 8px;outline:none;cursor:pointer">'+
+          ['Planning','In Progress','Live'].map(function(s){return'<option value="'+s+'"'+(item.status===s?' selected':'')+'>'+s+'</option>';}).join('')+
+          '</select>'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="aiDeleteItem(this)" '+
+          'style="background:none;border:1px solid #1e2638;color:#5a6480;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:12px;font-family:inherit;display:flex;align-items:center;justify-content:center" '+
+          'class="ai-del-btn">&times;</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Owner</div>'+
+      '<input value="'+esc(item.owner||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="owner" oninput="aiUpdateField(this,this.dataset.field)" '+
+      'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#c9a84c;font-size:12px;width:100%;outline:none;font-family:inherit;padding-bottom:3px;margin-bottom:12px;display:block" placeholder="Owner or team..." />'+
+      '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Description & Use Case</div>'+
+      '<textarea data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="description" oninput="aiUpdateField(this,this.dataset.field)" '+
+      'style="background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#c8d4e8;font-size:13px;width:100%;outline:none;font-family:inherit;padding:10px 12px;resize:none;line-height:1.6;min-height:72px;box-sizing:border-box;margin-bottom:12px" '+
+      'placeholder="What AI capability, tool, or workflow is this? Why is it a priority?">'+esc(item.description||'')+'</textarea>'+
+      '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Expected Impact</div>'+
+      '<input value="'+esc(item.impact||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="impact" oninput="aiUpdateField(this,this.dataset.field)" '+
+      'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#4ade80;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px;display:block" placeholder="e.g. Save 10hrs/week, improve conversion 15%..." />'+
+    '</div>';
+  }).join(''):
+    '<div style="padding:40px;text-align:center;color:#5a6480;border:1px dashed #1e2638;border-radius:12px;font-size:13px">No AI priorities for '+esc(activeDept)+' yet. Add one below.</div>';
+
+  document.getElementById('tab-6').innerHTML=
+    '<div class="module">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">'+
+        '<div>'+
+          '<div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">AI Priorities</div>'+
+          '<div style="font-size:13px;color:#7a8499">Track where AI creates the most leverage — company-wide and by department.</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button onclick="aiAddItem()" style="background:#c9a84c;border:none;color:#0a0e1a;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">+ Add Priority</button>'+
+          '<button onclick="aiAddDept()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">+ Department</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #1e2638">'+deptTabs+'</div>'+
+      '<div style="display:flex;flex-direction:column;gap:16px">'+cards+'</div>'+
+    '</div>';
+}
+function switchAIDept(dept){
+  state._aiDept=dept;
+  renderAIPriorities();
+}
+function aiAddItem(){
+  var d=getAIData();
+  var dept=state._aiDept||d.departments[0];
+  d.items.push({id:uid(),dept:dept,title:'',owner:'',description:'',impact:'',status:'Planning'});
+  scheduleSave();renderAIPriorities();
+}
+function aiDeleteItem(btn){
+  var d=getAIData();
+  var dept=btn.getAttribute('data-dept');
+  var idx=+btn.getAttribute('data-idx');
+  var deptItems=d.items.filter(function(i){return i.dept===dept;});
+  var item=deptItems[idx];
+  if(!item)return;
+  if(!confirm('Delete "'+( item.title||'this item')+'"?'))return;
+  var globalIdx=d.items.indexOf(item);
+  if(globalIdx>=0)d.items.splice(globalIdx,1);
+  scheduleSave();renderAIPriorities();
+}
+function aiUpdateField(el,field){
+  var d=getAIData();
+  var dept=el.getAttribute('data-dept');
+  var idx=+el.getAttribute('data-idx');
+  var deptItems=d.items.filter(function(i){return i.dept===dept;});
+  var item=deptItems[idx];
+  if(item)item[field]=el.value;
+  scheduleSave();
+}
+function aiAddDept(){
+  var name=prompt('New department name:');
+  if(!name||!name.trim())return;
+  var d=getAIData();
+  if(d.departments.indexOf(name.trim())<0)d.departments.push(name.trim());
+  state._aiDept=name.trim();
+  scheduleSave();renderAIPriorities();
 }
 
 // ═══════════════════════════════════════════════════════════════
