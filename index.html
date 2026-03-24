@@ -1547,11 +1547,10 @@ function renderInitiatives(){
         (init.launchDate?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Launch</span><span style="font-size:11px;color:#c9a84c">'+esc(init.launchDate)+'</span></div>':'')+
         (init.expectedImpact?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Expected</span><span style="font-size:11px;font-weight:700;color:#4ade80">'+esc(init.expectedImpact)+'</span></div>':'')+
       '</div>'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:8px;border-top:1px solid #1a2035">'+
+      '<div style="display:flex;justify-content:flex-start;align-items:center;margin-top:4px;padding-top:8px;border-top:1px solid #1a2035">'+
         '<button data-iid="'+init.id+'" onclick="event.stopPropagation();cardToggleStatus(this)" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;cursor:pointer;font-family:inherit;border:1px solid '+(init.status==='active'?'#4ade8044':'#c9a84c44')+';background:'+(init.status==='active'?'#4ade8011':'#c9a84c11')+';color:'+(init.status==='active'?'#4ade80':'#c9a84c')+'">'+
           (init.status==='active'?'&#9650; Above line':'&#9660; Below line')+
         '</button>'+
-        '<button data-iid="'+init.id+'" onclick="event.stopPropagation();clearInitRanks(this.dataset.iid)" class="clear-rank-btn">&#8635; Reset</button>'+
       '</div>'+
     '</div>';
   }
