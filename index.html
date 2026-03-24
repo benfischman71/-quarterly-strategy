@@ -1157,72 +1157,129 @@ function renderMonthly(){
   var ov=state.overview;
   var drivers=ov.drivers||[];
   var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var curMonth=new Date().getMonth();
-  var quarterMonths=months.slice(3,6); // Apr May Jun for Q2
+  var quarter=ov.quarter||'Q2 2026';
+  var qNum=parseInt((quarter.match(/Q(\d)/)||[0,2])[1]);
+  var startMonth=(qNum-1)*3;
+  var quarterMonths=months.slice(startMonth,startMonth+3);
+  var editMode=state._monthlyEdit||false;
 
-  var driverRows=drivers.map(function(d){
+  function deltaColor(v){if(!v)return '#5a6480';var s=String(v).trim();var neg=s.indexOf('-')>=0||(s.indexOf('(')>=0);return neg?'#f87171':'#4ade80';}
+
+  var driverBlocks=drivers.map(function(d){
     var urgColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency]||'#c9a84c';
-    // Look for monthly data stored in state.monthly_data
     var mdata=(state.monthly_data&&state.monthly_data[d.label])||{};
-    var monthCells=quarterMonths.map(function(m){
+
+    var monthCards=quarterMonths.map(function(m){
       var cell=mdata[m]||{};
       var val=cell.value||'';
       var mom=cell.mom||'';
       var qoq=cell.qoq||'';
       var yoy=cell.yoy||'';
-      return '<td style="padding:10px 12px;border:1px solid #1a2035;vertical-align:top;min-width:140px">'+
-        '<input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="value" value="'+esc(val)+'" oninput="monthlyUpdate(this)" '+
-        'style="background:transparent;border:none;border-bottom:1px solid #1e2638;color:#e8e4d9;font-size:13px;font-weight:700;width:100%;outline:none;font-family:inherit;padding-bottom:3px;margin-bottom:6px;display:block" placeholder="Monthly total..." />'+
-        '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
-          '<input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="mom" value="'+esc(mom)+'" oninput="monthlyUpdate(this)" '+
-          'style="background:#1a2035;border:none;border-radius:4px;color:#7a8499;font-size:10px;width:60px;outline:none;font-family:inherit;padding:2px 5px" placeholder="vs PM" />'+
-          '<input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="qoq" value="'+esc(qoq)+'" oninput="monthlyUpdate(this)" '+
-          'style="background:#1a2035;border:none;border-radius:4px;color:#7a8499;font-size:10px;width:60px;outline:none;font-family:inherit;padding:2px 5px" placeholder="vs Q1" />'+
-          '<input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="yoy" value="'+esc(yoy)+'" oninput="monthlyUpdate(this)" '+
-          'style="background:#1a2035;border:none;border-radius:4px;color:#7a8499;font-size:10px;width:60px;outline:none;font-family:inherit;padding:2px 5px" placeholder="vs LY" />'+
-        '</div>'+
-      '</td>';
+      if(editMode){
+        return '<div style="background:#0d1220;border:1px solid #1e2638;border-radius:12px;padding:16px;min-width:180px;flex:1">'+
+          '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">'+m+'</div>'+
+          '<div style="font-size:10px;color:#7a8499;margin-bottom:3px">Monthly Total</div>'+
+          '<input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="value" value="'+esc(val)+'" oninput="monthlyUpdate(this)" '+
+          'style="background:#111827;border:1px solid #2a3450;border-radius:6px;color:#e8e4d9;font-size:18px;font-weight:700;width:100%;outline:none;font-family:inherit;padding:8px 10px;box-sizing:border-box;margin-bottom:10px" placeholder="e.g. $1.2M" />'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'+
+            '<div><div style="font-size:9px;color:#374151;margin-bottom:3px">vs PM</div><input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="mom" value="'+esc(mom)+'" oninput="monthlyUpdate(this)" style="background:#111827;border:1px solid #1e2638;border-radius:5px;color:#e8e4d9;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding:5px 7px;box-sizing:border-box" placeholder="+5%" /></div>'+
+            '<div><div style="font-size:9px;color:#374151;margin-bottom:3px">vs Q1</div><input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="qoq" value="'+esc(qoq)+'" oninput="monthlyUpdate(this)" style="background:#111827;border:1px solid #1e2638;border-radius:5px;color:#e8e4d9;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding:5px 7px;box-sizing:border-box" placeholder="+3%" /></div>'+
+            '<div><div style="font-size:9px;color:#374151;margin-bottom:3px">vs LY</div><input data-driver="'+esc(d.label)+'" data-month="'+m+'" data-field="yoy" value="'+esc(yoy)+'" oninput="monthlyUpdate(this)" style="background:#111827;border:1px solid #1e2638;border-radius:5px;color:#e8e4d9;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding:5px 7px;box-sizing:border-box" placeholder="-2%" /></div>'+
+          '</div>'+
+        '</div>';
+      } else {
+        return '<div style="background:#0d1220;border:1px solid #1e2638;border-radius:12px;padding:16px;min-width:180px;flex:1">'+
+          '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">'+m+'</div>'+
+          '<div style="font-family:Georgia,serif;font-size:26px;font-weight:700;color:#e8e4d9;margin-bottom:12px;min-height:36px">'+(val||'<span style="color:#374151;font-size:16px">—</span>')+'</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'+
+            '<div style="background:#111827;border-radius:6px;padding:6px 8px;text-align:center"><div style="font-size:9px;color:#5a6480;margin-bottom:3px">vs PM</div><div style="font-size:13px;font-weight:700;color:'+deltaColor(mom)+'">'+(mom||'—')+'</div></div>'+
+            '<div style="background:#111827;border-radius:6px;padding:6px 8px;text-align:center"><div style="font-size:9px;color:#5a6480;margin-bottom:3px">vs Q1</div><div style="font-size:13px;font-weight:700;color:'+deltaColor(qoq)+'">'+(qoq||'—')+'</div></div>'+
+            '<div style="background:#111827;border-radius:6px;padding:6px 8px;text-align:center"><div style="font-size:9px;color:#5a6480;margin-bottom:3px">vs LY</div><div style="font-size:13px;font-weight:700;color:'+deltaColor(yoy)+'">'+(yoy||'—')+'</div></div>'+
+          '</div>'+
+        '</div>';
+      }
     }).join('');
 
-    return '<tr>'+
-      '<td style="padding:12px 16px;border:1px solid #1a2035;position:sticky;left:0;background:#0d1220;z-index:1;min-width:200px">'+
-        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'+
-          '<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:8px;background:'+urgColor+'22;color:'+urgColor+'">'+d.urgency.toUpperCase()+'</span>'+
-        '</div>'+
-        '<div style="font-size:13px;font-weight:700;color:#e8e4d9;line-height:1.3">'+esc(d.label)+'</div>'+
-        '<div style="font-size:10px;color:#c9a84c;margin-top:3px">Target: '+esc(d.target||'—')+'</div>'+
-      '</td>'+
-      monthCells+
-    '</tr>';
+    return '<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;overflow:hidden;margin-bottom:16px">'+
+      '<div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid #1e2638;background:#0d1220">'+
+        '<span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:8px;background:'+urgColor+'22;color:'+urgColor+'">'+d.urgency.toUpperCase()+'</span>'+
+        '<span style="font-size:14px;font-weight:700;color:#e8e4d9">'+esc(d.label)+'</span>'+
+        '<span style="font-size:11px;color:#c9a84c;margin-left:4px">· Target: '+esc(d.target||'—')+'</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:12px;padding:16px 20px;flex-wrap:wrap">'+monthCards+'</div>'+
+    '</div>';
   }).join('');
 
-  var quarter=ov.quarter||'Q2 2026';
   document.getElementById('tab-1').innerHTML=
     '<div class="module">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">'+
         '<div><div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">Monthly View</div>'+
-        '<div style="font-size:13px;color:#7a8499">Track each key driver month by month — total, vs prior month, vs prior quarter, vs last year.</div></div>'+
+        '<div style="font-size:13px;color:#7a8499">Key driver performance by month — '+quarterMonths.join(', ')+'</div></div>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button onclick="monthlyFileClick()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">&#128206; Upload File</button>'+
+          '<input type="file" id="monthly-file-input" accept=".pdf,.png,.jpg,.jpeg,.csv" style="display:none" onchange="handleMonthlyFile(this)" />'+
+          '<button onclick="toggleMonthlyEdit()" style="background:'+(editMode?'#c9a84c':'transparent')+';border:1px solid '+(editMode?'#c9a84c':'#1e2638')+';color:'+(editMode?'#0a0e1a':'#7a8499')+';padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:'+(editMode?'700':'400')+'">'+
+            (editMode?'&#10003; Done Editing':'&#9998; Edit')+'</button>'+
+        '</div>'+
       '</div>'+
+      '<div id="monthly-file-box" style="display:none;margin-bottom:20px"></div>'+
       (drivers.length===0?
         '<div style="padding:40px;text-align:center;color:#5a6480;border:1px dashed #1e2638;border-radius:12px">Add key drivers on the Quarterly Overview tab first.</div>':
-        '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;background:#111827;border-radius:14px;overflow:hidden">'+
-          '<thead><tr style="background:#0a0d14">'+
-            '<th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a2035;position:sticky;left:0;background:#0a0d14;z-index:2">Driver</th>'+
-            quarterMonths.map(function(m){
-              return '<th style="padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a2035;min-width:140px">'+
-                '<div>'+m+'</div>'+
-                '<div style="display:flex;gap:4px;margin-top:4px">'+
-                  '<span style="font-size:9px;color:#374151;background:#1a2035;padding:1px 5px;border-radius:3px">vs PM</span>'+
-                  '<span style="font-size:9px;color:#374151;background:#1a2035;padding:1px 5px;border-radius:3px">vs Q1</span>'+
-                  '<span style="font-size:9px;color:#374151;background:#1a2035;padding:1px 5px;border-radius:3px">vs LY</span>'+
-                '</div>'+
-              '</th>';
-            }).join('')+
-          '</tr></thead>'+
-          '<tbody>'+driverRows+'</tbody>'+
-        '</table></div>'
+        driverBlocks
       )+
     '</div>';
+}
+function toggleMonthlyEdit(){
+  state._monthlyEdit=!state._monthlyEdit;
+  renderMonthly();
+}
+function monthlyFileClick(){
+  document.getElementById('monthly-file-input').click();
+}
+function handleMonthlyFile(input){
+  var file=input.files[0];
+  if(!file)return;
+  var box=document.getElementById('monthly-file-box');
+  if(box){box.innerHTML='<div class="claude-label">&#9734; Reading file...</div>';box.style.display='block';}
+  var drivers=(state.overview&&state.overview.drivers||[]).map(function(d){return d.label;});
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var qNum=parseInt(((state.overview&&state.overview.quarter)||'Q2 2026').match(/Q(\d)/)[1]);
+  var qMonths=months.slice((qNum-1)*3,(qNum-1)*3+3);
+  var prompt='Extract monthly performance data from this document. Return ONLY pipe-delimited CSV. Header: Driver|Month|Value|vs PM|vs Q1|vs LY. One row per driver per month. Driver names must match exactly: '+drivers.join(', ')+'. Months: '+qMonths.join(', ')+'. Use empty string for missing values.';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1];
+    var msgContent=[];
+    if(file.type==='application/pdf'){msgContent.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}});}
+    else{var mt=['image/jpeg','image/png','image/gif','image/webp'].indexOf(file.type)>=0?file.type:'image/png';msgContent.push({type:'image',source:{type:'base64',media_type:mt,data:base64}});}
+    msgContent.push({type:'text',text:prompt});
+    sb.auth.getSession().then(function(res){
+      var token=(res.data&&res.data.session)?res.data.session.access_token:'';
+      return fetch(EDGE_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify({messages:[{role:'user',content:msgContent}],system:'Return ONLY pipe-delimited CSV, no markdown, no explanations.'})});
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      var blk=d.content&&d.content.find(function(b){return b.type==='text';});
+      var text=blk?blk.text.trim():'';
+      if(!text){if(box)box.innerHTML='<div class="claude-label">No response</div>';return;}
+      var filled=0;
+      if(!state.monthly_data)state.monthly_data={};
+      text.split('\n').slice(1).forEach(function(line){
+        var parts=line.split('|').map(function(p){return p.trim();});
+        if(parts.length<2)return;
+        var driver=parts[0];var month=parts[1];
+        if(!driver||!month)return;
+        if(!state.monthly_data[driver])state.monthly_data[driver]={};
+        if(!state.monthly_data[driver][month])state.monthly_data[driver][month]={};
+        if(parts[2]){state.monthly_data[driver][month].value=parts[2];filled++;}
+        if(parts[3])state.monthly_data[driver][month].mom=parts[3];
+        if(parts[4])state.monthly_data[driver][month].qoq=parts[4];
+        if(parts[5])state.monthly_data[driver][month].yoy=parts[5];
+      });
+      scheduleSave();renderMonthly();
+      if(box)box.innerHTML='<div class="claude-label">&#10003; Filled '+filled+' values from your file!</div>';
+    }).catch(function(){if(box)box.innerHTML='<div class="claude-label">Error reading file</div>';});
+  };
+  reader.readAsDataURL(file);
 }
 function monthlyUpdate(inp){
   var driver=inp.getAttribute('data-driver');
@@ -1234,6 +1291,7 @@ function monthlyUpdate(inp){
   state.monthly_data[driver][month][field]=inp.value;
   scheduleSave();
 }
+
 
 function renderBudget(){
   if(!state.budget_data)state.budget_data={};
