@@ -218,9 +218,9 @@ html,body{height:100%;background:#0a0e1a;font-family:'Segoe UI',system-ui,sans-s
 .pb-med{background:#60a5fa22;color:var(--blue)}
 .pb-low{background:#4b556322;color:#9ca3af}
 .pb-hold{background:#37415122;color:#9ca3af}
-.init-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
-.init-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;white-space:pre-line;max-height:100px;overflow-y:auto}
-.score-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.init-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.3}
+.init-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;white-space:pre-line;max-height:72px;overflow-y:auto}
+.score-chips{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
 .sc{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .sc-impact{background:#fbbf2411;color:var(--amber)}
 .sc-effort{background:#60a5fa11;color:var(--blue)}
@@ -1451,15 +1451,20 @@ function renderInitiatives(){
       '<button data-iid="'+init.id+'" onclick="event.stopPropagation();deleteInit(this.getAttribute(\'data-iid\'))" style="position:absolute;top:8px;right:8px;background:#1e2638;border:1px solid #2a3450;color:#5a6480;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2;font-family:inherit" onmouseover="this.style.background=\'#2a1020\';this.style.color=\'#f87171\';this.style.borderColor=\'#f8717144\'" onmouseout="this.style.background=\'#1e2638\';this.style.color=\'#5a6480\';this.style.borderColor=\'#2a3450\'">&#10005;</button>'+
       '<div class="init-title">'+esc(init.title)+'</div>'+
       '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
-      '<div class="score-chips">'+
-        '<span class="sc sc-impact">Impact '+(init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</span>'+
-        '<span class="sc sc-effort">Effort '+(init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span>'+
-        '<button data-iid="'+init.id+'" onclick="event.stopPropagation();clearInitRanks(this.dataset.iid)" class="clear-rank-btn">&#8635; Reset</button>'+
+      '<div style="margin-bottom:12px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035">'+
+          '<span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Impact</span>'+
+          '<span style="font-size:12px;font-weight:700;color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+( init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</span>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035">'+
+          '<span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Effort</span>'+
+          '<span style="font-size:12px;font-weight:700;color:'+(init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span>'+
+        '</div>'+
+        (init.launchDate?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Launch</span><span style="font-size:11px;color:#c9a84c">'+esc(init.launchDate)+'</span></div>':'')+
+        (init.expectedImpact?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Expected</span><span style="font-size:11px;font-weight:700;color:#4ade80">'+esc(init.expectedImpact)+'</span></div>':'')+
       '</div>'+
-      '<div class="init-meta">'+
-        (init.expectedImpact?'<span style="color:var(--green)">&#128176; '+esc(init.expectedImpact)+'</span>':'')+
-        (init.launchDate?'<span style="color:var(--muted)">&#128197; '+esc(init.launchDate)+'</span>':'')+
-        (init.rampWeeks>0?'<span style="color:var(--gold)">'+init.rampWeeks+'w ramp</span>':'')+
+      '<div style="display:flex;justify-content:flex-end">'+
+        '<button data-iid="'+init.id+'" onclick="event.stopPropagation();clearInitRanks(this.dataset.iid)" class="clear-rank-btn">&#8635; Reset scores</button>'+
       '</div>'+
     '</div>';
   }
