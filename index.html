@@ -2130,13 +2130,17 @@ function renderMapping(){
       var driverBtns=drivers.length>0?drivers.map(function(d){
         var isMapped=(state.mappings[d.label]||[]).indexOf(init.id)>=0;
         var urgColor={critical:'#ef4444',watch:'#c9a84c',risk:'#a78bfa'}[d.urgency]||'#c9a84c';
+        var level=getMappingLevel(d.label,init.id);
+        var btnBg=level==='primary'?urgColor+'22':level==='secondary'?urgColor+'0a':'#0d1220';
+        var btnBorder=level==='primary'?urgColor+'99':level==='secondary'?urgColor+'44':'#2a3450';
+        var btnColor=level==='primary'?urgColor:level==='secondary'?urgColor+'bb':'#5a6480';
+        var dotBg=level==='primary'?urgColor:level==='secondary'?urgColor+'66':'#2a3450';
+        var levelLabel=level==='primary'?' P':level==='secondary'?' S':'';
         return '<button data-driver="'+esc(d.label)+'" data-iid="'+init.id+'" onclick="toggleMappingBtn(this)" '+
-          'style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;'+
-          'border:1px solid '+(isMapped?urgColor+'88':'#2a3450')+';'+
-          'background:'+(isMapped?urgColor+'18':'#0d1220')+';'+
-          'color:'+(isMapped?urgColor:'#5a6480')+'">'+
-          '<span style="width:7px;height:7px;border-radius:50%;background:'+(isMapped?urgColor:'#2a3450')+';flex-shrink:0"></span>'+
-          esc(d.label)+
+          'title="Click to cycle: None → Primary → Secondary" '+
+          'style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid '+btnBorder+';background:'+btnBg+';color:'+btnColor+'">'+
+          '<span style="width:7px;height:7px;border-radius:50%;background:'+dotBg+';flex-shrink:0"></span>'+
+          esc(d.label)+levelLabel+
         '</button>';
       }).join(''):'<span style="font-size:12px;color:#374151;font-style:italic">No drivers — add on Overview tab</span>';
 
@@ -2218,14 +2222,31 @@ function mapDriverUrgency(sel){
   scheduleSave();
   renderMapping();
 }
-function toggleMappingBtn(btn){
-  var driver=btn.getAttribute('data-driver');
-  var id=btn.getAttribute('data-iid');
+function getMappingLevel(driver,id){
+  if(!state.mappingLevels||!state.mappingLevels[driver])return 'none';
+  return state.mappingLevels[driver][id]||'none';
+}
+function setMappingLevel(driver,id,level){
+  if(!state.mappingLevels)state.mappingLevels={};
+  if(!state.mappingLevels[driver])state.mappingLevels[driver]={};
+  if(level==='none'){
+    delete state.mappingLevels[driver][id];
+  } else {
+    state.mappingLevels[driver][id]=level;
+  }
+  // Keep state.mappings in sync for backwards compat
   if(!state.mappings)state.mappings={};
   if(!state.mappings[driver])state.mappings[driver]=[];
   var idx=state.mappings[driver].indexOf(id);
-  if(idx>=0){state.mappings[driver].splice(idx,1);}
-  else{state.mappings[driver].push(id);}
+  if(level==='none'){if(idx>=0)state.mappings[driver].splice(idx,1);}
+  else{if(idx<0)state.mappings[driver].push(id);}
+}
+function toggleMappingBtn(btn){
+  var driver=btn.getAttribute('data-driver');
+  var id=btn.getAttribute('data-iid');
+  var current=getMappingLevel(driver,id);
+  var next=current==='none'?'primary':current==='primary'?'secondary':'none';
+  setMappingLevel(driver,id,next);
   scheduleSave();
   renderMapping();
 }
@@ -2247,8 +2268,12 @@ function claudePowerScore(init, allDrivers){
   var effort=init.effortScore||0;
   var impactNorm=impact/9;
   var easenorm=(9-effort)/9;
-  var driverCount=allDrivers.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;}).length;
-  var driverNorm=allDrivers.length>0?driverCount/allDrivers.length:0;
+  var driverScore=allDrivers.reduce(function(s,d){
+    var level=getMappingLevel(d,init.id);
+    return s+(level==='primary'?1.0:level==='secondary'?0.4:0);
+  },0);
+  var driverNorm=allDrivers.length>0?Math.min(driverScore/allDrivers.length,1):0;
+  var driverCount=allDrivers.filter(function(d){return getMappingLevel(d,init.id)!=='none';}).length;
   var total=w.impact+w.ease+w.drivers;
   var score=Math.round((impactNorm*(w.impact/total) + easenorm*(w.ease/total) + driverNorm*(w.drivers/total))*100);
   return score;
@@ -2336,7 +2361,7 @@ function renderOutput(){
     var effort=init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High';
     var iColor=init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80';
     var eColor=init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171';
-    var drivers=allDrivers.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
+    var drivers=allDrivers.filter(function(d){return getMappingLevel(d,init.id)!=='none';});
     var ps=claudePowerScore(init,allDrivers);
     var psColor=ps>=70?'#4ade80':ps>=40?'#fbbf24':'#f87171';
     var mp=init.manualPriority||'';
@@ -2346,7 +2371,13 @@ function renderOutput(){
       '<td style="text-align:center"><span style="padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;background:'+iColor+'22;color:'+iColor+'">'+impact+'</span></td>'+
       '<td style="text-align:center"><span style="padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;background:'+eColor+'22;color:'+eColor+'">'+effort+'</span></td>'+
       '<td style="color:#c9a84c;font-size:12px;text-align:center">'+(init.launchDate||'—')+'</td>'+
-      '<td style="min-width:180px">'+(drivers.length?drivers.map(function(d){return'<span style="display:inline-block;margin:1px 2px;padding:2px 7px;background:#1e2638;border-radius:4px;font-size:10px;color:#7a8499">'+esc(d)+'</span>';}).join(''):'<span style="color:#374151;font-size:11px">—</span>')+'</td>'+
+      '<td style="min-width:180px">'+(drivers.length?drivers.map(function(d){return(function(){
+        var lv=getMappingLevel(d,init.id);
+        var chipColor=lv==='primary'?'#c9a84c':lv==='secondary'?'#60a5fa':'#7a8499';
+        var chipBg=lv==='primary'?'#c9a84c18':lv==='secondary'?'#60a5fa18':'#1e2638';
+        var badge=lv==='primary'?' <span style="font-size:9px;font-weight:800">P</span>':lv==='secondary'?' <span style="font-size:9px;font-weight:800">S</span>':'';
+        return '<span style="display:inline-block;margin:1px 2px;padding:2px 7px;background:'+chipBg+';border-radius:4px;font-size:10px;color:'+chipColor+'">'+esc(d)+badge+'</span>';
+      })();}).join(''):'<span style="color:#374151;font-size:11px">—</span>')+'</td>'+
       '<td style="text-align:center">'+
         '<div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:'+psColor+'">'+ps+'</div>'+
         '<div style="font-size:9px;color:#5a6480;margin-top:1px">/ 100</div>'+
