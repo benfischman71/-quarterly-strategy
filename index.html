@@ -654,7 +654,7 @@ var state = blankState('Q2 2026');
 // ═══════════════════════════════════════════════════════════════
 function fmt$(n){var a=Math.abs(n);if(a>=1000000)return'$'+(n/1000000).toFixed(2)+'M';if(a>=1000)return'$'+Math.round(n/1000)+'K';return'$'+Math.round(n);}
 function fmtN(n,u){if(u==='$')return fmt$(n);if(u==='%')return n+'%';if(Math.abs(n)>=1000)return(n/1000).toFixed(1)+'K';return String(Math.round(n));}
-function getPriority(i,e,m){var s=i*2-e+m;if(s>=15)return'HIGH';if(s>=8)return'MED';return'LOW';}
+function getPriority(i,e,m){var s=i*2-e;if(s>=10)return'HIGH';if(s>=4)return'MED';return'LOW';}
 function uid(){return'i'+Date.now().toString(36)+Math.random().toString(36).slice(2);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='error'?'#f8717133':'var(--border)';t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
@@ -1452,9 +1452,9 @@ function renderInitiatives(){
       '<div class="init-title">'+esc(init.title)+'</div>'+
       '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
       '<div class="score-chips">'+
-        '<span class="sc sc-impact">Impact '+init.impactScore+'</span>'+
-        '<span class="sc sc-effort">Effort '+init.effortScore+'</span>'+
-        '<span class="sc sc-mvp">MVP '+init.mvpScore+'</span>'+
+        '<span class="sc sc-impact">Impact '+(init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</span>'+
+        '<span class="sc sc-effort">Effort '+(init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span>'+
+        '<button data-iid="'+init.id+'" onclick="event.stopPropagation();clearInitRanks(this.dataset.iid)" class="clear-rank-btn">&#8635; Reset</button>'+
       '</div>'+
       '<div class="init-meta">'+
         (init.expectedImpact?'<span style="color:var(--green)">&#128176; '+esc(init.expectedImpact)+'</span>':'')+
@@ -1528,7 +1528,7 @@ function openInitPanel(id){
       '<div id="panel-file-box-'+id+'" class="claude-box" style="display:none;margin-top:8px"></div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
-      '<div class="field" style="margin:0"><label class="field-label">Launch Date</label>'+
+      '<div class="field" style="margin:0"><label class="field-label">Desired Launch Date</label>'+
         '<input type="date" class="input" data-iid="'+id+'" data-field="launchDate" value="'+(init.launchDate||'')+'" onchange="panelUpdateInit(this)" /></div>'+
       '<div class="field" style="margin:0"><label class="field-label">Ramp Weeks</label>'+
         '<input type="number" class="input" min="0" max="12" data-iid="'+id+'" data-field="rampWeeks" value="'+(init.rampWeeks||0)+'" onchange="panelUpdateInitNum(this)" /></div>'+
@@ -1543,9 +1543,9 @@ function openInitPanel(id){
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
         '<label class="field-label">Ranking Scores</label>'+
         '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="rank" onclick="panelDraftClaude(this)">&#9734; Suggest Scores</button></div>'+
-      buildSlider(id,'impactScore','Impact','#fbbf24',init.impactScore)+
-      buildSlider(id,'effortScore','Effort','#60a5fa',init.effortScore)+
-      buildSlider(id,'mvpScore','MVP Speed','#a78bfa',init.mvpScore)+
+      buildScoreToggle(id,'impactScore','Impact',init.impactScore)+
+      buildScoreToggle(id,'effortScore','Effort',init.effortScore)+
+
       '<div id="claude-rank-'+id+'" class="claude-box" style="display:none"></div>'+
       '<div style="margin-top:12px;padding:10px 14px;background:#0d1220;border-radius:8px;border:1px solid #1e2638">'+
         '<span style="font-size:11px;color:#7a8499">Priority: </span>'+
@@ -1658,16 +1658,16 @@ function openInitOverview(id){
       '<div style="font-size:10px;font-weight:700;color:#5a6480;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px">Ranking Scores</div>'+
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">'+
         '<div style="text-align:center">'+
-          '<div style="font-size:28px;font-weight:700;color:#fbbf24;font-family:Georgia,serif">'+init.impactScore+'</div>'+
+          '<div style="font-size:28px;font-weight:700;color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+';font-family:Georgia,serif">'+(init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</div>'+
           '<div style="font-size:11px;color:#5a6480;margin-top:4px">Impact</div>'+
         '</div>'+
         '<div style="text-align:center">'+
-          '<div style="font-size:28px;font-weight:700;color:#60a5fa;font-family:Georgia,serif">'+init.effortScore+'</div>'+
+          '<div style="font-size:28px;font-weight:700;color:'+(init.effortScore<=3?'#60a5fa':init.effortScore<=6?'#fbbf24':'#4ade80')+';font-family:Georgia,serif">'+(init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</div>'+
           '<div style="font-size:11px;color:#5a6480;margin-top:4px">Effort</div>'+
         '</div>'+
         '<div style="text-align:center">'+
-          '<div style="font-size:28px;font-weight:700;color:#a78bfa;font-family:Georgia,serif">'+init.mvpScore+'</div>'+
-          '<div style="font-size:11px;color:#5a6480;margin-top:4px">MVP Speed</div>'+
+          
+          
         '</div>'+
       '</div>'+
     '</div>'+
@@ -1783,7 +1783,7 @@ function panelDraftClaude(el){
       'Rules: No headers. No bold. No sub-bullets. Exactly 3 bullets. Ultra concise.\n\n'+
       'Source:\n'+long;
   } else if(type==='rank'){
-    prompt='Rate "'+init.title+'" ('+init.description+'): Impact (1-10), Effort (1-10, 10=complex), MVP Speed (1-10).\nFormat:\nImpact: X/10 - reason\nEffort: X/10 - reason\nMVP: X/10 - reason';
+    prompt='Rate this initiative "'+init.title+'" on two dimensions. Use only Low/Med/High. Format exactly:\nImpact: Low|Med|High - one sentence reason\nEffort: Low|Med|High - one sentence reason\n\nImpact = business value. Effort = complexity (High effort = harder). Description: '+init.description;
   }
   askClaude(prompt,el.id||'btn-draft',boxId,function(text){
     var box=document.getElementById(boxId);
@@ -1956,12 +1956,28 @@ function panelApplyClaude(el){
   toast('Applied!');
 }
 
+function scoreLabel(v){return v<=3?'Low':v<=6?'Med':'High';}
+function scoreColor(v){return v<=3?'#60a5fa':v<=6?'#fbbf24':'#4ade80';}
+function buildScoreToggle(id,key,label,val){
+  var v=val||0;
+  var opts=[{l:'Low',v:3,c:'#60a5fa'},{l:'Med',v:6,c:'#fbbf24'},{l:'High',v:9,c:'#4ade80'}];
+  var btns=opts.map(function(o){
+    var active=scoreLabel(v)===o.l;
+    return '<button data-iid="'+id+'" data-key="'+key+'" data-val="'+o.v+'" onclick="setScoreToggle(this)" style="padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;border:1px solid '+(active?o.c:'#1e2638')+';background:'+(active?o.c+'22':'transparent')+';color:'+(active?o.c:'#5a6480')+'">'+o.l+'</button>';
+  }).join('');
+  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:12px;color:#c8d4e8;width:70px;flex-shrink:0">'+label+'</span><div style="display:flex;gap:6px">'+btns+'</div></div>';
+}
+function setScoreToggle(btn){
+  var id=btn.dataset.iid;var key=btn.dataset.key;var val=+btn.dataset.val;
+  updateInit(id,key,val);
+  btn.closest('div').querySelectorAll('button').forEach(function(b){
+    var active=b.dataset.val===btn.dataset.val;
+    var c=b===btn?scoreColor(val):'#5a6480';
+    b.style.color=c;b.style.borderColor=active?c:'#1e2638';b.style.background=active?c+'22':'transparent';
+  });
+}
 function buildSlider(id,key,label,color,val){
-  return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'+
-    '<span style="font-size:12px;color:'+color+';width:80px;flex-shrink:0">'+label+'</span>'+
-    '<input type="range" min="1" max="10" value="'+(val||5)+'" oninput="updateInit(\''+id+'\',\''+key+'\',+this.value);this.nextElementSibling.textContent=this.value" style="flex:1" />'+
-    '<span style="font-size:13px;font-weight:700;color:'+color+';width:24px;text-align:center">'+(val||5)+'</span>'+
-  '</div>';
+  return buildScoreToggle(id,key,label,val);
 }
 function updateInit(id,key,val){
   var init=state.initiatives.find(function(i){return i.id===id;});
@@ -2131,9 +2147,9 @@ function renderMapping(){
           '</div>'+
           (init.shortDescription?'<div style="font-size:11px;color:#7a8499;line-height:1.5;margin-bottom:8px">'+esc(init.shortDescription.slice(0,90)+(init.shortDescription.length>90?'...':''))+'</div>':'')+
           '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
-            '<span style="font-size:10px;color:#374151">Impact <strong style="color:#fbbf24">'+init.impactScore+'</strong></span>'+
-            '<span style="font-size:10px;color:#374151">Effort <strong style="color:#60a5fa">'+init.effortScore+'</strong></span>'+
-            '<span style="font-size:10px;color:#374151">MVP <strong style="color:#a78bfa">'+init.mvpScore+'</strong></span>'+
+            '<span style="font-size:10px;color:#374151">Impact <strong style="color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+(init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</strong></span>'+
+            '<span style="font-size:10px;color:#374151">Effort <strong style="color:'+(init.effortScore<=3?'#60a5fa':init.effortScore<=6?'#fbbf24':'#4ade80')+'">'+(init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</strong></span>'+
+            
             (mappedCount>0?'<span style="font-size:10px;color:#4ade80;font-weight:600">&#10003; '+mappedCount+' driver'+(mappedCount>1?'s':'')+'</span>':'<span style="font-size:10px;color:#374151;font-style:italic">Not yet mapped</span>')+
           '</div>'+
         '</div>'+
@@ -2224,7 +2240,7 @@ function unmapInit(btn){
 function renderOutput(){
   var inits=state.initiatives;
   var active=inits.filter(function(i){return i.status==='active';});
-  var sorted=inits.slice().sort(function(a,b){return(b.impactScore*2-b.effortScore+b.mvpScore)-(a.impactScore*2-a.effortScore+a.mvpScore);});
+  var sorted=inits.slice().sort(function(a,b){return(b.impactScore*2-b.effortScore)-(a.impactScore*2-a.effortScore);});
   var totalImpact=active.reduce(function(s,i){return s+parseMoney(i.expectedImpact);},0);
   var driversCov=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
   var sumStats=[
@@ -2241,9 +2257,9 @@ function renderOutput(){
       '<td style="color:var(--dim);font-weight:700">'+(idx+1)+'</td>'+
       '<td style="font-weight:600;color:var(--text)">'+esc(init.title)+'</td>'+
       '<td><span style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:'+pColor+'22;color:'+pColor+'">'+p+'</span></td>'+
-      '<td style="color:var(--amber);font-weight:600">'+init.impactScore+'/10</td>'+
-      '<td style="color:var(--blue);font-weight:600">'+init.effortScore+'/10</td>'+
-      '<td style="color:var(--purple);font-weight:600">'+init.mvpScore+'/10</td>'+
+      '<td style="text-align:center"><span style="font-weight:700;color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+( init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</span></td>'+
+      '<td style="text-align:center"><span style="font-weight:700;color:'+(init.effortScore<=3?'#60a5fa':init.effortScore<=6?'#fbbf24':'#4ade80')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span></td>'+
+
       '<td style="color:var(--green);font-weight:600">'+(init.expectedImpact||'--')+'</td>'+
       '<td style="color:var(--gold);font-size:11px">'+(init.launchDate||'--')+'</td>'+
       '<td style="color:var(--muted);font-size:11px">'+(init.rampWeeks?init.rampWeeks+'w':'--')+'</td>'+
@@ -2264,7 +2280,7 @@ function renderOutput(){
       '<div class="card">'+
         '<div class="card-head"><span class="card-title">Prioritized Roadmap</span></div>'+
         '<div style="overflow-x:auto"><table class="out-table"><thead><tr>'+
-          ['#','Initiative','Priority','Impact','Effort','MVP','Expected $','Launch','Ramp','Status','Budget Drivers'].map(function(h){return'<th>'+h+'</th>';}).join('')+
+          ['#','Initiative','Priority','Impact','Effort','Expected $','Desired Launch','Ramp','Status','Budget Drivers'].map(function(h){return'<th>'+h+'</th>';}).join('')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '</div>'+
     '</div>';
