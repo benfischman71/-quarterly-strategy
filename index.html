@@ -1549,7 +1549,7 @@ function renderInitiatives(){
       '</div>'+
       '<div style="display:flex;justify-content:flex-start;align-items:center;margin-top:4px;padding-top:8px;border-top:1px solid #1a2035">'+
         '<button data-iid="'+init.id+'" onclick="event.stopPropagation();cardToggleStatus(this)" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;cursor:pointer;font-family:inherit;border:1px solid '+(init.status==='active'?'#4ade8044':'#c9a84c44')+';background:'+(init.status==='active'?'#4ade8011':'#c9a84c11')+';color:'+(init.status==='active'?'#4ade80':'#c9a84c')+'">'+
-          (init.status==='active'?'&#9650; Above line':'&#9660; Below line')+
+          (init.status==='active'?'&#9679; Active':'&#9675; On Hold')+
         '</button>'+
       '</div>'+
     '</div>';
@@ -1562,9 +1562,9 @@ function renderInitiatives(){
         '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Initiatives</div><div style="font-size:13px;color:var(--muted)">Create and rank initiatives. All changes sync in real time.</div></div>'+
         '<div style="display:flex;gap:10px">'+'<button class="btn btn-ghost" onclick="openGridModal()" style="font-size:13px">&#9783; Grid View</button>'+'<button class="btn btn-gold" onclick="createInitiative()">+ New Initiative</button>'+'</div>'+
       '</div>'+
-      '<div class="section-label">&#9650; Above the Line <span style="font-size:10px;color:#5a6480;font-weight:400;text-transform:none;letter-spacing:0">— Active</span></div>'+
+      '<div class="section-label">&#9679; Active</div>'+
       '<div class="grid-3">'+activeHtml+'</div>'+
-      (hold.length?'<div class="section-label mt-24">&#9660; Below the Line <span style="font-size:10px;color:#5a6480;font-weight:400;text-transform:none;letter-spacing:0">— On Hold</span></div><div class="grid-3">'+holdHtml+'</div>':'')+
+      (hold.length?'<div style="margin:32px 0 20px;display:flex;align-items:center;gap:12px">'+'<div style="flex:1;height:2px;background:linear-gradient(90deg,#f87171,#ef444400)"></div>'+'<div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#f87171;white-space:nowrap">&#9675; On Hold</div>'+'<div style="flex:1;height:2px;background:linear-gradient(270deg,#f87171,#ef444400)"></div>'+'</div>'+'<div class="grid-3">'+holdHtml+'</div>':'')+
     '</div>';
 }
 function cardToggleStatus(btn){
