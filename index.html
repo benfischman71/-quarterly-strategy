@@ -2528,16 +2528,44 @@ function editHeroStats(){
 }
 function saveMetrics(){
   if(!state.overview.stats)state.overview.stats=[];
-  for(var i=0;i<state.overview.stats.length;i++){
-    state.overview.stats[i].label=document.getElementById('mm-label-'+i).value.trim();
-    state.overview.stats[i].val=document.getElementById('mm-val-'+i).value.trim();
-    state.overview.stats[i].delta=document.getElementById('mm-delta-'+i).value.trim();
-    var qoqEl=document.getElementById('mm-qoq-'+i);
-    if(qoqEl)state.overview.stats[i].qoq=qoqEl.value.trim();
+  var newStats=[];
+  var i=0;
+  while(document.getElementById('mm-label-'+i)){
+    newStats.push({
+      label:document.getElementById('mm-label-'+i).value.trim(),
+      val:document.getElementById('mm-val-'+i).value.trim(),
+      delta:document.getElementById('mm-delta-'+i).value.trim(),
+      qoq:(document.getElementById('mm-qoq-'+i)||{}).value||'',
+      up:(state.overview.stats[i]&&state.overview.stats[i].up)||true,
+      red:(state.overview.stats[i]&&state.overview.stats[i].red)||false
+    });
+    i++;
   }
+  state.overview.stats=newStats;
   scheduleSave();
   closeMetricsModal();
   renderOverview();
+}
+function addMetricRow(){
+  var i=state.overview.stats?state.overview.stats.length:0;
+  var container=document.getElementById('mm-rows');
+  var div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px';
+  div.innerHTML='<input class="input" style="font-size:11px" placeholder="Label" id="mm-label-'+i+'">'+
+    '<input class="input" style="font-size:11px" placeholder="Value e.g. $1.2M" id="mm-val-'+i+'">'+
+    '<input class="input" style="font-size:11px" placeholder="vs LY e.g. +5%" id="mm-delta-'+i+'">'+
+    '<input class="input" style="font-size:11px" placeholder="vs Q1 e.g. +2%" id="mm-qoq-'+i+'">';
+  container.appendChild(div);
+  if(!state.overview.stats)state.overview.stats=[];
+  state.overview.stats.push({val:'',label:'',delta:'',qoq:'',up:true});
+  div.querySelector('input').focus();
+}
+function removeLastMetric(){
+  if(!state.overview.stats||state.overview.stats.length<=1)return;
+  var i=state.overview.stats.length-1;
+  var el=document.getElementById('mm-label-'+i);
+  if(el)el.closest('div').remove();
+  state.overview.stats.pop();
 }
 function closeMetricsModal(){document.getElementById('metrics-modal').classList.remove('open');}
 
@@ -3088,7 +3116,11 @@ sb.auth.onAuthStateChange(function(event,session){
       <span>Label</span><span>Value</span><span>vs. LY</span><span>vs. Q1</span>
     </div>
     <div id="mm-rows"></div>
-    <div class="flex gap-12" style="margin-top:20px">
+    <div style="display:flex;gap:8px;margin-top:12px;margin-bottom:4px">
+      <button class="btn btn-ghost btn-sm" onclick="addMetricRow()" style="font-size:11px">+ Add Metric</button>
+      <button class="btn btn-ghost btn-sm" onclick="removeLastMetric()" style="font-size:11px;color:#f87171;border-color:#f8717133">- Remove Last</button>
+    </div>
+    <div class="flex gap-12" style="margin-top:12px">
       <button class="btn btn-gold" style="flex:1;justify-content:center" onclick="saveMetrics()">Save Metrics</button>
       <button class="btn btn-ghost" onclick="closeMetricsModal()">Cancel</button>
     </div>
