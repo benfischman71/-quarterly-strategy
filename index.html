@@ -2237,51 +2237,88 @@ function unmapInit(btn){
   renderMapping();
 }
 
+var _scoreWeights={impact:50,ease:35,drivers:15};
+function claudePowerScore(init, allDrivers){
+  var w=_scoreWeights;
+  var impact=init.impactScore||0;
+  var effort=init.effortScore||0;
+  var impactNorm=impact/9;
+  var easenorm=(9-effort)/9;
+  var driverCount=allDrivers.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;}).length;
+  var driverNorm=allDrivers.length>0?driverCount/allDrivers.length:0;
+  var total=w.impact+w.ease+w.drivers;
+  var score=Math.round((impactNorm*(w.impact/total) + easenorm*(w.ease/total) + driverNorm*(w.drivers/total))*100);
+  return score;
+}
+function updateScoreWeight(key,val){
+  _scoreWeights[key]=Math.max(0,Math.min(100,+val));
+  var total=_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers;
+  document.getElementById('sw-pct-impact').textContent=Math.round(_scoreWeights.impact/total*100)+'%';
+  document.getElementById('sw-pct-ease').textContent=Math.round(_scoreWeights.ease/total*100)+'%';
+  document.getElementById('sw-pct-drivers').textContent=Math.round(_scoreWeights.drivers/total*100)+'%';
+  renderOutput();
+}
+function setManualPriority(sel){
+  var id=sel.getAttribute('data-iid');
+  var init=state.initiatives.find(function(i){return i.id===id;});
+  if(!init)return;
+  init.manualPriority=sel.value;
+  scheduleSave();
+}
 function renderOutput(){
   var inits=state.initiatives;
   var active=inits.filter(function(i){return i.status==='active';});
-  var sorted=inits.slice().sort(function(a,b){return(b.impactScore*2-b.effortScore)-(a.impactScore*2-a.effortScore);});
+  var allDrivers=state.grid&&state.grid.drivers&&state.grid.drivers.length?state.grid.drivers:BUDGET_DRIVERS;
   var totalImpact=active.reduce(function(s,i){return s+parseMoney(i.expectedImpact);},0);
-  var driversCov=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
-  var sumStats=[
-    ['Active',active.length,'var(--gold)'],
-    ['On Hold',inits.length-active.length,'var(--muted)'],
-    ['Total Impact','$'+(totalImpact/1000000).toFixed(1)+'M','var(--green)'],
-    ['Drivers Covered',driversCov+'/'+BUDGET_DRIVERS.length,'var(--purple)']
-  ];
-  var rows=sorted.map(function(init,idx){
-    var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
-    var pColor=p==='HIGH'?'var(--gold)':p==='MED'?'var(--blue)':'var(--dim)';
-    var drivers=BUDGET_DRIVERS.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
-    return'<tr>'+
-      '<td style="color:var(--dim);font-weight:700">'+(idx+1)+'</td>'+
-      '<td style="font-weight:600;color:var(--text)">'+esc(init.title)+'</td>'+
-      '<td><span style="display:inline-flex;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:'+pColor+'22;color:'+pColor+'">'+p+'</span></td>'+
-      '<td style="text-align:center"><span style="font-weight:700;color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+( init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</span></td>'+
-      '<td style="text-align:center"><span style="font-weight:700;color:'+(init.effortScore<=3?'#60a5fa':init.effortScore<=6?'#fbbf24':'#4ade80')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span></td>'+
-
-      '<td style="color:var(--green);font-weight:600">'+(init.expectedImpact||'--')+'</td>'+
-      '<td style="color:var(--gold);font-size:11px">'+(init.launchDate||'--')+'</td>'+
-      '<td style="color:var(--muted);font-size:11px">'+(init.rampWeeks?init.rampWeeks+'w':'--')+'</td>'+
-      '<td><span class="tag tag-'+(init.status==='active'?'active':'hold')+'">'+init.status+'</span></td>'+
-      '<td style="color:var(--dim);font-size:11px">'+(drivers.join(', ')||'--')+'</td>'+
+  var highCount=active.filter(function(i){return getPriority(i.impactScore,i.effortScore,0)==='HIGH';}).length;
+  var driversCov=allDrivers.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
+  var sorted=active.slice().sort(function(a,b){return claudePowerScore(b,allDrivers)-claudePowerScore(a,allDrivers);});
+  var mpOpts=['','1 - Must Do','2 - High Priority','3 - Important','4 - Nice to Have','5 - Defer'];
+  var rows=sorted.map(function(init){
+    var impact=init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High';
+    var effort=init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High';
+    var iColor=init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80';
+    var eColor=init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171';
+    var drivers=allDrivers.filter(function(d){return(state.mappings[d]||[]).indexOf(init.id)>=0;});
+    var ps=claudePowerScore(init,allDrivers);
+    var psColor=ps>=70?'#4ade80':ps>=40?'#fbbf24':'#f87171';
+    var mp=init.manualPriority||'';
+    var mpOpts_html=mpOpts.map(function(o){return'<option value="'+o+'"'+(mp===o?' selected':'')+'>'+( o||'— Set priority —')+'</option>';}).join('');
+    return '<tr>'+
+      '<td style="font-weight:600;color:#e8e4d9;min-width:160px">'+esc(init.title)+'</td>'+
+      '<td style="text-align:center"><span style="padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;background:'+iColor+'22;color:'+iColor+'">'+impact+'</span></td>'+
+      '<td style="text-align:center"><span style="padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;background:'+eColor+'22;color:'+eColor+'">'+effort+'</span></td>'+
+      '<td style="color:#c9a84c;font-size:12px;text-align:center">'+(init.launchDate||'—')+'</td>'+
+      '<td style="min-width:180px">'+(drivers.length?drivers.map(function(d){return'<span style="display:inline-block;margin:1px 2px;padding:2px 7px;background:#1e2638;border-radius:4px;font-size:10px;color:#7a8499">'+esc(d)+'</span>';}).join(''):'<span style="color:#374151;font-size:11px">—</span>')+'</td>'+
+      '<td style="text-align:center">'+
+        '<div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:'+psColor+'">'+ps+'</div>'+
+        '<div style="font-size:9px;color:#5a6480;margin-top:1px">/ 100</div>'+
+      '</td>'+
+      '<td style="min-width:160px"><select data-iid="'+init.id+'" onchange="setManualPriority(this)" style="background:#0d1220;border:1px solid #1e2638;border-radius:6px;color:#c8d4e8;font-size:11px;padding:5px 8px;width:100%;font-family:inherit;outline:none;cursor:pointer">'+mpOpts_html+'</select></td>'+
     '</tr>';
   }).join('');
   document.getElementById('tab-4').innerHTML=
     '<div class="module">'+
-      '<div class="flex justify-between items-center mb-24">'+
-        '<div><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Output</div><div style="font-size:13px;color:var(--muted)">Prioritized roadmap, impact summary, and driver coverage.</div></div>'+
-        '<button class="btn btn-claude btn-sm" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">'+
+        '<div><div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">'+state.overview.quarter+' Output</div>'+
+        '<div style="font-size:13px;color:#7a8499">Initiative roadmap · Claude scoring · manual prioritization</div></div>'+
+        '<button class="btn btn-claude" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
       '</div>'+
-      '<div id="ex-claude-box" class="claude-box" style="display:none;margin-bottom:24px"></div>'+
-      '<div class="grid-4 mb-24">'+
-        sumStats.map(function(s){return'<div class="gap-stat"><div style="font-family:var(--font-serif);font-size:30px;color:'+s[2]+'">'+s[1]+'</div><div class="gap-stat-sub">'+s[0]+'</div></div>';}).join('')+
+      '<div id="ex-claude-box" style="display:none;margin-bottom:28px;background:#0d1220;border:1px solid #a78bfa33;border-radius:14px;padding:24px"></div>'+
+      '<div class="grid-4" style="margin-bottom:28px">'+
+        [['Active Initiatives',active.length,'#c9a84c'],['Total Expected Impact','$'+(totalImpact>=1000000?(totalImpact/1000000).toFixed(1)+'M':totalImpact>=1000?Math.round(totalImpact/1000)+'K':'--'),'#4ade80'],['High Priority',highCount,'#fbbf24'],['Drivers Covered',driversCov+' / '+allDrivers.length,'#a78bfa']].map(function(s){return'<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;padding:18px 20px"><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">'+s[0]+'</div><div style="font-family:var(--font-serif);font-size:28px;font-weight:700;color:'+s[2]+'">'+s[1]+'</div></div>';}).join('')+
       '</div>'+
-      '<div class="card">'+
-        '<div class="card-head"><span class="card-title">Prioritized Roadmap</span></div>'+
-        '<div style="overflow-x:auto"><table class="out-table"><thead><tr>'+
-          ['#','Initiative','Priority','Impact','Effort','Expected $','Desired Launch','Ramp','Status','Budget Drivers'].map(function(h){return'<th>'+h+'</th>';}).join('')+
+      '<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;overflow:hidden">'+
+        '<div style="padding:16px 22px;border-bottom:1px solid #1e2638;display:flex;justify-content:space-between;align-items:center">'+
+          '<span style="font-size:12px;font-weight:700;color:#e8e4d9;letter-spacing:.06em;text-transform:uppercase">Initiative Roadmap</span>'+
+          '<span style="font-size:11px;color:#5a6480">Sorted by Claude Power Score</span>'+
+        '</div>'+
+        '<div style="overflow-x:auto"><table class="out-table"><thead><tr style="background:#0d1220">'+
+          ['Initiative','Impact','Effort','Launch Date','Key Drivers','Claude Score','My Priority'].map(function(h){return'<th style="white-space:nowrap;padding:10px 14px">'+h+'</th>';}).join('')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+        '<div style="padding:14px 22px;border-top:1px solid #1e2638;background:#0a0d14">'+
+          '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Score Weights</div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#4ade80;width:52px">Impact</span><input type="range" min="0" max="100" value="'+_scoreWeights.impact+'" oninput="updateScoreWeight(\'impact\',this.value)" style="width:100px"><span id="sw-pct-impact" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.impact/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#fbbf24;width:52px">Ease</span><input type="range" min="0" max="100" value="'+_scoreWeights.ease+'" oninput="updateScoreWeight(\'ease\',this.value)" style="width:100px"><span id="sw-pct-ease" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.ease/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#a78bfa;width:52px">Drivers</span><input type="range" min="0" max="100" value="'+_scoreWeights.drivers+'" oninput="updateScoreWeight(\'drivers\',this.value)" style="width:100px"><span id="sw-pct-drivers" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.drivers/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="font-size:10px;color:#374151">Scores update live as you adjust</div>'+'</div>'+
+        '</div>'+
       '</div>'+
     '</div>';
 }
