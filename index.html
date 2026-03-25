@@ -3425,7 +3425,8 @@ function renderOrg(){
       '<div style="margin-bottom:16px">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
           '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Why Critical — What They Unlock</div>'+
-          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px">&#9734; Draft</button>'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-type="draft" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px">&#9734; Draft</button>'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-type="clean" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+
         '</div>'+
         '<textarea data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="why" oninput="orgUpdateField(this)" '+
         'style="background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#c8d4e8;font-size:13px;width:100%;outline:none;font-family:inherit;padding:10px 12px;resize:none;line-height:1.6;min-height:72px;box-sizing:border-box" '+
@@ -3526,7 +3527,10 @@ function orgDraftClaude(btn){
   if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';}
   btn.disabled=true;
   var quarter=state.overview&&state.overview.quarter||'Q2 2026';
-  var prompt='Write a compelling explanation for why hiring a '+hire.role+' for the '+dept+' department is critical to the '+quarter+' plan. Cover: what unique function they provide, what becomes impossible without them, and what business outcomes are at risk. 3-4 sentences, specific and outcome-focused. No fluff.';
+  var type=btn.getAttribute('data-type')||'draft';
+  var prompt=type==='clean'?
+    'Clean up and sharpen this explanation of why hiring a '+hire.role+' is critical. Make it more specific, outcome-focused, and executive-ready. Keep under 80 words.\n\nCurrent text:\n'+hire.why:
+    'Write a compelling explanation for why hiring a '+hire.role+' for the '+dept+' department is critical to the '+quarter+' plan. Cover: what unique function they provide, what becomes impossible without them, and what business outcomes are at risk. 3-4 sentences, specific and outcome-focused. No fluff.';
   askClaude(prompt,null,boxId,function(text){
     btn.disabled=false;
     if(box){
