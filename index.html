@@ -1222,7 +1222,11 @@ function renderMonthly(){
             (editMode?'&#10003; Done Editing':'&#9998; Edit')+'</button>'+
         '</div>'+
       '</div>'+
-      '<div id="monthly-file-box" style="display:none;margin-bottom:20px"></div>'+
+      '<div id="monthly-file-box" style="display:none;margin-bottom:12px"></div>'+
+      '<div ondragover="event.preventDefault();this.style.borderColor=\'#c9a84c\'" ondragleave="this.style.borderColor=\'#1e2638\'" ondrop="monthlyHandleDrop(event,this)" onclick="monthlyFileClick()" style="border:1px dashed #1e2638;border-radius:10px;padding:12px 18px;font-size:12px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:20px">'+
+        '<span style="font-size:18px">&#128202;</span>'+
+        '<span>Drag &amp; drop a budget screenshot, PDF, or CSV — Claude will extract monthly data automatically</span>'+
+      '</div>'+
       (drivers.length===0?
         '<div style="padding:40px;text-align:center;color:#5a6480;border:1px dashed #1e2638;border-radius:12px">Add key drivers on the Quarterly Overview tab first.</div>':
         driverBlocks
@@ -1233,6 +1237,7 @@ function toggleMonthlyEdit(){
   state._monthlyEdit=!state._monthlyEdit;
   renderMonthly();
 }
+function monthlyHandleDrop(event,el){event.preventDefault();el.style.borderColor='#1e2638';var file=event.dataTransfer.files[0];if(file)handleMonthlyFile({files:[file]});}
 function monthlyFileClick(){
   document.getElementById('monthly-file-input').click();
 }
