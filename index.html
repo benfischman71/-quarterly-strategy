@@ -767,7 +767,16 @@ function renderWsList(){
       wss.owned.forEach(function(ws){
         var isActive=currentWs&&currentWs.id===ws.id;
         var upd=ws.updated_at?(' · '+new Date(ws.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})):'';
-        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div><div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+(isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#5a6480">Owner</span>')+'</div>';
+        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" style="cursor:default">'
+           +'<div style="flex:1;min-width:0;cursor:pointer" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'
+           +'<div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div>'
+           +'<div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div>'
+           +'</div>'
+           +'<div style="display:flex;align-items:center;gap:6px">'
+           +(isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#5a6480">Owner</span>')
+           +'<button data-wsid="'+ws.id+'" data-wsname="'+esc(ws.name)+'" onclick="event.stopPropagation();duplicateWorkspace(this.dataset.wsid,this.dataset.wsname)" style="background:transparent;border:1px solid #1e2638;color:#7a8499;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600" title="Make a copy">&#10064; Copy</button>'
+           +'</div>'
+           +'</div>';
 
 
 
@@ -779,7 +788,16 @@ function renderWsList(){
       wss.shared.forEach(function(ws){
         var isActive=currentWs&&currentWs.id===ws.id;
         var upd=ws.updated_at?(' · '+new Date(ws.updated_at).toLocaleDateString('en-US',{month:'short',day:'numeric'})):'';
-        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'+'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div><div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div></div>'+(isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#a78bfa;background:#1a1040;border:1px solid #a78bfa33;padding:2px 8px;border-radius:10px">Shared</span>')+'</div>';
+        html+='<div class="ws-item'+(isActive?' ws-item-active':'')+'" style="cursor:default">'
+           +'<div style="flex:1;min-width:0;cursor:pointer" onclick="openWorkspace(\''+ws.id+'\');document.getElementById(\'ws-overlay\').style.display=\'none\'">'
+           +'<div style="font-size:14px;font-weight:700;color:#e8e4d9;margin-bottom:3px">'+esc(ws.name)+'</div>'
+           +'<div style="font-size:11px;color:#5a6480">'+esc(ws.quarter||'')+upd+'</div>'
+           +'</div>'
+           +'<div style="display:flex;align-items:center;gap:6px">'
+           +(isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#a78bfa;background:#1a1040;border:1px solid #a78bfa33;padding:2px 8px;border-radius:10px">Shared</span>')
+           +'<button data-wsid="'+ws.id+'" data-wsname="'+esc(ws.name)+'" onclick="event.stopPropagation();duplicateWorkspace(this.dataset.wsid,this.dataset.wsname)" style="background:transparent;border:1px solid #1e2638;color:#7a8499;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600" title="Make a copy">&#10064; Copy</button>'
+           +'</div>'
+           +'</div>';
 
 
 
@@ -851,6 +869,41 @@ function submitNewWs(){
       errEl.textContent='Unexpected error. Please try again.';
       errEl.style.display='block';
     });
+}
+
+function duplicateWorkspace(wsId, wsName){
+  var newName = prompt('Name for your copy:', 'Copy of ' + wsName);
+  if(!newName || !newName.trim()) return;
+  newName = newName.trim();
+  toast('Duplicating workspace...', 'info');
+  // Load the source workspace data
+  sb.from('workspaces').select('data,quarter').eq('id', wsId).single().then(function(r){
+    if(r.error){ toast('Error loading workspace', 'error'); return; }
+    var srcData = r.data.data || blankState(r.data.quarter);
+    var quarter = r.data.quarter || 'Q2 2026';
+    // Deep copy the data
+    var newData = JSON.parse(JSON.stringify(srcData));
+    sb.from('workspaces')
+      .insert({ owner_id: currentUser.id, name: newName, quarter: quarter, data: newData })
+      .select()
+      .single()
+      .then(function(r2){
+        if(r2.error){ toast('Error creating copy: ' + r2.error.message, 'error'); return; }
+        toast('Workspace copied: ' + newName);
+        // Ask if they want to open it now
+        if(confirm('Copy created! Open "' + newName + '" now?')){
+          document.getElementById('ws-overlay').style.display = 'none';
+          currentWs = r2.data;
+          Object.assign(state, newData);
+          document.getElementById('ws-title').textContent = r2.data.name;
+          document.getElementById('ws-sub').innerHTML = quarter + ' Planning Workspace <span style="color:#374151;font-size:9px;font-family:monospace">v2026.03.22.1802</span>';
+          renderCurrentTab();
+          setupRealtime(r2.data.id);
+        } else {
+          renderWsList();
+        }
+      });
+  });
 }
 function openWorkspace(wsId){
   sb.from('workspaces').select('*').eq('id',wsId).single().then(function(r){
