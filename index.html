@@ -538,6 +538,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="tab" data-tab="3" onclick="switchTab(3)"><span class="tab-num">3</span>Mapping & Timeline</div>
     <div class="tab" data-tab="4" onclick="switchTab(4)"><span class="tab-num">4</span>Output</div>
     <div class="tab" data-tab="6" onclick="switchTab(6)"><span class="tab-num">5</span>AI Priorities</div>
+    <div class="tab" data-tab="7" onclick="switchTab(7)"><span class="tab-num">6</span>Org</div>
     <div style="flex:1"></div>
     <div class="tab" data-tab="5" onclick="switchTab(5)" title="Finance use only"><span class="tab-num">B</span>Budget</div>
 
@@ -551,6 +552,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div id="tab-4" style="display:none"></div>
     <div id="tab-5" style="display:none"></div>
     <div id="tab-6" style="display:none"></div>
+    <div id="tab-7" style="display:none"></div>
   </div>
 </div>
 
@@ -987,11 +989,11 @@ function setupRealtime(wsId){
 function switchTab(n){
   currentTab=n;
   document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',+t.dataset.tab===n);});
-  for(var i=0;i<=6;i++){var el=document.getElementById('tab-'+i);if(el)el.style.display=i===n?'block':'none';}
+  for(var i=0;i<=7;i++){var el=document.getElementById('tab-'+i);if(el)el.style.display=i===n?'block':'none';}
   renderCurrentTab();
 }
 function renderCurrentTab(){
-  var fns=[renderOverview,renderMonthly,renderInitiatives,renderMapping,renderOutput,renderBudget,renderAIPriorities];
+  var fns=[renderOverview,renderMonthly,renderInitiatives,renderMapping,renderOutput,renderBudget,renderAIPriorities,renderOrg];
   if(fns[currentTab])fns[currentTab]();
 }
 
@@ -3350,6 +3352,190 @@ function gridClaudeScore() {
   });
 }
 
+
+
+// ═══════════════════════════════════════════════════════════════
+// MODULE 7: ORG — CRITICAL HIRES
+// ═══════════════════════════════════════════════════════════════
+function getOrgData(){
+  if(!state.org)state.org={
+    departments:['Executive','Marketing','Product','Engineering','Finance','Operations','Sales'],
+    hires:[]
+  };
+  if(!state.org.departments)state.org.departments=['Executive','Marketing','Product','Engineering','Finance','Operations','Sales'];
+  if(!state.org.hires)state.org.hires=[];
+  return state.org;
+}
+function renderOrg(){
+  var d=getOrgData();
+  var activeDept=state._orgDept||d.departments[0];
+  state._orgDept=activeDept;
+  var deptHires=d.hires.filter(function(h){return h.dept===activeDept;});
+  var urgColors={Critical:'#ef4444','High Priority':'#fbbf24',Important:'#60a5fa'};
+  var statusColors={Open:'#a78bfa','In Process':'#fbbf24',Filled:'#4ade80',Paused:'#5a6480'};
+
+  var deptTabs=d.departments.map(function(dept){
+    var count=d.hires.filter(function(h){return h.dept===dept;}).length;
+    var critCount=d.hires.filter(function(h){return h.dept===dept&&h.priority==='Critical';}).length;
+    var isActive=dept===activeDept;
+    return '<button data-dept="'+esc(dept)+'" onclick="orgSwitchDept(this.dataset.dept)" '+
+      'style="padding:8px 16px;border-radius:8px;font-size:12px;font-weight:'+(isActive?'700':'500')+';cursor:pointer;font-family:inherit;'+
+      'border:1px solid '+(isActive?'#c9a84c44':'#1e2638')+';'+
+      'background:'+(isActive?'#c9a84c18':'transparent')+';'+
+      'color:'+(isActive?'#c9a84c':'#7a8499')+'">'+
+      esc(dept)+
+      (critCount?'<span style="font-size:9px;background:#ef444422;color:#ef4444;border-radius:6px;padding:1px 5px;margin-left:5px">'+critCount+' crit</span>':
+       count?'<span style="font-size:10px;background:#1e2638;color:#5a6480;border-radius:8px;padding:1px 6px;margin-left:5px">'+count+'</span>':'')+
+    '</button>';
+  }).join('');
+
+  var cards=deptHires.length?deptHires.map(function(hire,idx){
+    var uColor=urgColors[hire.priority]||'#5a6480';
+    var sColor=statusColors[hire.status]||'#5a6480';
+    return '<div style="background:#111827;border:1px solid #1e2638;border-top:3px solid '+uColor+';border-radius:14px;padding:22px 24px;position:relative">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'+
+        '<div style="flex:1;margin-right:12px">'+
+          '<input value="'+esc(hire.role||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="role" oninput="orgUpdateField(this)" '+
+          'style="background:transparent;border:none;border-bottom:1px solid #1e2638;color:#e8e4d9;font-size:17px;font-weight:700;width:100%;outline:none;font-family:inherit;padding-bottom:4px" placeholder="Role / Title..." />'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'+
+          '<select data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="priority" onchange="orgUpdateField(this)" '+
+          'style="background:#0d1220;border:1px solid '+uColor+'44;border-radius:6px;color:'+uColor+';font-size:11px;font-weight:700;font-family:inherit;padding:4px 8px;outline:none;cursor:pointer">'+
+          ['Critical','High Priority','Important'].map(function(p){return'<option value="'+p+'"'+(hire.priority===p?' selected':'')+'>'+p+'</option>';}).join('')+
+          '</select>'+
+          '<select data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="status" onchange="orgUpdateField(this)" '+
+          'style="background:#0d1220;border:1px solid '+sColor+'44;border-radius:6px;color:'+sColor+';font-size:11px;font-weight:700;font-family:inherit;padding:4px 8px;outline:none;cursor:pointer">'+
+          ['Open','In Process','Filled','Paused'].map(function(s){return'<option value="'+s+'"'+(hire.status===s?' selected':'')+'>'+s+'</option>';}).join('')+
+          '</select>'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="orgDeleteHire(this)" class="ai-del-btn">&times;</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
+        '<div>'+
+          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Hiring Manager</div>'+
+          '<input value="'+esc(hire.manager||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="manager" oninput="orgUpdateField(this)" '+
+          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#c9a84c;font-size:13px;width:100%;outline:none;font-family:inherit;padding-bottom:3px" placeholder="Name or team..." />'+
+        '</div>'+
+        '<div>'+
+          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Must Start By</div>'+
+          '<input type="date" value="'+esc(hire.startBy||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="startBy" onchange="orgUpdateField(this)" '+
+          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#60a5fa;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px" />'+
+        '</div>'+
+      '</div>'+
+      '<div style="margin-bottom:16px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Why Critical — What They Unlock</div>'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px">&#9734; Draft</button>'+
+        '</div>'+
+        '<textarea data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="why" oninput="orgUpdateField(this)" '+
+        'style="background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#c8d4e8;font-size:13px;width:100%;outline:none;font-family:inherit;padding:10px 12px;resize:none;line-height:1.6;min-height:72px;box-sizing:border-box" '+
+        'placeholder="What critical function does this person provide? What parts of the plan are blocked without them?">'+esc(hire.why||'')+'</textarea>'+
+        '<div id="org-claude-'+idx+'-'+esc(activeDept)+'" class="claude-box" style="display:none;margin-top:6px"></div>'+
+      '</div>'+
+      '<div>'+
+        '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Initiatives at Risk Without This Hire</div>'+
+        '<input value="'+esc(hire.atRisk||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="atRisk" oninput="orgUpdateField(this)" '+
+        'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#f87171;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px" placeholder="e.g. Shop All Redesign, CAC Reduction..." />'+
+      '</div>'+
+    '</div>';
+  }).join(''):
+    '<div style="padding:40px;text-align:center;color:#5a6480;border:1px dashed #1e2638;border-radius:12px;font-size:13px">No critical hires defined for '+esc(activeDept)+' yet.</div>';
+
+  // Summary bar
+  var allHires=d.hires;
+  var critTotal=allHires.filter(function(h){return h.priority==='Critical';}).length;
+  var openTotal=allHires.filter(function(h){return h.status==='Open'||h.status==='In Process';}).length;
+  var filledTotal=allHires.filter(function(h){return h.status==='Filled';}).length;
+
+  document.getElementById('tab-7').innerHTML=
+    '<div class="module">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">'+
+        '<div>'+
+          '<div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">Org — Critical Hires</div>'+
+          '<div style="font-size:13px;color:#7a8499">Define the hires that make or break the plan this quarter.</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button onclick="orgAddHire()" style="background:#c9a84c;border:none;color:#0a0e1a;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit">+ Add Hire</button>'+
+          '<button onclick="orgAddDept()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">+ Department</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:16px;margin-bottom:24px">'+
+        '<div style="background:#111827;border:1px solid #ef444433;border-radius:12px;padding:14px 20px;flex:1;text-align:center">'+
+          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Critical Hires</div>'+
+          '<div style="font-family:Georgia,serif;font-size:28px;font-weight:700;color:#ef4444">'+critTotal+'</div>'+
+        '</div>'+
+        '<div style="background:#111827;border:1px solid #a78bfa33;border-radius:12px;padding:14px 20px;flex:1;text-align:center">'+
+          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Open / In Process</div>'+
+          '<div style="font-family:Georgia,serif;font-size:28px;font-weight:700;color:#a78bfa">'+openTotal+'</div>'+
+        '</div>'+
+        '<div style="background:#111827;border:1px solid #4ade8033;border-radius:12px;padding:14px 20px;flex:1;text-align:center">'+
+          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Filled</div>'+
+          '<div style="font-family:Georgia,serif;font-size:28px;font-weight:700;color:#4ade80">'+filledTotal+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #1e2638">'+deptTabs+'</div>'+
+      '<div style="display:flex;flex-direction:column;gap:16px">'+cards+'</div>'+
+    '</div>';
+}
+function orgSwitchDept(dept){state._orgDept=dept;renderOrg();}
+function orgAddHire(){
+  var d=getOrgData();
+  var dept=state._orgDept||d.departments[0];
+  d.hires.push({id:uid(),dept:dept,role:'',manager:'',startBy:'',why:'',atRisk:'',priority:'Critical',status:'Open'});
+  scheduleSave();renderOrg();
+}
+function orgDeleteHire(btn){
+  var d=getOrgData();
+  var dept=btn.getAttribute('data-dept');
+  var idx=+btn.getAttribute('data-idx');
+  var deptHires=d.hires.filter(function(h){return h.dept===dept;});
+  var hire=deptHires[idx];
+  if(!hire)return;
+  if(!confirm('Delete "'+( hire.role||'this hire')+'?"'))return;
+  var gi=d.hires.indexOf(hire);
+  if(gi>=0)d.hires.splice(gi,1);
+  scheduleSave();renderOrg();
+}
+function orgUpdateField(el){
+  var d=getOrgData();
+  var dept=el.getAttribute('data-dept');
+  var idx=+el.getAttribute('data-idx');
+  var field=el.getAttribute('data-field');
+  var deptHires=d.hires.filter(function(h){return h.dept===dept;});
+  var hire=deptHires[idx];
+  if(hire)hire[field]=el.value;
+  scheduleSave();
+}
+function orgAddDept(){
+  var name=prompt('New department name:');
+  if(!name||!name.trim())return;
+  var d=getOrgData();
+  if(d.departments.indexOf(name.trim())<0)d.departments.push(name.trim());
+  state._orgDept=name.trim();
+  scheduleSave();renderOrg();
+}
+function orgDraftClaude(btn){
+  var idx=+btn.getAttribute('data-idx');
+  var dept=btn.getAttribute('data-dept');
+  var boxId='org-claude-'+idx+'-'+dept;
+  var d=getOrgData();
+  var deptHires=d.hires.filter(function(h){return h.dept===dept;});
+  var hire=deptHires[idx];
+  if(!hire)return;
+  var box=document.getElementById(boxId);
+  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';}
+  btn.disabled=true;
+  var quarter=state.overview&&state.overview.quarter||'Q2 2026';
+  var prompt='Write a compelling explanation for why hiring a '+hire.role+' for the '+dept+' department is critical to the '+quarter+' plan. Cover: what unique function they provide, what becomes impossible without them, and what business outcomes are at risk. 3-4 sentences, specific and outcome-focused. No fluff.';
+  askClaude(prompt,null,boxId,function(text){
+    btn.disabled=false;
+    if(box){
+      box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:6px">&#9734; Click to apply</div>'+esc(text).replace(/\n/g,'<br>');
+      box.style.cursor='pointer';
+      box.onclick=function(){hire.why=text;scheduleSave();renderOrg();};
+    }
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MODULE 6: AI PRIORITIES
