@@ -599,7 +599,7 @@ var METRIC_CATS = [
   {name:'REVENUE',metrics:['Net Revenue','Existing Sub Revenue','New Subscriber Revenue','A&C Revenue']},
   {name:'GROSS MARGIN BUILD',metrics:['Product COGS','Shipping Cost']}
 ];
-var BUDGET_COLS = ['Apr Budget','May Budget','Jun Budget',"Q3 '25 Budget",'Apr LY','May LY','Jun LY',"Q3 '25 LY",'Q3 Var ($)','Q3 Var (%)'];
+var BUDGET_COLS = ['Apr Budget','May Budget','Jun Budget','Q3 25 Budget','Apr LY','May LY','Jun LY','Q3 25 LY','Q3 Var ($)','Q3 Var (%)'];
 var INIT_COLORS = ['#c9a84c','#60a5fa','#4ade80','#f472b6','#a78bfa','#fb923c'];
 var OV_DRIVERS_DEFAULT = [
   {id:'cac',   urgency:'critical', label:'CAC: Must Fall Sharply vs. LY',
@@ -1320,7 +1320,7 @@ function renderBudget(){
     return catRow+metricRows;
   }).join('');
 
-  document.getElementById('tab-1').innerHTML=
+  document.getElementById('tab-5').innerHTML=
     '<div class="module">'+
       '<div class="mb-24"><div style="font-family:var(--font-serif);font-size:26px;color:var(--text);margin-bottom:6px">Budget Input</div><div style="font-size:13px;color:var(--muted)">Enter budget data directly or paste from Excel. Data auto-saves and syncs to all collaborators.</div></div>'+
       '<div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn btn-gold" onclick="openBudgetPasteModal()" style="font-size:13px">&#128203; Paste JSON to Fill Table</button></div>'+
