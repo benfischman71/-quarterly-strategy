@@ -1216,16 +1216,18 @@ function renderMonthly(){
         '<div><div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">Monthly View</div>'+
         '<div style="font-size:13px;color:#7a8499">Key driver performance by month — '+quarterMonths.join(', ')+'</div></div>'+
         '<div style="display:flex;gap:8px">'+
-          '<button onclick="monthlyFileClick()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit">&#128206; Upload File</button>'+
           '<input type="file" id="monthly-file-input" accept=".pdf,.png,.jpg,.jpeg,.csv" style="display:none" onchange="handleMonthlyFile(this)" />'+
           '<button onclick="toggleMonthlyEdit()" style="background:'+(editMode?'#c9a84c':'transparent')+';border:1px solid '+(editMode?'#c9a84c':'#1e2638')+';color:'+(editMode?'#0a0e1a':'#7a8499')+';padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:'+(editMode?'700':'400')+'">'+
             (editMode?'&#10003; Done Editing':'&#9998; Edit')+'</button>'+
         '</div>'+
       '</div>'+
       '<div id="monthly-file-box" style="display:none;margin-bottom:12px"></div>'+
-      '<div ondragover="event.preventDefault();this.style.borderColor=\'#c9a84c\'" ondragleave="this.style.borderColor=\'#1e2638\'" ondrop="monthlyHandleDrop(event,this)" onclick="monthlyFileClick()" style="border:1px dashed #1e2638;border-radius:10px;padding:12px 18px;font-size:12px;color:#5a6480;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:20px">'+
-        '<span style="font-size:18px">&#128202;</span>'+
-        '<span>Drag &amp; drop a budget screenshot, PDF, or CSV — Claude will extract monthly data automatically</span>'+
+      '<div ondragover="event.preventDefault();this.style.borderColor=\'#c9a84c\';this.style.background=\'#c9a84c08\'" ondragleave="this.style.borderColor=\'#1e2638\';this.style.background=\'transparent\'" ondrop="monthlyHandleDrop(event,this)" style="border:1px dashed #1e2638;border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px">'+
+        '<div style="display:flex;align-items:center;gap:10px;color:#5a6480;font-size:12px">'+
+          '<span style="font-size:18px">&#128202;</span>'+
+          '<span>Drag &amp; drop a file here — or</span>'+
+        '</div>'+
+        '<button onclick="monthlyFileClick()" style="background:#1e2638;border:1px solid #2a3450;color:#c8d4e8;padding:7px 16px;border-radius:7px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;white-space:nowrap">&#128206; Browse File</button>'+
       '</div>'+
       (drivers.length===0?
         '<div style="padding:40px;text-align:center;color:#5a6480;border:1px dashed #1e2638;border-radius:12px">Add key drivers on the Quarterly Overview tab first.</div>':
