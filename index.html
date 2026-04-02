@@ -909,7 +909,7 @@ function openWorkspace(wsId){
   sb.from('workspaces').select('*').eq('id',wsId).single().then(function(r){
     if(r.error){toast('Error loading workspace','error');return;}
     currentWs=r.data;
-    if(r.data.data){var d2=r.data.data; if(!d2.grid||!d2.grid.drivers){delete d2.grid;} Object.assign(state,d2);}
+    if(r.data.data){var d2=r.data.data; if(!d2.grid||!d2.grid.drivers){delete d2.grid;} Object.assign(state,d2); if(state.initiatives)state.initiatives.forEach(function(i){if(!i.status)i.status='active';});}
     state.grid=getGrid(); // ensure grid always initialized
     document.getElementById('ws-overlay').style.display='none';
     document.getElementById('ws-title').textContent=r.data.name;
@@ -1416,7 +1416,7 @@ function budgetInsightsClaude(){askClaude('For a quarterly budget review with me
 // ═══════════════════════════════════════════════════════════════
 function openGridModal(){
   // Sync initiatives into grid rows
-  var inits=state.initiatives.filter(function(i){return i.status==='active';});
+  var inits=state.initiatives.filter(function(i){return (!i.status||i.status==='active');});
   if(!state.grid||!state.grid.drivers){
     state.grid={drivers:['Brand','New Customer Prospecting','New Customer Conversion','Retention','LTV'],rows:[]};
   }
@@ -1620,7 +1620,7 @@ function gridAddDriver(){
 }
 function gridClaudeScore(){
   var g=state.grid;
-  var inits=state.initiatives.filter(function(i){return i.status==='active';});
+  var inits=state.initiatives.filter(function(i){return (!i.status||i.status==='active');});
   var prompt='Score each initiative against each strategic driver. Initiatives: '+
     inits.map(function(i){return i.title+(i.description?' - '+i.description.slice(0,80):'');}).join('; ')+
     '. Drivers: '+g.drivers.join(', ')+
@@ -1643,8 +1643,8 @@ function gridClaudeScore(){
 }
 
 function renderInitiatives(){
-  var active=state.initiatives.filter(function(i){return i.status==='active';});
-  var hold=state.initiatives.filter(function(i){return i.status==='hold';});
+  var active=state.initiatives.filter(function(i){return (!i.status||i.status==='active');});
+  var hold=state.initiatives.filter(function(i){return (i.status==='hold');});
   function initCardHtml(init,idx){
     var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
     var color=INIT_COLORS[idx%INIT_COLORS.length];
@@ -1667,8 +1667,8 @@ function renderInitiatives(){
           '<span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Effort</span>'+
           '<span style="font-size:12px;font-weight:700;color:'+(init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span>'+
         '</div>'+
-        (init.designLOE?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Design LOE</span><span style="font-size:12px;font-weight:700;color:'+(init.designLOE<=3?'#60a5fa':init.designLOE<=6?'#fbbf24':'#f87171')+'">'+(init.designLOE<=3?'Low':init.designLOE<=6?'Med':'High')+'</span></div>':'')+
-        (init.engLOE?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Eng LOE</span><span style="font-size:12px;font-weight:700;color:'+(init.engLOE<=3?'#60a5fa':init.engLOE<=6?'#fbbf24':'#f87171')+'">'+(init.engLOE<=3?'Low':init.engLOE<=6?'Med':'High')+'</span></div>':'')+
+        (init.designLOE>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Design LOE</span><span style="font-size:12px;font-weight:700;color:'+(init.designLOE<=3?'#60a5fa':init.designLOE<=6?'#fbbf24':'#f87171')+'">'+(init.designLOE<=3?'Low':init.designLOE<=6?'Med':'High')+'</span></div>':'')+
+        (init.engLOE>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Eng LOE</span><span style="font-size:12px;font-weight:700;color:'+(init.engLOE<=3?'#60a5fa':init.engLOE<=6?'#fbbf24':'#f87171')+'">'+(init.engLOE<=3?'Low':init.engLOE<=6?'Med':'High')+'</span></div>':'')+
         (init.launchDate?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Launch</span><span style="font-size:11px;color:#c9a84c">'+esc(init.launchDate)+'</span></div>':'')+
         (init.expectedImpact?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Expected</span><span style="font-size:11px;font-weight:700;color:#4ade80">'+esc(init.expectedImpact)+'</span></div>':'')+
       '</div>'+
@@ -1800,12 +1800,24 @@ function openInitPanel(id){
     '<div style="display:flex;gap:8px;margin-top:16px">'+
       '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" data-iid="'+id+'" onclick="openInitOverview(this.dataset.iid)">&#128196; Full Overview</button>'+
     '</div>'+
+    '<div class="field" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<label class="field-label" style="margin:0">&#128206; Attachments</label>'+
+        '<label style="background:transparent;border:1px solid #1e2638;color:#7a8499;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit">'+
+          '&#128190; Upload File'+
+          '<input type="file" data-iid="'+id+'" onchange="uploadInitFile(this)" style="display:none" multiple />'+
+        '</label>'+
+      '</div>'+
+      '<div id="attach-list-'+id+'" style="display:flex;flex-direction:column;gap:6px"></div>'+
+      '<div id="attach-uploading-'+id+'" style="font-size:11px;color:#5a6480;display:none">Uploading...</div>'+
+    '</div>'+
     '<div style="display:flex;gap:8px;margin-top:8px;padding-top:16px;border-top:1px solid var(--border)">'+
       '<button class="btn btn-gold" style="flex:1;justify-content:center" onclick="closePanel();renderInitiatives()">Done</button>'+
       '<button class="btn btn-danger" data-iid="'+id+'" onclick="panelDeleteInit(this)">Delete</button>'+
     '</div>'+
     '</div>';
   document.getElementById('panel-overlay').classList.add('open');
+  loadInitAttachments(id);
 }
 
 function closeInitOverview(){var m=document.getElementById('init-overview-modal');if(m)m.remove();}
@@ -2216,6 +2228,7 @@ function setScoreToggle(btn){
     var c=b===btn?scoreColor(val):'#5a6480';
     b.style.color=c;b.style.borderColor=active?c:'#1e2638';b.style.background=active?c+'22':'transparent';
   });
+  if(key==='designLOE'||key==='engLOE')renderInitiatives();
 }
 function buildSlider(id,key,label,color,val){
   return buildScoreToggle(id,key,label,val);
@@ -2233,6 +2246,70 @@ function deleteInit(id){
   scheduleSave();
   closePanel();
   renderInitiatives();
+}
+
+function uploadInitFile(input){
+  var id=input.getAttribute('data-iid');
+  var files=Array.from(input.files);
+  if(!files.length)return;
+  var uploadingEl=document.getElementById('attach-uploading-'+id);
+  if(uploadingEl)uploadingEl.style.display='block';
+  var userId=currentUser.id;
+  var uploads=files.map(function(file){
+    var path=userId+'/'+id+'/'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    return sb.storage.from('initiative-files').upload(path,file,{cacheControl:'3600',upsert:false})
+      .then(function(r){
+        if(r.error)throw r.error;
+        return path;
+      });
+  });
+  Promise.all(uploads).then(function(){
+    if(uploadingEl)uploadingEl.style.display='none';
+    input.value='';
+    loadInitAttachments(id);
+    toast('File uploaded!');
+  }).catch(function(e){
+    if(uploadingEl)uploadingEl.style.display='none';
+    toast('Upload failed: '+e.message,'error');
+  });
+}
+function loadInitAttachments(id){
+  var listEl=document.getElementById('attach-list-'+id);
+  if(!listEl)return;
+  var userId=currentUser.id;
+  var prefix=userId+'/'+id+'/';
+  sb.storage.from('initiative-files').list(prefix,{limit:50,sortBy:{column:'created_at',order:'desc'}})
+    .then(function(r){
+      if(r.error||!r.data||!r.data.length){
+        listEl.innerHTML='<div style="font-size:11px;color:#374151">No attachments yet.</div>';
+        return;
+      }
+      listEl.innerHTML=r.data.map(function(file){
+        var path=prefix+file.name;
+        var url=sb.storage.from('initiative-files').getPublicUrl(path).data.publicUrl;
+        var ext=(file.name.split('.').pop()||'').toUpperCase();
+        var extColors={PDF:'#f87171',PNG:'#60a5fa',JPG:'#60a5fa',JPEG:'#60a5fa',DOC:'#60a5fa',DOCX:'#60a5fa',XLS:'#4ade80',XLSX:'#4ade80',CSV:'#4ade80'};
+        var extColor=extColors[ext]||'#7a8499';
+        var kb=file.metadata&&file.metadata.size?Math.round(file.metadata.size/1024)+'KB':'';
+        var displayName=file.name.replace(/^\d+-/,'');
+        return '<div style="display:flex;align-items:center;gap:8px;background:#0d1220;border:1px solid #1e2638;border-radius:8px;padding:8px 10px">'+
+          '<span style="font-size:9px;font-weight:800;background:'+extColor+'22;color:'+extColor+';border-radius:4px;padding:2px 5px;flex-shrink:0">'+ext+'</span>'+
+          '<a href="'+url+'" target="_blank" style="flex:1;font-size:12px;color:#c8d4e8;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(displayName)+'">'+esc(displayName)+'</a>'+
+          (kb?'<span style="font-size:10px;color:#374151;flex-shrink:0">'+kb+'</span>':'')+
+          '<button data-path="'+path+'" data-iid="'+id+'" onclick="deleteInitFile(this)" style="background:none;border:none;color:#374151;cursor:pointer;font-size:14px;padding:0 2px;line-height:1" title="Delete">&times;</button>'+
+        '</div>';
+      }).join('');
+    });
+}
+function deleteInitFile(btn){
+  if(!confirm('Delete this file?'))return;
+  var path=btn.getAttribute('data-path');
+  var id=btn.getAttribute('data-iid');
+  sb.storage.from('initiative-files').remove([path]).then(function(r){
+    if(r.error){toast('Delete failed','error');return;}
+    toast('File deleted');
+    loadInitAttachments(id);
+  });
 }
 function closePanel(){document.getElementById('panel-overlay').classList.remove('open');}
 function applyClaudeToField(id,key,boxId){
@@ -2301,7 +2378,7 @@ function draftRank(id){var init=state.initiatives.find(function(i){return i.id==
 // ═══════════════════════════════════════════════════════════════
 var mapSubTab='timeline';
 function renderMapping(){
-  var active=state.initiatives.filter(function(i){return i.status==='active';});
+  var active=state.initiatives.filter(function(i){return (!i.status||i.status==='active');});
   var drivers=state.overview&&state.overview.drivers?state.overview.drivers:[];
   if(!state.mappings)state.mappings={};
 
@@ -2642,7 +2719,7 @@ function showInfoModal(key){
 }
 function renderOutput(){
   var inits=state.initiatives;
-  var active=inits.filter(function(i){return i.status==='active';});
+  var active=inits.filter(function(i){return (!i.status||i.status==='active');});
   var allDrivers=Object.keys(state.mappings||{}).filter(function(k){return(state.mappings[k]||[]).length>0;});
   if(!allDrivers.length)allDrivers=state.grid&&state.grid.drivers&&state.grid.drivers.length?state.grid.drivers:(state.overview&&state.overview.drivers?state.overview.drivers.map(function(d){return d.label;}):BUDGET_DRIVERS);
   var totalImpact=active.reduce(function(s,i){return s+parseMoney(i.expectedImpact);},0);
