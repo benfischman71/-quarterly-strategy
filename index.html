@@ -2664,12 +2664,42 @@ function claudePowerScore(init, allDrivers){
   var rawScore=(impactNorm*impactWeight + driverNorm*driverWeight)/effortMod;
   return Math.min(100,Math.round(rawScore*100));
 }
+function swStartEdit(){
+  document.getElementById('sw-view').style.display='none';
+  document.getElementById('sw-edit').style.display='block';
+  document.getElementById('sw-in-rev').value=_scoreWeights.rev;
+  document.getElementById('sw-in-margin').value=_scoreWeights.margin;
+  document.getElementById('sw-in-brand').value=_scoreWeights.brand;
+  swValidate();
+}
+function swValidate(){
+  var r=+document.getElementById('sw-in-rev').value||0;
+  var m=+document.getElementById('sw-in-margin').value||0;
+  var b=+document.getElementById('sw-in-brand').value||0;
+  var total=r+m+b;
+  var totalEl=document.getElementById('sw-total');
+  var saveBtn=document.getElementById('sw-save-btn');
+  if(totalEl)totalEl.textContent='Total: '+total+'%';
+  if(totalEl)totalEl.style.color=total===100?'#4ade80':'#f87171';
+  if(saveBtn)saveBtn.disabled=total!==100;
+  if(saveBtn)saveBtn.style.opacity=total===100?'1':'0.4';
+}
+function swSave(){
+  var r=+document.getElementById('sw-in-rev').value||0;
+  var m=+document.getElementById('sw-in-margin').value||0;
+  var b=+document.getElementById('sw-in-brand').value||0;
+  if(r+m+b!==100){alert('Weights must total 100%');return;}
+  _scoreWeights.rev=r;_scoreWeights.margin=m;_scoreWeights.brand=b;
+  document.getElementById('sw-view').style.display='flex';
+  document.getElementById('sw-edit').style.display='none';
+  renderOutput();
+}
+function swCancel(){
+  document.getElementById('sw-view').style.display='flex';
+  document.getElementById('sw-edit').style.display='none';
+}
 function updateScoreWeight(key,val){
   _scoreWeights[key]=Math.max(0,Math.min(100,+val));
-  var impactTotal=_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand;
-  document.getElementById('sw-pct-rev').textContent=Math.round(_scoreWeights.rev/impactTotal*100)+'%';
-  document.getElementById('sw-pct-margin').textContent=Math.round(_scoreWeights.margin/impactTotal*100)+'%';
-  document.getElementById('sw-pct-brand').textContent=Math.round(_scoreWeights.brand/impactTotal*100)+'%';
   renderOutput();
 }
 function setManualPriority(sel){
@@ -2791,7 +2821,7 @@ function renderOutput(){
           ['Initiative','Impact','Effort','Launch Date','Key Drivers'].map(function(h){return'<th style="white-space:nowrap;padding:10px 14px">'+h+'</th>';}).join('')+'<th style="white-space:nowrap;padding:10px 14px">Claude Score <button onclick="showInfoModal(\'claude_score\')" style="background:#1e2638;border:none;color:#5a6480;border-radius:50%;width:14px;height:14px;font-size:9px;cursor:pointer;font-family:inherit;line-height:1;padding:0">?</button></th><th style="white-space:nowrap;padding:10px 14px">My Priority</th>'+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
         '<div style="padding:14px 22px;border-top:1px solid #1e2638;background:#0a0d14">'+
-          '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Impact Weights</div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#4ade80;width:68px">Revenue</span><input type="range" min="0" max="100" value="'+_scoreWeights.rev+'" oninput="updateScoreWeight(\'rev\',this.value)" style="width:90px"><span id="sw-pct-rev" style="font-size:11px;color:#5a6480;width:36px">'+Math.round(_scoreWeights.rev/(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#fbbf24;width:68px">Margin</span><input type="range" min="0" max="100" value="'+_scoreWeights.margin+'" oninput="updateScoreWeight(\'margin\',this.value)" style="width:90px"><span id="sw-pct-margin" style="font-size:11px;color:#5a6480;width:36px">'+Math.round(_scoreWeights.margin/(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#a78bfa;width:68px">Brand</span><input type="range" min="0" max="100" value="'+_scoreWeights.brand+'" oninput="updateScoreWeight(\'brand\',this.value)" style="width:90px"><span id="sw-pct-brand" style="font-size:11px;color:#5a6480;width:36px">'+Math.round(_scoreWeights.brand/(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)*100)+'%</span></div>'+'<div style="font-size:10px;color:#374151">Effort penalty: Low=none · Med=-23% · High=-41%</div>'+'</div>'+
+          '<div id="sw-view" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Impact Weights</div>'+'<div style="display:flex;gap:10px;align-items:center">'+'<span style="font-size:11px;color:#4ade80">Revenue</span><span style="font-size:13px;font-weight:700;color:#e8e4d9">'+_scoreWeights.rev+'%</span>'+'<span style="color:#1e2638;margin:0 2px">·</span>'+'<span style="font-size:11px;color:#fbbf24">Margin</span><span style="font-size:13px;font-weight:700;color:#e8e4d9">'+_scoreWeights.margin+'%</span>'+'<span style="color:#1e2638;margin:0 2px">·</span>'+'<span style="font-size:11px;color:#a78bfa">Brand</span><span style="font-size:13px;font-weight:700;color:#e8e4d9">'+_scoreWeights.brand+'%</span>'+'</div>'+'<button onclick="swStartEdit()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit">&#9998; Edit</button>'+'<span style="font-size:10px;color:#374151">Effort penalty: Low=none · Med=−23% · High=−41%</span>'+'</div>'+'<div id="sw-edit" style="display:none;background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 16px;margin-top:8px">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Edit Impact Weights — must total 100%</div>'+'<div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">'+'<div><div style="font-size:11px;color:#4ade80;margin-bottom:4px">Revenue %</div><input id="sw-in-rev" type="number" min="0" max="100" value="'+_scoreWeights.rev+'" oninput="swValidate()" style="width:70px;background:#111827;border:1px solid #2a3450;border-radius:6px;color:#e8e4d9;font-size:14px;font-weight:700;padding:6px 8px;outline:none;font-family:inherit;text-align:center"></div>'+'<div><div style="font-size:11px;color:#fbbf24;margin-bottom:4px">Margin %</div><input id="sw-in-margin" type="number" min="0" max="100" value="'+_scoreWeights.margin+'" oninput="swValidate()" style="width:70px;background:#111827;border:1px solid #2a3450;border-radius:6px;color:#e8e4d9;font-size:14px;font-weight:700;padding:6px 8px;outline:none;font-family:inherit;text-align:center"></div>'+'<div><div style="font-size:11px;color:#a78bfa;margin-bottom:4px">Brand %</div><input id="sw-in-brand" type="number" min="0" max="100" value="'+_scoreWeights.brand+'" oninput="swValidate()" style="width:70px;background:#111827;border:1px solid #2a3450;border-radius:6px;color:#e8e4d9;font-size:14px;font-weight:700;padding:6px 8px;outline:none;font-family:inherit;text-align:center"></div>'+'<div style="display:flex;flex-direction:column;gap:6px">'+'<div id="sw-total" style="font-size:12px;font-weight:700;color:#5a6480">Total: '+(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)+'%</div>'+'<div style="display:flex;gap:6px">'+'<button id="sw-save-btn" onclick="swSave()" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:12px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit">Save</button>'+'<button onclick="swCancel()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit">Cancel</button>'+'</div></div></div></div>'+
         '</div>'+
       '</div>'+
     '</div>';
