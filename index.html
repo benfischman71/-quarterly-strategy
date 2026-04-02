@@ -1667,6 +1667,8 @@ function renderInitiatives(){
           '<span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Effort</span>'+
           '<span style="font-size:12px;font-weight:700;color:'+(init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span>'+
         '</div>'+
+        (init.designLOE?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Design LOE</span><span style="font-size:12px;font-weight:700;color:'+(init.designLOE<=3?'#60a5fa':init.designLOE<=6?'#fbbf24':'#f87171')+'">'+(init.designLOE<=3?'Low':init.designLOE<=6?'Med':'High')+'</span></div>':'')+
+        (init.engLOE?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Eng LOE</span><span style="font-size:12px;font-weight:700;color:'+(init.engLOE<=3?'#60a5fa':init.engLOE<=6?'#fbbf24':'#f87171')+'">'+(init.engLOE<=3?'Low':init.engLOE<=6?'Med':'High')+'</span></div>':'')+
         (init.launchDate?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Launch</span><span style="font-size:11px;color:#c9a84c">'+esc(init.launchDate)+'</span></div>':'')+
         (init.expectedImpact?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Expected</span><span style="font-size:11px;font-weight:700;color:#4ade80">'+esc(init.expectedImpact)+'</span></div>':'')+
       '</div>'+
@@ -1699,7 +1701,7 @@ function cardToggleStatus(btn){
   renderInitiatives();
 }
 function createInitiative(){
-  var n={id:uid(),title:'New Initiative',status:'active',owner:'',description:'',whatWhyWhen:'',impactScore:5,effortScore:5,mvpScore:5,expectedImpact:'',monthlyRunRate:'',launchDate:'',rampWeeks:0,launchStatus:'planning'};
+  var n={id:uid(),title:'New Initiative',status:'active',owner:'',description:'',whatWhyWhen:'',impactScore:5,effortScore:5,mvpScore:5,designLOE:0,engLOE:0,expectedImpact:'',monthlyRunRate:'',launchDate:'',rampWeeks:0,launchStatus:'planning'};
   state.initiatives.push(n);
   scheduleSave();
   renderInitiatives();
@@ -1767,6 +1769,8 @@ function openInitPanel(id){
         '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="rank" onclick="panelDraftClaude(this)">&#9734; Suggest Scores</button></div>'+
       buildScoreToggle(id,'impactScore','Impact',init.impactScore)+
       buildScoreToggle(id,'effortScore','Effort',init.effortScore)+
+      buildLOEToggle(id,'designLOE','Design LOE',init.designLOE||0)+
+      buildLOEToggle(id,'engLOE','Eng LOE',init.engLOE||0)+
 
       '<div id="claude-rank-'+id+'" class="claude-box" style="display:none"></div>'+
       '<div style="margin-top:12px;padding:10px 14px;background:#0d1220;border-radius:8px;border:1px solid #1e2638">'+
@@ -2185,6 +2189,16 @@ function panelApplyClaude(el){
 
 function scoreLabel(v){return v<=3?'Low':v<=6?'Med':'High';}
 function scoreColor(v){return v<=3?'#60a5fa':v<=6?'#fbbf24':'#4ade80';}
+
+function buildLOEToggle(id,key,label,val){
+  var v=val||0;
+  var opts=[{l:'Low',v:3,c:'#60a5fa'},{l:'Med',v:6,c:'#fbbf24'},{l:'High',v:9,c:'#f87171'}];
+  var btns=opts.map(function(o){
+    var active=v>0&&scoreLabel(v)===o.l;
+    return '<button data-iid="'+id+'" data-key="'+key+'" data-val="'+o.v+'" onclick="setScoreToggle(this)" style="padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;border:1px solid '+(active?o.c:'#1e2638')+';background:'+(active?o.c+'22':'transparent')+';color:'+(active?o.c:'#5a6480')+'">'+o.l+'</button>';
+  }).join('');
+  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:12px;color:#c8d4e8;width:70px;flex-shrink:0">'+label+'</span><div style="display:flex;gap:6px">'+btns+'</div></div>';
+}
 function buildScoreToggle(id,key,label,val){
   var v=val||0;
   var opts=[{l:'Low',v:3,c:'#60a5fa'},{l:'Med',v:6,c:'#fbbf24'},{l:'High',v:9,c:'#4ade80'}];
