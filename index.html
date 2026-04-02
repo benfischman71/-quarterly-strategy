@@ -2731,13 +2731,14 @@ function showInfoModal(key){
            '<span style="color:#fbbf24">● Margin Impact</span> (default 20%) → effect on unit economics, CAC, COGS, or LTV<br>'+
            '<span style="color:#a78bfa">● Brand Impact</span> (default 20%) → differentiation, trust, and perception<br>'+
            '<span style="color:#60a5fa">● Effort Modifier</span> → Low = no penalty · Med = −23% · High = −41%<br><br>'+
-           'Edit weights on the Output tab — must total 100%.<br><br>'+
+           'Edit weights on the Output tab — must total 100%.'
     },
     high_priority:{
       title:'High Priority Count',
       body:'Shows how many active initiatives are currently rated <span style="color:#fbbf24">HIGH</span> priority.<br><br>'+
-           'An initiative is HIGH when: <strong style="color:#e8e4d9">Impact × 2 − Effort ≥ 10</strong><br><br>'+
-           'This means a High Impact + Low Effort initiative qualifies as HIGH even if it touches few drivers. Use the Impact and Effort toggles on each initiative card to update this.'
+           'An initiative is HIGH when its weighted score ≥ 55:<br>'+
+           '(Revenue×60% + Margin×20% + Brand×20%) ÷ Effort Modifier × 100 ≥ 55<br><br>'+
+           'Set Revenue, Margin, Brand, and Effort in each initiative\'s detail panel.'
     },
     drivers_covered:{
       title:'Drivers Covered',
