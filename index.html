@@ -2719,7 +2719,11 @@ function setManualPriority(sel){
   var id=sel.getAttribute('data-iid');
   var init=state.initiatives.find(function(i){return i.id===id;});
   if(!init)return;
-  init.manualPriority=sel.value;
+  if(!init.userPriorities)init.userPriorities={};
+  var uid=currentUser.id;
+  var name=(currentUser.user_metadata&&currentUser.user_metadata.name)||currentUser.email.split('@')[0];
+  init.userPriorities[uid]={name:name,priority:sel.value};
+  init.manualPriority=sel.value; // keep backwards compat
   scheduleSave();
 }
 
@@ -2788,6 +2792,18 @@ function renderOutput(){
   var driversCov=allDrivers.filter(function(d){return(state.mappings[d]||[]).length>0;}).length;
   var sorted=active.slice().sort(function(a,b){return claudePowerScore(b,allDrivers)-claudePowerScore(a,allDrivers);});
   var mpOpts=['','1 - Must Do','2 - High Priority','3 - Important','4 - Nice to Have','5 - Defer'];
+  // Build list of all people who have voted + current user always included
+  var voterMap={};
+  voterMap[currentUser.id]={uid:currentUser.id,name:(currentUser.user_metadata&&currentUser.user_metadata.name)||currentUser.email.split('@')[0]};
+  active.forEach(function(init){
+    if(!init.userPriorities)return;
+    Object.keys(init.userPriorities).forEach(function(uid){
+      if(!voterMap[uid])voterMap[uid]={uid:uid,name:init.userPriorities[uid].name||'User'};
+    });
+  });
+  // Current user first, then others alphabetically
+  var allVoters=[voterMap[currentUser.id]].concat(Object.values(voterMap).filter(function(v){return v.uid!==currentUser.id;}).sort(function(a,b){return a.name.localeCompare(b.name);}));
+  var mpOpts_html=''; // unused now but keep var to avoid reference errors
   var rows=sorted.map(function(init){
     var impact=init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High';
     var effort=init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High';
@@ -2796,8 +2812,6 @@ function renderOutput(){
     var drivers=allDrivers.filter(function(d){return getMappingLevel(d,init.id)!=='none';});
     var ps=claudePowerScore(init,allDrivers);
     var psColor=ps>=70?'#4ade80':ps>=40?'#fbbf24':'#f87171';
-    var mp=init.manualPriority||'';
-    var mpOpts_html=mpOpts.map(function(o){return'<option value="'+o+'"'+(mp===o?' selected':'')+'>'+( o||'— Set priority —')+'</option>';}).join('');
     return '<tr>'+
       '<td style="font-weight:600;color:#e8e4d9;min-width:160px">'+esc(init.title)+'</td>'+
       '<td style="color:#c9a84c;font-size:12px;text-align:center">'+(init.launchDate||'—')+'</td>'+
@@ -2812,7 +2826,19 @@ function renderOutput(){
         '<div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:'+psColor+'">'+ps+'</div>'+
         '<div style="font-size:9px;color:#5a6480;margin-top:1px">/ 100</div>'+
       '</td>'+
-      '<td style="min-width:160px"><select data-iid="'+init.id+'" onchange="setManualPriority(this)" style="background:#0d1220;border:1px solid #1e2638;border-radius:6px;color:#c8d4e8;font-size:11px;padding:5px 8px;width:100%;font-family:inherit;outline:none;cursor:pointer">'+mpOpts_html+'</select></td>'+
+      allVoters.map(function(v){
+        var isMe=v.uid===currentUser.id;
+        var vp=(init.userPriorities&&init.userPriorities[v.uid]&&init.userPriorities[v.uid].priority)||'';
+        // backwards compat: if this voter is me and no userPriority, fallback to manualPriority
+        if(isMe&&!vp)vp=init.manualPriority||'';
+        var mpColor={'':{c:'#5a6480',b:'#1e2638'},'1 - Must Do':{c:'#ef4444',b:'#ef444422'},'2 - High Priority':{c:'#f87171',b:'#f8717118'},'3 - Important':{c:'#fbbf24',b:'#fbbf2418'},'4 - Nice to Have':{c:'#60a5fa',b:'#60a5fa18'},'5 - Defer':{c:'#374151',b:'transparent'}}[vp]||{c:'#5a6480',b:'transparent'};
+        if(isMe){
+          var mpOpts_html2=mpOpts.map(function(o){return'<option value="'+o+'"'+(vp===o?' selected':'')+'>'+( o||'— Set priority —')+'</option>';}).join('');
+          return '<td style="min-width:130px"><select data-iid="'+init.id+'" onchange="setManualPriority(this)" style="background:#0d1220;border:1px solid #c9a84c44;border-radius:6px;color:#c9a84c;font-size:11px;padding:5px 8px;width:100%;font-family:inherit;outline:none;cursor:pointer">'+mpOpts_html2+'</select></td>';
+        } else {
+          return '<td style="text-align:center;padding:10px 14px"><span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:'+mpColor.b+';color:'+mpColor.c+'">'+( vp||'—')+'</span></td>';
+        }
+      }).join('')+
     '</tr>';
   }).join('');
   document.getElementById('tab-4').innerHTML=
@@ -2832,7 +2858,11 @@ function renderOutput(){
           '<span style="font-size:11px;color:#5a6480">Sorted by Claude Power Score</span>'+
         '</div>'+
         '<div style="overflow-x:auto"><table class="out-table"><thead><tr style="background:#0d1220">'+
-          ['Initiative','Launch Date','Key Drivers'].map(function(h){return'<th style="white-space:nowrap;padding:10px 14px">'+h+'</th>';}).join('')+'<th style="white-space:nowrap;padding:10px 14px">Claude Score <button onclick="showInfoModal(\'claude_score\')" style="background:#1e2638;border:none;color:#5a6480;border-radius:50%;width:14px;height:14px;font-size:9px;cursor:pointer;font-family:inherit;line-height:1;padding:0">?</button></th><th style="white-space:nowrap;padding:10px 14px">My Priority</th>'+
+          ['Initiative','Launch Date','Key Drivers'].map(function(h){return'<th style="white-space:nowrap;padding:10px 14px">'+h+'</th>';}).join('')+'<th style="white-space:nowrap;padding:10px 14px">Claude Score <button onclick="showInfoModal(\'claude_score\')" style="background:#1e2638;border:none;color:#5a6480;border-radius:50%;width:14px;height:14px;font-size:9px;cursor:pointer;font-family:inherit;line-height:1;padding:0">?</button></th>'+
+          allVoters.map(function(v){
+            var isMe=v.uid===currentUser.id;
+            return '<th style="white-space:nowrap;padding:10px 14px;min-width:130px;color:'+(isMe?'#c9a84c':'#7a8499')+'">'+esc(v.name)+(isMe?' <span style="font-size:9px;color:#c9a84c">(you)</span>':'')+'</th>';
+          }).join('')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
         '<div style="padding:14px 22px;border-top:1px solid #1e2638;background:#0a0d14">'+
           '<div id="sw-view" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Impact Weights</div>'+'<div style="display:flex;gap:10px;align-items:center">'+'<span style="font-size:11px;color:#4ade80">Revenue</span><span style="font-size:13px;font-weight:700;color:#e8e4d9">'+_scoreWeights.rev+'%</span>'+'<span style="color:#1e2638;margin:0 2px">·</span>'+'<span style="font-size:11px;color:#fbbf24">Margin</span><span style="font-size:13px;font-weight:700;color:#e8e4d9">'+_scoreWeights.margin+'%</span>'+'<span style="color:#1e2638;margin:0 2px">·</span>'+'<span style="font-size:11px;color:#a78bfa">Brand</span><span style="font-size:13px;font-weight:700;color:#e8e4d9">'+_scoreWeights.brand+'%</span>'+'</div>'+'<button onclick="swStartEdit()" style="background:transparent;border:1px solid #1e2638;color:#7a8499;font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit">&#9998; Edit</button>'+'<span style="font-size:10px;color:#374151">Effort penalty: Low=none · Med=−23% · High=−41%</span>'+'</div>'+'<div id="sw-edit" style="display:none;background:#0d1220;border:1px solid #1e2638;border-radius:10px;padding:14px 16px;margin-top:8px">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Edit Impact Weights — must total 100%</div>'+'<div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">'+'<div><div style="font-size:11px;color:#4ade80;margin-bottom:4px">Revenue %</div><input id="sw-in-rev" type="number" min="0" max="100" value="'+_scoreWeights.rev+'" oninput="swValidate()" style="width:70px;background:#111827;border:1px solid #2a3450;border-radius:6px;color:#e8e4d9;font-size:14px;font-weight:700;padding:6px 8px;outline:none;font-family:inherit;text-align:center"></div>'+'<div><div style="font-size:11px;color:#fbbf24;margin-bottom:4px">Margin %</div><input id="sw-in-margin" type="number" min="0" max="100" value="'+_scoreWeights.margin+'" oninput="swValidate()" style="width:70px;background:#111827;border:1px solid #2a3450;border-radius:6px;color:#e8e4d9;font-size:14px;font-weight:700;padding:6px 8px;outline:none;font-family:inherit;text-align:center"></div>'+'<div><div style="font-size:11px;color:#a78bfa;margin-bottom:4px">Brand %</div><input id="sw-in-brand" type="number" min="0" max="100" value="'+_scoreWeights.brand+'" oninput="swValidate()" style="width:70px;background:#111827;border:1px solid #2a3450;border-radius:6px;color:#e8e4d9;font-size:14px;font-weight:700;padding:6px 8px;outline:none;font-family:inherit;text-align:center"></div>'+'<div style="display:flex;flex-direction:column;gap:6px">'+'<div id="sw-total" style="font-size:12px;font-weight:700;color:#5a6480">Total: '+(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)+'%</div>'+'<div style="display:flex;gap:6px">'+'<button id="sw-save-btn" onclick="swSave()" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:12px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit">Save</button>'+'<button onclick="swCancel()" style="background:transparent;border:1px solid #1e2638;color:#5a6480;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:inherit">Cancel</button>'+'</div></div></div></div>'+
