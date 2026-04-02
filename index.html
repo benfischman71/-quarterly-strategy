@@ -664,8 +664,6 @@ function getPriority(init){
   var margin=(init.marginImpact||0);
   var brand=(init.brandImpact||0);
   var effort=(init.effortScore||5);
-  // Priority override: High brand + Low/Med effort = always HIGH
-  if(brand>6 && effort<=6) return 'HIGH';
   var impactRaw=(rev*0.6+margin*0.2+brand*0.2)/9;
   var effortMod=effort<=3?1.0:effort<=6?1.3:1.7;
   var score=impactRaw/effortMod*100;
