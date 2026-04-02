@@ -659,7 +659,18 @@ var state = blankState('Q2 2026');
 // ═══════════════════════════════════════════════════════════════
 function fmt$(n){var a=Math.abs(n);if(a>=1000000)return'$'+(n/1000000).toFixed(2)+'M';if(a>=1000)return'$'+Math.round(n/1000)+'K';return'$'+Math.round(n);}
 function fmtN(n,u){if(u==='$')return fmt$(n);if(u==='%')return n+'%';if(Math.abs(n)>=1000)return(n/1000).toFixed(1)+'K';return String(Math.round(n));}
-function getPriority(i,e,m){var s=i*2-e;if(s>=10)return'HIGH';if(s>=4)return'MED';return'LOW';}
+function getPriority(init){
+  var rev=(init.revImpact||init.impactScore||0);
+  var margin=(init.marginImpact||0);
+  var brand=(init.brandImpact||0);
+  var effort=(init.effortScore||5);
+  // Priority override: High brand + Low/Med effort = always HIGH
+  if(brand>6 && effort<=6) return 'HIGH';
+  var impactRaw=(rev*0.6+margin*0.2+brand*0.2)/9;
+  var effortMod=effort<=3?1.0:effort<=6?1.3:1.7;
+  var score=impactRaw/effortMod*100;
+  if(score>=55)return'HIGH';if(score>=30)return'MED';return'LOW';
+}
 function uid(){return'i'+Date.now().toString(36)+Math.random().toString(36).slice(2);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='error'?'#f8717133':'var(--border)';t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
@@ -1646,7 +1657,7 @@ function renderInitiatives(){
   var active=state.initiatives.filter(function(i){return (!i.status||i.status==='active');});
   var hold=state.initiatives.filter(function(i){return (i.status==='hold');});
   function initCardHtml(init,idx){
-    var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+    var p=getPriority(init);
     var color=INIT_COLORS[idx%INIT_COLORS.length];
     var pbCls={HIGH:'pb-high',MED:'pb-med',LOW:'pb-low'}[p];
     var statusLabel=init.status==='hold'?'ON HOLD':p+' PRIORITY';
@@ -1659,10 +1670,9 @@ function renderInitiatives(){
       (init.owner?'<div style="font-size:11px;color:#c9a84c;font-weight:600;margin-bottom:6px;margin-top:-4px">&#128100; '+esc(init.owner)+'</div>':'')+
       '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
       '<div style="margin-bottom:12px">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035">'+
-          '<span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Impact</span>'+
-          '<span style="font-size:12px;font-weight:700;color:'+(init.impactScore<=3?'#60a5fa':init.impactScore<=6?'#fbbf24':'#4ade80')+'">'+( init.impactScore<=3?'Low':init.impactScore<=6?'Med':'High')+'</span>'+
-        '</div>'+
+        (init.revImpact>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Rev Impact</span><span style="font-size:12px;font-weight:700;color:'+(init.revImpact<=3?'#60a5fa':init.revImpact<=6?'#fbbf24':'#4ade80')+'">'+(init.revImpact<=3?'Low':init.revImpact<=6?'Med':'High')+'</span></div>':'')+
+        (init.marginImpact>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Margin Impact</span><span style="font-size:12px;font-weight:700;color:'+(init.marginImpact<=3?'#60a5fa':init.marginImpact<=6?'#fbbf24':'#4ade80')+'">'+(init.marginImpact<=3?'Low':init.marginImpact<=6?'Med':'High')+'</span></div>':'')+
+        (init.brandImpact>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Brand Impact</span><span style="font-size:12px;font-weight:700;color:'+(init.brandImpact<=3?'#60a5fa':init.brandImpact<=6?'#fbbf24':'#4ade80')+'">'+(init.brandImpact<=3?'Low':init.brandImpact<=6?'Med':'High')+'</span></div>':'')+
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035">'+
           '<span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Effort</span>'+
           '<span style="font-size:12px;font-weight:700;color:'+(init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span>'+
@@ -1701,7 +1711,7 @@ function cardToggleStatus(btn){
   renderInitiatives();
 }
 function createInitiative(){
-  var n={id:uid(),title:'New Initiative',status:'active',owner:'',description:'',whatWhyWhen:'',impactScore:5,effortScore:5,mvpScore:5,designLOE:0,engLOE:0,expectedImpact:'',monthlyRunRate:'',launchDate:'',rampWeeks:0,launchStatus:'planning'};
+  var n={id:uid(),title:'New Initiative',status:'active',owner:'',description:'',whatWhyWhen:'',revImpact:0,marginImpact:0,brandImpact:0,effortScore:5,designLOE:0,engLOE:0,expectedImpact:'',monthlyRunRate:'',launchDate:'',rampWeeks:0,launchStatus:'planning'};
   state.initiatives.push(n);
   scheduleSave();
   renderInitiatives();
@@ -1710,7 +1720,7 @@ function createInitiative(){
 function openInitPanel(id){
   var init=state.initiatives.find(function(i){return i.id===id;});
   if(!init)return;
-  var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+  var p=getPriority(init);
   var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
   var panel=document.getElementById('side-panel');
   panel.innerHTML=
@@ -1767,8 +1777,12 @@ function openInitPanel(id){
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'+
         '<label class="field-label">Ranking Scores</label>'+
         '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="rank" onclick="panelDraftClaude(this)">&#9734; Suggest Scores</button></div>'+
-      buildScoreToggle(id,'impactScore','Impact',init.impactScore)+
-      buildScoreToggle(id,'effortScore','Effort',init.effortScore)+
+      '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #1a2035">Impact</div>'+
+      buildScoreToggle(id,'revImpact','Revenue',init.revImpact||0)+
+      buildScoreToggle(id,'marginImpact','Margin',init.marginImpact||0)+
+      buildScoreToggle(id,'brandImpact','Brand',init.brandImpact||0)+
+      '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;margin-top:4px;padding-bottom:4px;border-bottom:1px solid #1a2035">Level of Effort</div>'+
+      buildLOEToggle(id,'effortScore','Overall',init.effortScore||5)+
       buildLOEToggle(id,'designLOE','Design LOE',init.designLOE||0)+
       buildLOEToggle(id,'engLOE','Eng LOE',init.engLOE||0)+
 
@@ -1825,7 +1839,7 @@ function openInitOverview(id){
   if(id&&typeof id==='object')id=id.dataset?id.dataset.iid:id.getAttribute('data-iid');
   var init=state.initiatives.find(function(i){return i.id===id;});
   if(!init)return;
-  var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+  var p=getPriority(init);
   var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
   var g=state.grid;
   var row=g&&g.rows?g.rows.find(function(r){return r.id===id;}):null;
@@ -2436,7 +2450,7 @@ function renderMapping(){
       Object.keys(state.mappings).forEach(function(dName){
         if((state.mappings[dName]||[]).indexOf(init.id)>=0)mappedDrivers.push(dName);
       });
-      var p=getPriority(init.impactScore,init.effortScore,init.mvpScore);
+      var p=getPriority(init);
       var pColor=p==='HIGH'?'#c9a84c':p==='MED'?'#60a5fa':'#5a6480';
       var mappedCount=mappedDrivers.length;
       var rowBg=ii%2===0?'#0d1220':'#111827';
@@ -2632,29 +2646,32 @@ function unmapInit(btn){
   renderMapping();
 }
 
-var _scoreWeights={impact:50,ease:35,drivers:15};
+var _scoreWeights={rev:60,margin:20,brand:20,drivers:15};
 function claudePowerScore(init, allDrivers){
   var w=_scoreWeights;
-  var impact=init.impactScore||0;
-  var effort=init.effortScore||0;
-  var impactNorm=impact/9;
-  var easenorm=(9-effort)/9;
+  var rev=(init.revImpact||init.impactScore||0);
+  var margin=(init.marginImpact||0);
+  var brand=(init.brandImpact||0);
+  var effort=(init.effortScore||5);
+  var impactTotal=w.rev+w.margin+w.brand;
+  var impactNorm=(rev*(w.rev/impactTotal) + margin*(w.margin/impactTotal) + brand*(w.brand/impactTotal))/9;
+  var effortMod=effort<=3?1.0:effort<=6?1.3:1.7;
   var driverScore=allDrivers.reduce(function(s,d){
     var level=getMappingLevel(d,init.id);
     return s+(level==='primary'?1.0:level==='secondary'?0.4:0);
   },0);
   var driverNorm=allDrivers.length>0?Math.min(driverScore/allDrivers.length,1):0;
-  var driverCount=allDrivers.filter(function(d){return getMappingLevel(d,init.id)!=='none';}).length;
-  var total=w.impact+w.ease+w.drivers;
-  var score=Math.round((impactNorm*(w.impact/total) + easenorm*(w.ease/total) + driverNorm*(w.drivers/total))*100);
-  return score;
+  var driverWeight=w.drivers/(impactTotal+w.drivers);
+  var impactWeight=1-driverWeight;
+  var rawScore=(impactNorm*impactWeight + driverNorm*driverWeight)/effortMod;
+  return Math.min(100,Math.round(rawScore*100));
 }
 function updateScoreWeight(key,val){
   _scoreWeights[key]=Math.max(0,Math.min(100,+val));
-  var total=_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers;
-  document.getElementById('sw-pct-impact').textContent=Math.round(_scoreWeights.impact/total*100)+'%';
-  document.getElementById('sw-pct-ease').textContent=Math.round(_scoreWeights.ease/total*100)+'%';
-  document.getElementById('sw-pct-drivers').textContent=Math.round(_scoreWeights.drivers/total*100)+'%';
+  var impactTotal=_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand;
+  document.getElementById('sw-pct-rev').textContent=Math.round(_scoreWeights.rev/impactTotal*100)+'%';
+  document.getElementById('sw-pct-margin').textContent=Math.round(_scoreWeights.margin/impactTotal*100)+'%';
+  document.getElementById('sw-pct-brand').textContent=Math.round(_scoreWeights.brand/impactTotal*100)+'%';
   renderOutput();
 }
 function setManualPriority(sel){
@@ -2776,7 +2793,7 @@ function renderOutput(){
           ['Initiative','Impact','Effort','Launch Date','Key Drivers'].map(function(h){return'<th style="white-space:nowrap;padding:10px 14px">'+h+'</th>';}).join('')+'<th style="white-space:nowrap;padding:10px 14px">Claude Score <button onclick="showInfoModal(\'claude_score\')" style="background:#1e2638;border:none;color:#5a6480;border-radius:50%;width:14px;height:14px;font-size:9px;cursor:pointer;font-family:inherit;line-height:1;padding:0">?</button></th><th style="white-space:nowrap;padding:10px 14px">My Priority</th>'+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
         '<div style="padding:14px 22px;border-top:1px solid #1e2638;background:#0a0d14">'+
-          '<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Score Weights</div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#4ade80;width:52px">Impact</span><input type="range" min="0" max="100" value="'+_scoreWeights.impact+'" oninput="updateScoreWeight(\'impact\',this.value)" style="width:100px"><span id="sw-pct-impact" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.impact/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#fbbf24;width:52px">Ease</span><input type="range" min="0" max="100" value="'+_scoreWeights.ease+'" oninput="updateScoreWeight(\'ease\',this.value)" style="width:100px"><span id="sw-pct-ease" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.ease/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#a78bfa;width:52px">Drivers</span><input type="range" min="0" max="100" value="'+_scoreWeights.drivers+'" oninput="updateScoreWeight(\'drivers\',this.value)" style="width:100px"><span id="sw-pct-drivers" style="font-size:11px;color:#5a6480;width:32px">'+Math.round(_scoreWeights.drivers/(_scoreWeights.impact+_scoreWeights.ease+_scoreWeights.drivers)*100)+'%</span></div>'+'<div style="font-size:10px;color:#374151">Scores update live as you adjust</div>'+'</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center">'+'<div style="font-size:10px;color:#7a8499;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Impact Weights</div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#4ade80;width:68px">Revenue</span><input type="range" min="0" max="100" value="'+_scoreWeights.rev+'" oninput="updateScoreWeight(\'rev\',this.value)" style="width:90px"><span id="sw-pct-rev" style="font-size:11px;color:#5a6480;width:36px">'+Math.round(_scoreWeights.rev/(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#fbbf24;width:68px">Margin</span><input type="range" min="0" max="100" value="'+_scoreWeights.margin+'" oninput="updateScoreWeight(\'margin\',this.value)" style="width:90px"><span id="sw-pct-margin" style="font-size:11px;color:#5a6480;width:36px">'+Math.round(_scoreWeights.margin/(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)*100)+'%</span></div>'+'<div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#a78bfa;width:68px">Brand</span><input type="range" min="0" max="100" value="'+_scoreWeights.brand+'" oninput="updateScoreWeight(\'brand\',this.value)" style="width:90px"><span id="sw-pct-brand" style="font-size:11px;color:#5a6480;width:36px">'+Math.round(_scoreWeights.brand/(_scoreWeights.rev+_scoreWeights.margin+_scoreWeights.brand)*100)+'%</span></div>'+'<div style="font-size:10px;color:#374151">Effort penalty: Low=none · Med=-23% · High=-41%</div>'+'</div>'+
         '</div>'+
       '</div>'+
     '</div>';
