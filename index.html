@@ -784,6 +784,7 @@ function renderWsList(){
            +'<div style="display:flex;align-items:center;gap:6px">'
            +(isActive?'<span style="font-size:10px;font-weight:700;color:#4ade80;background:#0d3020;border:1px solid #4ade8033;padding:2px 8px;border-radius:10px">&#9679; Active</span>':'<span style="font-size:10px;color:#5a6480">Owner</span>')
            +'<button data-wsid="'+ws.id+'" data-wsname="'+esc(ws.name)+'" onclick="event.stopPropagation();duplicateWorkspace(this.dataset.wsid,this.dataset.wsname)" style="background:transparent;border:1px solid #1e2638;color:#7a8499;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600" title="Make a copy">&#10064; Copy</button>'
+           +(!isActive?'<button data-wsid="'+ws.id+'" data-wsname="'+esc(ws.name)+'" onclick="event.stopPropagation();deleteWorkspace(this.dataset.wsid,this.dataset.wsname)" style="background:transparent;border:1px solid #f8717133;color:#f87171;font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600" title="Delete workspace">&#128465; Delete</button>':'')
            +'</div>'
            +'</div>';
 
@@ -880,6 +881,18 @@ function submitNewWs(){
     });
 }
 
+
+function deleteWorkspace(wsId, wsName){
+  if(!confirm('Delete "'+wsName+'"? This cannot be undone — all data will be permanently lost.'))return;
+  if(!confirm('Are you sure? All initiatives, mappings, and data in "'+wsName+'" will be deleted forever.'))return;
+  sb.from('workspace_members').delete().eq('workspace_id',wsId).then(function(){
+    sb.from('workspaces').delete().eq('id',wsId).eq('owner_id',currentUser.id).then(function(r){
+      if(r.error){toast('Delete failed: '+r.error.message,'error');return;}
+      toast('"'+wsName+'" deleted');
+      renderWsList();
+    });
+  });
+}
 function duplicateWorkspace(wsId, wsName){
   var newName = prompt('Name for your copy:', 'Copy of ' + wsName);
   if(!newName || !newName.trim()) return;
