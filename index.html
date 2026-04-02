@@ -2715,21 +2715,23 @@ function showInfoModal(key){
   var infos={
     priority:{
       title:'Initiative Priority',
-      body:'Priority is calculated from your Impact and Effort scores:<br><br>'+
-           '<strong style="color:#e8e4d9">Formula:</strong> Impact × 2 − Effort<br><br>'+
-           '<span style="color:#c9a84c">● HIGH</span> → score ≥ 10 (e.g. High Impact + Low Effort)<br>'+
-           '<span style="color:#60a5fa">● MED</span> → score ≥ 4<br>'+
-           '<span style="color:#5a6480">● LOW</span> → score &lt; 4<br><br>'+
-           'Set Impact and Effort on each initiative card using the Low / Med / High toggles.'
+      body:'Priority is calculated from Revenue, Margin, and Brand Impact weighted scores, divided by an Effort modifier:<br><br>'+
+           '<strong style="color:#e8e4d9">Impact Score</strong> = (Revenue×60% + Margin×20% + Brand×20%) / 9<br>'+
+           '<strong style="color:#e8e4d9">Effort Modifier</strong> = Low ×1.0 · Med ×1.3 · High ×1.7<br>'+
+           '<strong style="color:#e8e4d9">Final Score</strong> = Impact Score ÷ Effort Modifier × 100<br><br>'+
+           '<span style="color:#c9a84c">● HIGH</span> → score ≥ 55<br>'+
+           '<span style="color:#60a5fa">● MED</span> → score ≥ 30<br>'+
+           '<span style="color:#5a6480">● LOW</span> → score &lt; 30<br><br>'+
+           'Set Revenue, Margin, Brand, and Effort on each initiative using the toggles in the detail panel.'
     },
     claude_score:{
-      title:'Claude Power Score (0–100)',
+      title:'Claude Power Score (0–90)',
       body:'The Claude Score ranks initiatives by strategic value using three weighted factors:<br><br>'+
-           '<span style="color:#4ade80">● Impact</span> → how much business value does this create? (default 50%)<br>'+
-           '<span style="color:#fbbf24">● Ease</span> → lower effort = higher score (default 35%)<br>'+
-           '<span style="color:#a78bfa">● Drivers</span> → how many strategic drivers does it touch? (default 15%)<br><br>'+
-           'A High Impact + Low Effort + many drivers initiative scores highest.<br><br>'+
-           'Adjust the weights at the bottom of the Output tab to reflect your priorities.'
+           '<span style="color:#4ade80">● Revenue Impact</span> (default 60%) → direct top-line effect on customers, orders &amp; subscription revenue<br>'+
+           '<span style="color:#fbbf24">● Margin Impact</span> (default 20%) → effect on unit economics, CAC, COGS, or LTV<br>'+
+           '<span style="color:#a78bfa">● Brand Impact</span> (default 20%) → differentiation, trust, and perception<br>'+
+           '<span style="color:#60a5fa">● Effort Modifier</span> → Low = no penalty · Med = −23% · High = −41%<br><br>'+
+           'Edit weights on the Output tab — must total 100%.<br><br>'+
     },
     high_priority:{
       title:'High Priority Count',
