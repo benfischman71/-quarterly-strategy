@@ -2996,6 +2996,22 @@ function gridCellClick(td){
 }
 function closeScoreGrid(){var m=document.getElementById('score-grid-modal');if(m)m.remove();}
 function openScoreGrid(){
+  // Migrate old scores (stored directly on init) into userScores for current user
+  var scoreKeys=['revImpact','marginImpact','brandImpact','effortScore','designLOE','engLOE'];
+  var uid=currentUser.id;
+  var uname=(currentUser.user_metadata&&currentUser.user_metadata.name)||currentUser.email.split('@')[0];
+  var migrated=false;
+  state.initiatives.forEach(function(init){
+    var hasOldScore=scoreKeys.some(function(k){return init[k]&&init[k]>0;});
+    var hasUserScore=init.userScores&&init.userScores[uid];
+    if(hasOldScore&&!hasUserScore){
+      if(!init.userScores)init.userScores={};
+      init.userScores[uid]={uid:uid,name:uname};
+      scoreKeys.forEach(function(k){if(init[k])init.userScores[uid][k]=init[k];});
+      migrated=true;
+    }
+  });
+  if(migrated)scheduleSave();
   var active=state.initiatives.filter(function(i){return i.status==='active';});
   var FIELDS=[
     {key:'revImpact',label:'Rev',colors:['#60a5fa','#fbbf24','#4ade80']},
