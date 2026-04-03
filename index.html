@@ -2053,13 +2053,25 @@ function panelDraftClaude(el){
   } else if(type==='rank'){
     prompt='Rate this initiative "'+init.title+'" on two dimensions. Use only Low/Med/High. Format exactly:\nImpact: Low|Med|High - one sentence reason\nEffort: Low|Med|High - one sentence reason\n\nImpact = business value. Effort = complexity (High effort = harder). Description: '+init.description;
   }
-  askClaude(prompt,el.id||'btn-draft',boxId,function(text){
-    var box=document.getElementById(boxId);
-    if(box){box.innerHTML='<div style="font-size:10px;color:#a78bfa;margin-bottom:4px">&#9734; Click to apply</div>'+esc(text).replace(/\n/g,'<br>');box.style.display='block';}
-  });
   el.disabled=true;
   var box=document.getElementById(boxId);
-  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';}
+  var boxField=box?box.getAttribute('data-field'):'';
+  var boxIid=box?box.getAttribute('data-iid'):'';
+  if(box){box.innerHTML='<div style="color:#a78bfa;font-size:12px">&#9734; Thinking...</div>';box.style.display='block';box.onclick=null;box.style.cursor='default';}
+  askClaude(prompt,el.id||'btn-draft',boxId,function(text){
+    el.disabled=false;
+    if(!box)return;
+    var taId='claude-edit-'+boxId;
+    box.innerHTML=
+      '<div style="font-size:10px;color:#a78bfa;font-weight:700;letter-spacing:.08em;margin-bottom:6px">&#9734; CLAUDE — Edit below then Apply</div>'+
+      '<textarea id="'+taId+'" style="width:100%;background:#0a0814;border:1px solid #a78bfa44;border-radius:6px;color:#e8e4d9;font-size:13px;font-family:inherit;padding:8px 10px;resize:vertical;min-height:80px;outline:none;box-sizing:border-box;line-height:1.6">'+text.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>'+
+      '<div style="display:flex;gap:6px;margin-top:6px">'+
+        '<button data-taid="'+taId+'" data-iid="'+boxIid+'" data-field="'+boxField+'" onclick="applyClaudeEdit(this)" style="background:#a78bfa;border:none;color:#fff;font-size:11px;font-weight:700;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit">&#10003; Apply</button>'+
+        '<button onclick="var b=this.parentElement.parentElement;if(b)b.style.display=\'none\'" style="background:transparent;border:1px solid #1e2638;color:#5a6480;font-size:11px;padding:5px 10px;border-radius:5px;cursor:pointer;font-family:inherit">Discard</button>'+
+      '</div>';
+    box.style.cursor='default';
+    box.onclick=null;
+  });
 }
 function panelFileDrop(event,el){
   event.preventDefault();
@@ -2198,6 +2210,30 @@ function panelFileUpload(input){
   input.value='';
 }
 
+
+function applyClaudeEdit(btn){
+  var taId=btn.getAttribute('data-taid');
+  var id=btn.getAttribute('data-iid');
+  var field=btn.getAttribute('data-field');
+  var ta=document.getElementById(taId);
+  if(!ta||!id||!field)return;
+  var text=ta.value.trim();
+  updateInit(id,field,text);
+  // Update the textarea in the panel
+  var viewType=field==='shortDescription'?'short':'full';
+  var viewEl=document.getElementById(viewType+'-view-'+id);
+  var editEl=document.getElementById(viewType+'-edit-'+id);
+  var panelTa=document.querySelector('textarea[data-iid="'+id+'"][data-field="'+field+'"]');
+  if(panelTa){panelTa.value=text;}
+  if(viewEl)viewEl.style.display='none';
+  if(editEl)editEl.style.display='block';
+  // Show applied confirmation
+  var box=btn.closest('.claude-box');
+  if(box){
+    box.innerHTML='<div style="font-size:10px;color:#4ade80;font-weight:700">&#10003; Applied — edit above in the field</div>';
+    setTimeout(function(){box.style.display='none';},2000);
+  }
+}
 function panelApplyClaude(el){
   var id=el.getAttribute('data-iid');
   var field=el.getAttribute('data-field');
@@ -2206,22 +2242,23 @@ function panelApplyClaude(el){
   var hdr=clone.querySelector('div');
   if(hdr)hdr.remove();
   var text=(clone.innerText||clone.textContent||'').trim();
-  // Normalize bullets to always start on new lines
   text=text.replace(/\s*•/g,'\n•').replace(/^\n/,'').trim();
   if(!text)text=el.innerText.replace('✦ Click to apply','').replace('Click to apply','').replace('✦ Click to apply to Short','').trim();
   updateInit(id,field,text);
-  // Update textarea if in edit mode
-  var ta=document.querySelector('[data-iid="'+id+'"][data-field="'+field+'"]');
-  if(ta&&ta.tagName==='TEXTAREA')ta.value=text;
-  // Update view div if in view mode
+  // Always open the textarea in edit mode so user can immediately edit
   var viewType=field==='shortDescription'?'short':'full';
   var viewEl=document.getElementById(viewType+'-view-'+id);
-  if(viewEl){viewEl.innerHTML=esc(text)+'<span style="float:right;font-size:10px;color:#5a6480;margin-top:2px">&#9998; Edit</span>';viewEl.style.display='block';}
   var editEl=document.getElementById(viewType+'-edit-'+id);
-  if(editEl)editEl.style.display='none';
-  // Hide the claude response box
-  el.style.display='none';
-  toast('Applied!');
+  var ta=document.querySelector('textarea[data-iid="'+id+'"][data-field="'+field+'"]');
+  if(ta){ta.value=text;ta.style.borderColor='#c9a84c44';}
+  if(viewEl)viewEl.style.display='none';
+  if(editEl)editEl.style.display='block';
+  // Change the claude box to a subtle "applied" confirmation instead of hiding
+  el.style.cursor='default';
+  el.onclick=null;
+  var hdrEl=el.querySelector('div');
+  if(hdrEl){hdrEl.style.color='#4ade80';hdrEl.textContent='✓ Applied — edit below';}
+  el.style.opacity='0.5';
 }
 
 function scoreLabel(v){return v<=3?'Low':v<=6?'Med':'High';}
