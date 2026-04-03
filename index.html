@@ -2970,13 +2970,20 @@ function openScoreGrid(){
 
   // Build header — Initiative | [for each scorer: Rev Margin Brand Effort EngLOE]
   var colWidth=44;
-  var scorerHeaderCells=scorers.map(function(s){
+  var personColors=['#c9a84c','#60a5fa','#4ade80','#a78bfa','#f87171','#fbbf24','#5eead4'];
+  var scorerHeaderCells=scorers.map(function(s,si){
     var isMe=s.uid===currentUser.id;
-    return '<th colspan="'+FIELDS.length+'" style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:'+(isMe?'#c9a84c':'#7a8499')+';border-bottom:2px solid '+(isMe?'#c9a84c44':'#1e2638')+';white-space:nowrap">'+esc(s.name)+(isMe?' <span style="font-size:9px">(you)</span>':'')+'</th>';
+    var pc=isMe?'#c9a84c':personColors[si%personColors.length];
+    return '<th colspan="'+FIELDS.length+'" style="padding:10px 6px 8px;text-align:center;font-size:11px;font-weight:700;color:'+pc+';border-left:2px solid '+pc+'44;border-bottom:2px solid '+pc+'66;background:'+pc+'08;white-space:nowrap">'+esc(s.name)+(isMe?' <span style="font-size:9px;opacity:.7">(you)</span>':'')+'</th>';
   }).join('');
 
-  var fieldHeaderCells=scorers.map(function(){
-    return FIELDS.map(function(f){return '<th style="padding:4px 2px;text-align:center;font-size:9px;font-weight:700;color:#374151;letter-spacing:.06em;min-width:'+colWidth+'px">'+f.label+'</th>';}).join('');
+  var fieldHeaderCells=scorers.map(function(s,si){
+    var isMe=s.uid===currentUser.id;
+    var pc=isMe?'#c9a84c':personColors[si%personColors.length];
+    return FIELDS.map(function(f,fi){
+      var borderLeft=fi===0?'border-left:2px solid '+pc+'44;':'';
+      return '<th style="padding:4px 2px;text-align:center;font-size:9px;font-weight:600;color:#5a6480;letter-spacing:.06em;min-width:'+colWidth+'px;'+borderLeft+'">'+f.label+'</th>';
+    }).join('');
   }).join('');
 
   // Build rows
@@ -2984,14 +2991,18 @@ function openScoreGrid(){
     var p=getPriority(init);
     var pColor={'HIGH':'#fbbf24','MED':'#60a5fa','LOW':'#374151'}[p]||'#374151';
     var rowBg=ri%2===0?'#0d1220':'#111827';
-    var cells=scorers.map(function(s){
-      var scores=s.uid===currentUser.id?null:(init.userScores&&init.userScores[s.uid]);
-      return FIELDS.map(function(f){
+    var cells=scorers.map(function(s,si){
+      var isMe=s.uid===currentUser.id;
+      var pc=isMe?'#c9a84c':personColors[si%personColors.length];
+      var scores=isMe?null:(init.userScores&&init.userScores[s.uid]);
+      return FIELDS.map(function(f,fi){
         var v;
-        if(s.uid===currentUser.id){v=getMyScore(init,f.key);}
+        if(isMe){v=getMyScore(init,f.key);}
         else{v=scores?scores[f.key]||0:0;}
         var fc=fieldColor(f.key,v);
-        return '<td style="text-align:center;padding:5px 2px;min-width:'+colWidth+'px"><span style="display:inline-block;width:32px;padding:2px 0;border-radius:4px;font-size:11px;font-weight:700;background:'+fc.b+';color:'+fc.c+'">'+( v>=3?lbl(v):'—')+'</span></td>';
+        var borderLeft=fi===0?'border-left:2px solid '+pc+'33;':'';
+        var bgColor=fi===0?'background:'+pc+'05;':'';
+        return '<td style="text-align:center;padding:5px 2px;min-width:'+colWidth+'px;'+borderLeft+bgColor+'"><span style="display:inline-block;width:32px;padding:2px 0;border-radius:4px;font-size:11px;font-weight:700;background:'+fc.b+';color:'+fc.c+'">'+( v>=3?lbl(v):'—')+'</span></td>';
       }).join('');
     }).join('');
     return '<tr style="background:'+rowBg+'">'+
