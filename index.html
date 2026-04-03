@@ -2873,7 +2873,10 @@ function renderOutput(){
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">'+
         '<div><div style="font-family:var(--font-serif);font-size:26px;color:#e8e4d9;margin-bottom:4px">'+state.overview.quarter+' Output</div>'+
         '<div style="font-size:13px;color:#7a8499">Initiative roadmap · Claude scoring · manual prioritization</div></div>'+
-        '<button class="btn btn-claude" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button class="btn btn-ghost" onclick="openScoreGrid()">&#9783; Score Grid</button>'+
+          '<button class="btn btn-claude" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
+        '</div>'+
       '</div>'+
       '<div id="ex-claude-box" style="display:none;margin-bottom:28px;background:#0d1220;border:1px solid #a78bfa33;border-radius:14px;padding:24px"></div>'+
       '<div class="grid-4" style="margin-bottom:28px">'+
@@ -2896,6 +2899,101 @@ function renderOutput(){
         '</div>'+
       '</div>'+
     '</div>';
+}
+
+function closeScoreGrid(){var m=document.getElementById('score-grid-modal');if(m)m.remove();}
+function openScoreGrid(){
+  var active=state.initiatives.filter(function(i){return i.status==='active';});
+  var FIELDS=[
+    {key:'revImpact',label:'Rev',colors:['#60a5fa','#fbbf24','#4ade80']},
+    {key:'marginImpact',label:'Margin',colors:['#60a5fa','#fbbf24','#4ade80']},
+    {key:'brandImpact',label:'Brand',colors:['#60a5fa','#fbbf24','#4ade80']},
+    {key:'effortScore',label:'Effort',colors:['#4ade80','#fbbf24','#f87171']},
+    {key:'engLOE',label:'Eng LOE',colors:['#4ade80','#fbbf24','#f87171']}
+  ];
+  function lbl(v){return v<=3?'L':v<=6?'M':'H';}
+  function fieldColor(key,v){
+    if(!v||v<3)return{c:'#374151',b:'transparent'};
+    var isEffort=key==='effortScore'||key==='engLOE'||key==='designLOE';
+    var colors=isEffort?['#4ade80','#fbbf24','#f87171']:['#60a5fa','#fbbf24','#4ade80'];
+    var c=v<=3?colors[0]:v<=6?colors[1]:colors[2];
+    return{c:c,b:c+'22'};
+  }
+
+  // Collect all scorers across all initiatives
+  var scorerMap={};
+  scorerMap[currentUser.id]={uid:currentUser.id,name:(currentUser.user_metadata&&currentUser.user_metadata.name)||currentUser.email.split('@')[0]};
+  active.forEach(function(init){
+    if(!init.userScores)return;
+    Object.keys(init.userScores).forEach(function(uid){
+      if(!scorerMap[uid])scorerMap[uid]={uid:uid,name:init.userScores[uid].name||'User'};
+    });
+  });
+  var scorers=[scorerMap[currentUser.id]].concat(Object.values(scorerMap).filter(function(v){return v.uid!==currentUser.id;}).sort(function(a,b){return a.name.localeCompare(b.name);}));
+
+  // Build header — Initiative | [for each scorer: Rev Margin Brand Effort EngLOE]
+  var colWidth=44;
+  var scorerHeaderCells=scorers.map(function(s){
+    var isMe=s.uid===currentUser.id;
+    return '<th colspan="'+FIELDS.length+'" style="padding:8px 6px;text-align:center;font-size:11px;font-weight:700;color:'+(isMe?'#c9a84c':'#7a8499')+';border-bottom:2px solid '+(isMe?'#c9a84c44':'#1e2638')+';white-space:nowrap">'+esc(s.name)+(isMe?' <span style="font-size:9px">(you)</span>':'')+'</th>';
+  }).join('');
+
+  var fieldHeaderCells=scorers.map(function(){
+    return FIELDS.map(function(f){return '<th style="padding:4px 2px;text-align:center;font-size:9px;font-weight:700;color:#374151;letter-spacing:.06em;min-width:'+colWidth+'px">'+f.label+'</th>';}).join('');
+  }).join('');
+
+  // Build rows
+  var rows=active.map(function(init,ri){
+    var p=getPriority(init);
+    var pColor={'HIGH':'#fbbf24','MED':'#60a5fa','LOW':'#374151'}[p]||'#374151';
+    var rowBg=ri%2===0?'#0d1220':'#111827';
+    var cells=scorers.map(function(s){
+      var scores=s.uid===currentUser.id?null:(init.userScores&&init.userScores[s.uid]);
+      return FIELDS.map(function(f){
+        var v;
+        if(s.uid===currentUser.id){v=getMyScore(init,f.key);}
+        else{v=scores?scores[f.key]||0:0;}
+        var fc=fieldColor(f.key,v);
+        return '<td style="text-align:center;padding:5px 2px;min-width:'+colWidth+'px"><span style="display:inline-block;width:32px;padding:2px 0;border-radius:4px;font-size:11px;font-weight:700;background:'+fc.b+';color:'+fc.c+'">'+( v>=3?lbl(v):'—')+'</span></td>';
+      }).join('');
+    }).join('');
+    return '<tr style="background:'+rowBg+'">'+
+      '<td style="padding:8px 12px;font-size:12px;font-weight:600;color:#e8e4d9;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;position:sticky;left:0;background:'+rowBg+';z-index:1">'+
+        '<span style="font-size:9px;font-weight:800;padding:1px 5px;border-radius:4px;background:'+pColor+'22;color:'+pColor+';margin-right:5px">'+p+'</span>'+
+        esc(init.title)+
+      '</td>'+cells+'</tr>';
+  }).join('');
+
+  var legend='<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'+
+    '<span style="font-size:10px;color:#5a6480;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Legend</span>'+
+    '<span style="font-size:11px"><span style="background:#60a5fa22;color:#60a5fa;padding:1px 6px;border-radius:3px;font-weight:700">L</span> Low</span>'+
+    '<span style="font-size:11px"><span style="background:#fbbf2422;color:#fbbf24;padding:1px 6px;border-radius:3px;font-weight:700">M</span> Med</span>'+
+    '<span style="font-size:11px"><span style="background:#4ade8022;color:#4ade80;padding:1px 6px;border-radius:3px;font-weight:700">H</span> High (Impact)</span>'+
+    '<span style="font-size:11px"><span style="background:#f8717122;color:#f87171;padding:1px 6px;border-radius:3px;font-weight:700">H</span> High (Effort)</span>'+
+    '<span style="font-size:11px;color:#374151">— = not scored</span>'+
+  '</div>';
+
+  var modal=document.createElement('div');
+  modal.id='score-grid-modal';
+  modal.style.cssText='position:fixed;inset:0;background:#080d16ee;z-index:9999;display:flex;flex-direction:column;overflow:hidden';
+  modal.innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid #1e2638;background:#0d1220;flex-shrink:0">'+
+      '<div style="font-family:Georgia,serif;font-size:20px;color:#e8e4d9">Team Score Grid</div>'+
+      '<div style="display:flex;align-items:center;gap:16px">'+
+        legend+
+        '<button onclick="closeScoreGrid()" style="background:none;border:1px solid #1e2638;color:#7a8499;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit">Close</button>'+
+      '</div>'+
+    '</div>'+
+    '<div style="overflow:auto;flex:1;padding:0">'+
+      '<table style="border-collapse:collapse;width:100%;font-family:inherit">'+
+        '<thead style="position:sticky;top:0;z-index:2;background:#0a0d14">'+
+          '<tr><th style="padding:8px 12px;text-align:left;position:sticky;left:0;background:#0a0d14;z-index:3;min-width:220px;font-size:10px;color:#5a6480;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Initiative</th>'+scorerHeaderCells+'</tr>'+
+          '<tr><th style="position:sticky;left:0;background:#0a0d14;z-index:3"></th>'+fieldHeaderCells+'</tr>'+
+        '</thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table>'+
+    '</div>';
+  document.body.appendChild(modal);
 }
 function execSummaryClaude(){
   var summ=state.initiatives.map(function(i){return i.title+' ('+i.status+'): Impact='+i.impactScore+', Launch='+(i.launchDate||'TBD')+', Expected='+(i.expectedImpact||'TBD');}).join('\n');
