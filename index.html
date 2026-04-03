@@ -1681,9 +1681,9 @@ function renderInitiatives(){
       (init.owner?'<div style="font-size:11px;color:#c9a84c;font-weight:600;margin-bottom:6px;margin-top:-4px">&#128100; '+esc(init.owner)+'</div>':'')+
       '<div class="init-desc">'+esc(init.shortDescription||init.description||'No description yet.')+'</div>'+
       '<div style="margin-bottom:12px">'+
-        (init.revImpact>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Rev Impact</span><span style="font-size:12px;font-weight:700;color:'+(init.revImpact<=3?'#60a5fa':init.revImpact<=6?'#fbbf24':'#4ade80')+'">'+(init.revImpact<=3?'Low':init.revImpact<=6?'Med':'High')+'</span></div>':'')+
-        (init.marginImpact>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Margin Impact</span><span style="font-size:12px;font-weight:700;color:'+(init.marginImpact<=3?'#60a5fa':init.marginImpact<=6?'#fbbf24':'#4ade80')+'">'+(init.marginImpact<=3?'Low':init.marginImpact<=6?'Med':'High')+'</span></div>':'')+
-        (init.brandImpact>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Brand Impact</span><span style="font-size:12px;font-weight:700;color:'+(init.brandImpact<=3?'#60a5fa':init.brandImpact<=6?'#fbbf24':'#4ade80')+'">'+(init.brandImpact<=3?'Low':init.brandImpact<=6?'Med':'High')+'</span></div>':'')+
+        (getMyScore(init,'revImpact')>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Rev Impact</span><span style="font-size:12px;font-weight:700;color:'+(getMyScore(init,'revImpact')<=3?'#60a5fa':getMyScore(init,'revImpact')<=6?'#fbbf24':'#4ade80')+'">'+(getMyScore(init,'revImpact')<=3?'Low':getMyScore(init,'revImpact')<=6?'Med':'High')+'</span></div>':'')+
+        (getMyScore(init,'marginImpact')>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Margin Impact</span><span style="font-size:12px;font-weight:700;color:'+(getMyScore(init,'marginImpact')<=3?'#60a5fa':getMyScore(init,'marginImpact')<=6?'#fbbf24':'#4ade80')+'">'+(getMyScore(init,'marginImpact')<=3?'Low':getMyScore(init,'marginImpact')<=6?'Med':'High')+'</span></div>':'')+
+        (getMyScore(init,'brandImpact')>=3?'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035"><span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Brand Impact</span><span style="font-size:12px;font-weight:700;color:'+(getMyScore(init,'brandImpact')<=3?'#60a5fa':getMyScore(init,'brandImpact')<=6?'#fbbf24':'#4ade80')+'">'+(getMyScore(init,'brandImpact')<=3?'Low':getMyScore(init,'brandImpact')<=6?'Med':'High')+'</span></div>':'')+
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1a2035">'+
           '<span style="font-size:10px;color:#5a6480;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Effort</span>'+
           '<span style="font-size:12px;font-weight:700;color:'+(init.effortScore<=3?'#4ade80':init.effortScore<=6?'#fbbf24':'#f87171')+'">'+( init.effortScore<=3?'Low':init.effortScore<=6?'Med':'High')+'</span>'+
@@ -1789,13 +1789,13 @@ function openInitPanel(id){
         '<label class="field-label">Ranking Scores</label>'+
         '<button class="btn btn-claude btn-sm" data-iid="'+id+'" data-type="rank" onclick="panelDraftClaude(this)">&#9734; Suggest Scores</button></div>'+
       '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #1a2035">Impact</div>'+
-      buildScoreToggle(id,'revImpact','Revenue',init.revImpact||0)+
-      buildScoreToggle(id,'marginImpact','Margin',init.marginImpact||0)+
-      buildScoreToggle(id,'brandImpact','Brand',init.brandImpact||0)+
+      buildScoreToggle(id,'revImpact','Revenue',0,init)+
+      buildScoreToggle(id,'marginImpact','Margin',0,init)+
+      buildScoreToggle(id,'brandImpact','Brand',0,init)+
       '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;margin-top:4px;padding-bottom:4px;border-bottom:1px solid #1a2035">Level of Effort</div>'+
-      buildLOEToggle(id,'effortScore','Overall',init.effortScore||5)+
-      buildLOEToggle(id,'designLOE','Design LOE',init.designLOE||0)+
-      buildLOEToggle(id,'engLOE','Eng LOE',init.engLOE||0)+
+      buildLOEToggle(id,'effortScore','Overall',0,init)+
+      buildLOEToggle(id,'designLOE','Design LOE',0,init)+
+      buildLOEToggle(id,'engLOE','Eng LOE',0,init)+
 
       '<div id="claude-rank-'+id+'" class="claude-box" style="display:none"></div>'+
       '<div style="margin-top:12px;padding:10px 14px;background:#0d1220;border-radius:8px;border:1px solid #1e2638">'+
@@ -2227,23 +2227,28 @@ function panelApplyClaude(el){
 function scoreLabel(v){return v<=3?'Low':v<=6?'Med':'High';}
 function scoreColor(v){return v<=3?'#60a5fa':v<=6?'#fbbf24':'#4ade80';}
 
-function buildLOEToggle(id,key,label,val){
-  var v=val||0;
+function buildLOEToggle(id,key,label,val,init){
+  var v=init?getMyScore(init,key):val||0;
   var opts=[{l:'Low',v:3,c:'#60a5fa'},{l:'Med',v:6,c:'#fbbf24'},{l:'High',v:9,c:'#f87171'}];
   var btns=opts.map(function(o){
     var active=v>0&&scoreLabel(v)===o.l;
     return '<button data-iid="'+id+'" data-key="'+key+'" data-val="'+o.v+'" onclick="setScoreToggle(this)" style="padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;border:1px solid '+(active?o.c:'#1e2638')+';background:'+(active?o.c+'22':'transparent')+';color:'+(active?o.c:'#5a6480')+'">'+o.l+'</button>';
   }).join('');
-  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:12px;color:#c8d4e8;width:70px;flex-shrink:0">'+label+'</span><div style="display:flex;gap:6px">'+btns+'</div></div>';
+  var others=init?getAllScorers(init).filter(function(u){return u[key]>=3;}):[]; 
+  var othersHtml=others.length?'<div style="display:flex;gap:4px;margin-left:8px;flex-wrap:wrap">'+others.map(function(u){var ov=u[key];var oc=ov<=3?'#60a5fa':ov<=6?'#fbbf24':'#f87171';return'<span style="font-size:9px;background:'+oc+'22;color:'+oc+';border-radius:4px;padding:2px 5px;white-space:nowrap">'+esc(u.name)+': '+(ov<=3?'Low':ov<=6?'Med':'High')+'</span>';}).join('')+'</div>':'';
+  return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap"><span style="font-size:12px;color:#c8d4e8;width:70px;flex-shrink:0">'+label+'</span><div style="display:flex;gap:6px">'+btns+'</div>'+othersHtml+'</div>';
 }
-function buildScoreToggle(id,key,label,val){
-  var v=val||0;
+function buildScoreToggle(id,key,label,val,init){
+  var v=init?getMyScore(init,key):val||0;
   var opts=[{l:'Low',v:3,c:'#60a5fa'},{l:'Med',v:6,c:'#fbbf24'},{l:'High',v:9,c:'#4ade80'}];
   var btns=opts.map(function(o){
-    var active=scoreLabel(v)===o.l;
+    var active=v>0&&scoreLabel(v)===o.l;
     return '<button data-iid="'+id+'" data-key="'+key+'" data-val="'+o.v+'" onclick="setScoreToggle(this)" style="padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;border:1px solid '+(active?o.c:'#1e2638')+';background:'+(active?o.c+'22':'transparent')+';color:'+(active?o.c:'#5a6480')+'">'+o.l+'</button>';
   }).join('');
-  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:12px;color:#c8d4e8;width:70px;flex-shrink:0">'+label+'</span><div style="display:flex;gap:6px">'+btns+'</div></div>';
+  // Other people's scores
+  var others=init?getAllScorers(init).filter(function(u){return u[key]>=3;}):[]; 
+  var othersHtml=others.length?'<div style="display:flex;gap:4px;margin-left:8px;flex-wrap:wrap">'+others.map(function(u){var ov=u[key];var oc=ov<=3?'#60a5fa':ov<=6?'#fbbf24':'#4ade80';return'<span style="font-size:9px;background:'+oc+'22;color:'+oc+';border-radius:4px;padding:2px 5px;white-space:nowrap">'+esc(u.name)+': '+(ov<=3?'Low':ov<=6?'Med':'High')+'</span>';}).join('')+'</div>':'';
+  return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap"><span style="font-size:12px;color:#c8d4e8;width:70px;flex-shrink:0">'+label+'</span><div style="display:flex;gap:6px">'+btns+'</div>'+othersHtml+'</div>';
 }
 function setScoreToggle(btn){
   var id=btn.dataset.iid;var key=btn.dataset.key;var val=+btn.dataset.val;
@@ -2258,10 +2263,32 @@ function setScoreToggle(btn){
 function buildSlider(id,key,label,color,val){
   return buildScoreToggle(id,key,label,val);
 }
+
+var _SCORE_KEYS=['revImpact','marginImpact','brandImpact','effortScore','designLOE','engLOE'];
+function getMyScore(init,key){
+  if(!currentUser)return init[key]||0;
+  var us=init.userScores&&init.userScores[currentUser.id];
+  if(us&&us[key]!==undefined)return us[key];
+  return init[key]||0; // backwards compat
+}
+function getAllScorers(init){
+  if(!init.userScores)return [];
+  return Object.values(init.userScores).filter(function(u){return u.uid!==currentUser.id;});
+}
 function updateInit(id,key,val){
   var init=state.initiatives.find(function(i){return i.id===id;});
   if(!init)return;
-  init[key]=val;
+  var scoreKeys=['revImpact','marginImpact','brandImpact','effortScore','designLOE','engLOE'];
+  if(scoreKeys.indexOf(key)>=0&&currentUser){
+    if(!init.userScores)init.userScores={};
+    var uid=currentUser.id;
+    var name=(currentUser.user_metadata&&currentUser.user_metadata.name)||currentUser.email.split('@')[0];
+    if(!init.userScores[uid])init.userScores[uid]={uid:uid,name:name};
+    init.userScores[uid][key]=val;
+    init[key]=val; // keep on init for backwards compat + scoring
+  } else {
+    init[key]=val;
+  }
   scheduleSave();
 }
 function deleteInit(id){
@@ -2660,10 +2687,10 @@ function unmapInit(btn){
 var _scoreWeights={rev:60,margin:20,brand:20,drivers:15};
 function claudePowerScore(init, allDrivers){
   var w=_scoreWeights;
-  var rev=(init.revImpact||init.impactScore||0);
-  var margin=(init.marginImpact||0);
-  var brand=(init.brandImpact||0);
-  var effort=(init.effortScore||5);
+  var rev=getMyScore(init,'revImpact')||init.impactScore||0;
+  var margin=getMyScore(init,'marginImpact');
+  var brand=getMyScore(init,'brandImpact');
+  var effort=getMyScore(init,'effortScore')||5;
   var impactTotal=w.rev+w.margin+w.brand;
   var impactNorm=(rev*(w.rev/impactTotal) + margin*(w.margin/impactTotal) + brand*(w.brand/impactTotal))/9;
   var effortMod=effort<=3?1.0:effort<=6?1.3:1.7;
