@@ -2938,6 +2938,62 @@ function renderOutput(){
     '</div>';
 }
 
+
+function gridCellClick(td){
+  var id=td.dataset.iid;
+  var key=td.dataset.key;
+  var next=+td.dataset.next;
+  updateInit(id,key,next);
+  // Refresh just this cell visually
+  var FIELDS_EFFORT=['effortScore','designLOE','engLOE'];
+  var isEffort=FIELDS_EFFORT.indexOf(key)>=0;
+  function lbl2(v){return v<=3?'L':v<=6?'M':'H';}
+  function fc2(k,v){
+    if(!v||v<3)return{c:'#374151',b:'transparent'};
+    var colors=isEffort?['#4ade80','#fbbf24','#f87171']:['#60a5fa','#fbbf24','#4ade80'];
+    var c=v<=3?colors[0]:v<=6?colors[1]:colors[2];
+    return{c:c,b:c+'22'};
+  }
+  var fc=fc2(key,next);
+  var nextNext=next<=0?3:next<=3?6:next<=6?9:0;
+  td.dataset.next=nextNext;
+  var span=td.querySelector('span');
+  if(span){
+    span.style.background=fc.b;
+    span.style.color=fc.c;
+    span.style.outline=next>=3?'none':'1px dashed #1e2638';
+    span.textContent=next>=3?lbl2(next):'—';
+  }
+}
+
+function gridCellClick(td){
+  var id=td.dataset.iid;
+  var key=td.dataset.key;
+  var cur=getMyScore(state.initiatives.find(function(i){return i.id===id;})||{},key)||0;
+  var next=cur===0?3:cur===3?6:cur===6?9:0;
+  updateInit(id,key,next);
+  // Re-render just this cell visually
+  var isEffort=key==='effortScore'||key==='engLOE'||key==='designLOE';
+  function lbl(v){return v<=3?'L':v<=6?'M':'H';}
+  function fc(v){
+    if(!v||v<3)return{c:'#5a6480',b:'transparent'};
+    var c=isEffort?(v<=3?'#4ade80':v<=6?'#fbbf24':'#f87171'):(v<=3?'#60a5fa':v<=6?'#fbbf24':'#4ade80');
+    return{c:c,b:c+'22'};
+  }
+  var f=fc(next);
+  td.innerHTML='<span style="display:inline-block;width:32px;padding:2px 0;border-radius:4px;font-size:11px;font-weight:700;background:'+f.b+';color:'+f.c+';border:1px solid '+(next>=3?f.c+'55':'#2a3450')+'">'+(next>=3?lbl(next):'—')+'</span>';
+  // Also update priority badge in same row
+  var row=td.closest('tr');
+  if(row){
+    var init=state.initiatives.find(function(i){return i.id===id;});
+    if(init){
+      var p=getPriority(init);
+      var pColor={'HIGH':'#fbbf24','MED':'#60a5fa','LOW':'#374151'}[p]||'#374151';
+      var badge=row.querySelector('span[style*="border-radius:4px"]');
+      if(badge){badge.style.background=pColor+'22';badge.style.color=pColor;badge.textContent=p;}
+    }
+  }
+}
 function closeScoreGrid(){var m=document.getElementById('score-grid-modal');if(m)m.remove();}
 function openScoreGrid(){
   var active=state.initiatives.filter(function(i){return i.status==='active';});
@@ -3002,6 +3058,12 @@ function openScoreGrid(){
         var fc=fieldColor(f.key,v);
         var borderLeft=fi===0?'border-left:2px solid '+pc+'33;':'';
         var bgColor=fi===0?'background:'+pc+'05;':'';
+        if(isMe){
+          var nextVal=v<=0?3:v<=3?6:v<=6?9:0; // cycle: unset→L→M→H→unset
+          var hint=v<=0?'Click to set':'Click to change';
+          return '<td style="text-align:center;padding:5px 2px;min-width:'+colWidth+'px;'+borderLeft+bgColor+'cursor:pointer" title="'+hint+': '+(v>=3?lbl(v):'not set')+'" data-iid="'+init.id+'" data-key="'+f.key+'" data-next="'+nextVal+'" onclick="gridCellClick(this)">'+
+            '<span style="display:inline-block;width:32px;padding:2px 0;border-radius:4px;font-size:11px;font-weight:700;background:'+fc.b+';color:'+fc.c+';transition:all .1s;outline:'+(v>=3?'none':'1px dashed #1e2638')+'">'+( v>=3?lbl(v):'—')+'</span></td>';
+        }
         return '<td style="text-align:center;padding:5px 2px;min-width:'+colWidth+'px;'+borderLeft+bgColor+'"><span style="display:inline-block;width:32px;padding:2px 0;border-radius:4px;font-size:11px;font-weight:700;background:'+fc.b+';color:'+fc.c+'">'+( v>=3?lbl(v):'—')+'</span></td>';
       }).join('');
     }).join('');
@@ -3026,7 +3088,10 @@ function openScoreGrid(){
   modal.style.cssText='position:fixed;inset:0;background:#080d16ee;z-index:9999;display:flex;flex-direction:column;overflow:hidden';
   modal.innerHTML=
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid #1e2638;background:#0d1220;flex-shrink:0">'+
-      '<div style="font-family:Georgia,serif;font-size:20px;color:#e8e4d9">Team Score Grid</div>'+
+      '<div>'+
+        '<div style="font-family:Georgia,serif;font-size:20px;color:#e8e4d9;margin-bottom:2px">Team Score Grid</div>'+
+        '<div style="font-size:11px;color:#c9a84c">&#9654; Click any cell in your column to set your score &nbsp;·&nbsp; Cycles: — → L → M → H → —</div>'+
+      '</div>'+
       '<div style="display:flex;align-items:center;gap:16px">'+
         legend+
         '<button onclick="closeScoreGrid()" style="background:none;border:1px solid #1e2638;color:#7a8499;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit">Close</button>'+
@@ -3036,6 +3101,7 @@ function openScoreGrid(){
       '<table style="border-collapse:collapse;width:100%;font-family:inherit">'+
         '<thead style="position:sticky;top:0;z-index:2;background:#0a0d14">'+
           '<tr><th style="padding:8px 12px;text-align:left;position:sticky;left:0;background:#0a0d14;z-index:3;min-width:220px;font-size:10px;color:#5a6480;font-weight:700;text-transform:uppercase;letter-spacing:.1em">Initiative</th>'+scorerHeaderCells+'</tr>'+
+          '<tr><td colspan="100" style="padding:6px 12px;font-size:10px;color:#374151;background:#0a0d14;border-bottom:1px solid #1e2638">Your columns are clickable — click a cell to cycle Low → Med → High → unset. Others see their own cells.</td></tr>'+
           '<tr><th style="position:sticky;left:0;background:#0a0d14;z-index:3"></th>'+fieldHeaderCells+'</tr>'+
         '</thead>'+
         '<tbody>'+rows+'</tbody>'+
