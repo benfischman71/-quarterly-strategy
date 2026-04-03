@@ -3804,11 +3804,37 @@ function renderOrg(){
   var cards=deptHires.length?deptHires.map(function(hire,idx){
     var uColor=urgColors[hire.priority]||'#5a6480';
     var sColor=statusColors[hire.status]||'#5a6480';
-    return '<div style="background:#111827;border:1px solid #1e2638;border-top:3px solid '+uColor+';border-radius:14px;padding:22px 24px;position:relative">'+
+    var cardId='org-card-'+idx+'-'+activeDept.replace(/[^a-z0-9]/gi,'_');
+    var isEditing=state._orgEditing&&state._orgEditing[cardId];
+    // VIEW MODE
+    var viewHtml=
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'+
+        '<div>'+
+          '<div style="font-size:18px;font-weight:700;color:#e8e4d9;margin-bottom:6px">'+(hire.role||'<span style="color:#374151">Untitled Role</span>')+'</div>'+
+          '<div style="display:flex;gap:8px;align-items:center">'+
+            '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;background:'+uColor+'22;color:'+uColor+'">'+esc(hire.priority||'Critical')+'</span>'+
+            '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+sColor+'22;color:'+sColor+'">'+esc(hire.status||'Open')+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:6px">'+
+          '<button data-cardid="'+cardId+'" onclick="orgStartEdit(this.dataset.cardid)" style="background:transparent;border:1px solid #1e2638;color:#7a8499;font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit">&#9998; Edit</button>'+
+          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="orgDeleteHire(this)" class="ai-del-btn">&times;</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">'+
+        '<div><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px">Hiring Manager</div>'+
+          '<div style="font-size:13px;color:#c9a84c;font-weight:600">'+(hire.manager||'<span style="color:#374151">Not set</span>')+'</div></div>'+
+        '<div><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px">Must Start By</div>'+
+          '<div style="font-size:13px;color:#60a5fa;font-weight:600">'+(hire.startBy||'<span style="color:#374151">Not set</span>')+'</div></div>'+
+      '</div>'+
+      (hire.why?'<div style="margin-bottom:14px"><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Why Critical</div><div style="font-size:13px;color:#c8d4e8;line-height:1.6">'+esc(hire.why)+'</div></div>':'')+
+      (hire.atRisk?'<div><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px">Initiatives at Risk</div><div style="font-size:12px;color:#f87171;font-weight:600">'+esc(hire.atRisk)+'</div></div>':'');
+    // EDIT MODE
+    var editHtml=
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">'+
         '<div style="flex:1;margin-right:12px">'+
           '<input value="'+esc(hire.role||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="role" oninput="orgUpdateField(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px solid #1e2638;color:#e8e4d9;font-size:17px;font-weight:700;width:100%;outline:none;font-family:inherit;padding-bottom:4px" placeholder="Role / Title..." />'+
+          'style="background:transparent;border:none;border-bottom:1px solid #c9a84c44;color:#e8e4d9;font-size:17px;font-weight:700;width:100%;outline:none;font-family:inherit;padding-bottom:4px" placeholder="Role / Title..." />'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'+
           '<select data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="priority" onchange="orgUpdateField(this)" '+
@@ -3819,37 +3845,39 @@ function renderOrg(){
           'style="background:#0d1220;border:1px solid '+sColor+'44;border-radius:6px;color:'+sColor+';font-size:11px;font-weight:700;font-family:inherit;padding:4px 8px;outline:none;cursor:pointer">'+
           ['Open','In Process','Filled','Paused'].map(function(s){return'<option value="'+s+'"'+(hire.status===s?' selected':'')+'>'+s+'</option>';}).join('')+
           '</select>'+
-          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="orgDeleteHire(this)" class="ai-del-btn">&times;</button>'+
         '</div>'+
       '</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
-        '<div>'+
-          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Hiring Manager</div>'+
+        '<div><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Hiring Manager</div>'+
           '<input value="'+esc(hire.manager||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="manager" oninput="orgUpdateField(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#c9a84c;font-size:13px;width:100%;outline:none;font-family:inherit;padding-bottom:3px" placeholder="Name or team..." />'+
-        '</div>'+
-        '<div>'+
-          '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Must Start By</div>'+
+          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#c9a84c;font-size:13px;width:100%;outline:none;font-family:inherit;padding-bottom:3px" placeholder="Name or team..." /></div>'+
+        '<div><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Must Start By</div>'+
           '<input type="date" value="'+esc(hire.startBy||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="startBy" onchange="orgUpdateField(this)" '+
-          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#60a5fa;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px" />'+
-        '</div>'+
+          'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#60a5fa;font-size:13px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px" /></div>'+
       '</div>'+
       '<div style="margin-bottom:16px">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
           '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Why Critical — What They Unlock</div>'+
-          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-type="draft" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px">&#9734; Draft</button>'+
-          '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-type="clean" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+
+          '<div style="display:flex;gap:5px">'+
+            '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-type="draft" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px">&#9734; Draft</button>'+
+            '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-type="clean" onclick="orgDraftClaude(this)" class="btn btn-claude btn-sm" style="font-size:10px;background:#1a1040">&#9998; Clean</button>'+
+          '</div>'+
         '</div>'+
         '<textarea data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="why" oninput="orgUpdateField(this)" '+
-        'style="background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#c8d4e8;font-size:13px;width:100%;outline:none;font-family:inherit;padding:10px 12px;resize:none;line-height:1.6;min-height:72px;box-sizing:border-box" '+
-        'placeholder="What critical function does this person provide? What parts of the plan are blocked without them?">'+esc(hire.why||'')+'</textarea>'+
+        'style="background:#0d1220;border:1px solid #1e2638;border-radius:8px;color:#c8d4e8;font-size:13px;width:100%;outline:none;font-family:inherit;padding:10px 12px;resize:none;line-height:1.6;min-height:80px;box-sizing:border-box" '+
+        'placeholder="What critical function does this person provide?">'+esc(hire.why||'')+'</textarea>'+
         '<div id="org-claude-'+idx+'-'+esc(activeDept)+'" class="claude-box" style="display:none;margin-top:6px"></div>'+
       '</div>'+
-      '<div>'+
-        '<div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Initiatives at Risk Without This Hire</div>'+
+      '<div style="margin-bottom:16px"><div style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Initiatives at Risk Without This Hire</div>'+
         '<input value="'+esc(hire.atRisk||'')+'" data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" data-field="atRisk" oninput="orgUpdateField(this)" '+
-        'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#f87171;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px" placeholder="e.g. Shop All Redesign, CAC Reduction..." />'+
-      '</div>'+
+        'style="background:transparent;border:none;border-bottom:1px dashed #1a2035;color:#f87171;font-size:12px;font-weight:600;width:100%;outline:none;font-family:inherit;padding-bottom:3px" placeholder="e.g. Shop All Redesign, CAC Reduction..." /></div>'+
+      '<div style="display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid #1e2638">'+
+        '<button data-cardid="'+cardId+'" onclick="orgSaveCard(this.dataset.cardid)" style="background:#c9a84c;border:none;color:#0a0e1a;font-size:12px;font-weight:700;padding:7px 18px;border-radius:7px;cursor:pointer;font-family:inherit">&#10003; Save</button>'+
+        '<button data-cardid="'+cardId+'" onclick="orgCancelEdit(this.dataset.cardid)" style="background:transparent;border:1px solid #1e2638;color:#5a6480;font-size:12px;padding:7px 14px;border-radius:7px;cursor:pointer;font-family:inherit">Cancel</button>'+
+        '<button data-idx="'+idx+'" data-dept="'+esc(activeDept)+'" onclick="orgDeleteHire(this)" style="background:transparent;border:1px solid #f8717133;color:#f87171;font-size:12px;padding:7px 14px;border-radius:7px;cursor:pointer;font-family:inherit">Delete</button>'+
+      '</div>';
+    return '<div id="'+cardId+'" style="background:#111827;border:1px solid '+(isEditing?'#c9a84c44':'#1e2638')+';border-top:3px solid '+uColor+';border-radius:14px;padding:22px 24px;position:relative">'+
+      (isEditing?editHtml:viewHtml)+
     '</div>';
   }).join(''):
     '<div style="padding:40px;text-align:center;color:#5a6480;border:1px dashed #1e2638;border-radius:12px;font-size:13px">No critical hires defined for '+esc(activeDept)+' yet.</div>';
@@ -3889,6 +3917,24 @@ function renderOrg(){
       '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #1e2638">'+deptTabs+'</div>'+
       '<div style="display:flex;flex-direction:column;gap:16px">'+cards+'</div>'+
     '</div>';
+}
+
+function orgStartEdit(cardId){
+  if(!state._orgEditing)state._orgEditing={};
+  state._orgEditing[cardId]=true;
+  renderOrg();
+}
+function orgSaveCard(cardId){
+  if(!state._orgEditing)state._orgEditing={};
+  delete state._orgEditing[cardId];
+  scheduleSave();
+  renderOrg();
+  toast('Saved');
+}
+function orgCancelEdit(cardId){
+  if(!state._orgEditing)state._orgEditing={};
+  delete state._orgEditing[cardId];
+  renderOrg();
 }
 function orgSwitchDept(dept){state._orgDept=dept;renderOrg();}
 function orgAddHire(){
