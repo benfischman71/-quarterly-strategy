@@ -2915,7 +2915,7 @@ function renderOutput(){
           '<button class="btn btn-claude" id="btn-ex-claude" onclick="execSummaryClaude()">&#9734; Executive Summary</button>'+
         '</div>'+
       '</div>'+
-      '<div id="ex-claude-box" style="display:none;margin-bottom:28px;background:#0d1220;border:1px solid #a78bfa33;border-radius:14px;padding:24px"></div>'+
+      '<div id="ex-claude-box" style="display:none;margin-bottom:28px;background:#0d1220;border:1px solid #a78bfa33;border-radius:14px;padding:24px;color:#e8e4d9;font-size:14px;line-height:1.8"></div>'+
       '<div class="grid-4" style="margin-bottom:28px">'+
         [['Active Initiatives','','#c9a84c',active.length],['Total Expected Impact','','#4ade80','$'+(totalImpact>=1000000?(totalImpact/1000000).toFixed(1)+'M':totalImpact>=1000?Math.round(totalImpact/1000)+'K':'--')],['High Priority','high_priority','#fbbf24',highCount],['Drivers Covered','drivers_covered','#a78bfa',driversCov+' / '+allDrivers.length]].map(function(s){return'<div style="background:#111827;border:1px solid #1e2638;border-radius:14px;padding:18px 20px"><div style="display:flex;align-items:center;gap:5px;margin-bottom:8px"><span style="font-size:10px;color:#5a6480;font-weight:700;letter-spacing:.1em;text-transform:uppercase">'+s[0]+'</span>'+(s[1]?'<button onclick="showInfoModal(\''+s[1]+'\')" style="background:#1e2638;border:none;color:#5a6480;border-radius:50%;width:14px;height:14px;font-size:9px;cursor:pointer;font-family:inherit;line-height:1;padding:0;flex-shrink:0">?</button>':'')+'</div><div style="font-family:var(--font-serif);font-size:28px;font-weight:700;color:'+s[2]+'">'+s[3]+'</div></div>';}).join('')+
       '</div>'+
