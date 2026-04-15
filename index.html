@@ -2740,6 +2740,7 @@ function unmapInit(btn){
 }
 
 var _scoreWeights={rev:60,margin:20,brand:20,drivers:15};
+function loadScoreWeights(){if(state.scoreWeights){_scoreWeights.rev=state.scoreWeights.rev||60;_scoreWeights.margin=state.scoreWeights.margin||20;_scoreWeights.brand=state.scoreWeights.brand||20;}}
 function claudePowerScore(init, allDrivers){
   var w=_scoreWeights;
   // Same fallback logic as getPriority — use user scores only if actually set
@@ -2794,6 +2795,8 @@ function swSave(){
   var b=+document.getElementById('sw-in-brand').value||0;
   if(r+m+b!==100){alert('Weights must total 100%');return;}
   _scoreWeights.rev=r;_scoreWeights.margin=m;_scoreWeights.brand=b;
+  state.scoreWeights={rev:r,margin:m,brand:b};
+  scheduleSave();
   document.getElementById('sw-view').style.display='flex';
   document.getElementById('sw-edit').style.display='none';
   renderOutput();
@@ -2874,6 +2877,7 @@ function showInfoModal(key){
   document.body.appendChild(overlay);
 }
 function renderOutput(){
+  loadScoreWeights();
   var inits=state.initiatives;
   var active=inits.filter(function(i){return (!i.status||i.status==='active');});
   var allDrivers=Object.keys(state.mappings||{}).filter(function(k){return(state.mappings[k]||[]).length>0;});
