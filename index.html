@@ -660,6 +660,7 @@ var state = blankState('Q2 2026');
 function fmt$(n){var a=Math.abs(n);if(a>=1000000)return'$'+(n/1000000).toFixed(2)+'M';if(a>=1000)return'$'+Math.round(n/1000)+'K';return'$'+Math.round(n);}
 function fmtN(n,u){if(u==='$')return fmt$(n);if(u==='%')return n+'%';if(Math.abs(n)>=1000)return(n/1000).toFixed(1)+'K';return String(Math.round(n));}
 function getPriority(init){
+  if(!init)return'LOW';
   // Check if current user has actually set impact scores
   var userHasScores=false;
   var rev=0,margin=0,brand=0,effort=5;
